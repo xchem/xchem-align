@@ -45,9 +45,9 @@ class Processor:
     def _create_version_dir(self):
         version = 1
         while True:
-            v_dir = os.path.join(self.output_dir, 'v' + str(version))
+            v_dir = os.path.join(self.output_dir, 'upload_' + str(version))
             if os.path.exists(v_dir):
-                meta_file = os.path.join(self.output_dir, 'v' + str(version), _metadata_filename)
+                meta_file = os.path.join(self.output_dir, 'upload_' + str(version), _metadata_filename)
                 with open(meta_file, 'r') as stream:
                     try:
                         meta = yaml.safe_load(stream)
@@ -67,7 +67,7 @@ class Processor:
         else:
             # no new version so we must remove the latest one
             version -= 1
-            v_dir = os.path.join(self.output_dir, 'v' + str(version))
+            v_dir = os.path.join(self.output_dir, 'upload_' + str(version))
             self.logger.log('Removing current version dir {}'.format(v_dir), level=0)
             shutil.rmtree(v_dir)
             # also remove the last metadata item from the history
