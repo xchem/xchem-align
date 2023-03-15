@@ -2,16 +2,23 @@ import os, re, datetime, argparse, shutil
 from . import dbreader
 from . import utils
 
-def generate_filenames(filepath, base_dir, input_dir, output_dir):
+
+def generate_filenames(filepath, base_dir, input_dir, project_dir, output_dir):
 
     if filepath[0] == '/':
         # absolute file path
-        inputpath = base_dir + filepath
+        if base_dir:
+            inputpath = base_dir + filepath
+        else:
+            inputpath = filepath
         outputpath = output_dir + filepath
     else:
         # relative path
-        inputpath = base_dir + '/' + input_dir + '/' + filepath
-        outputpath = output_dir + '/' + input_dir + '/' + filepath
+        if base_dir:
+            inputpath = base_dir + '/' + project_dir + '/' + filepath
+        else:
+            inputpath = project_dir + '/' + filepath
+        outputpath = output_dir + '/' + project_dir + '/' + filepath
 
     return inputpath, outputpath
 

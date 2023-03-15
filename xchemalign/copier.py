@@ -9,21 +9,22 @@ def copy_files(base_dir, input_dir, output_dir):
     copied = 0
     for index, row in df.iterrows():
         count += 1
+        project_dir = row['ProjectDirectory']
         print('processing {} {}'.format(count, row['CrystalName']))
         for colname in ['RefinementCIF', 'RefinementPDB_latest', 'RefinementMTZ_latest']:
             file = row[colname]
             if file:
-                ok = _copy_file(file, base_dir, input_dir, output_dir)
+                ok = _copy_file(file, base_dir, input_dir, project_dir, output_dir)
                 if ok:
                     copied += 1
     print('Copied {} files'.format(copied))
 
 
-def _copy_file(filepath, base_dir, input_dir, output_dir):
+def _copy_file(filepath, base_dir, input_dir, project_dir, output_dir):
 
-    print('handling', filepath)
-    inputpath, outputpath = validator.generate_filenames(filepath, base_dir, input_dir, output_dir)
-    print('copying', inputpath, outputpath)
+    # print('handling', filepath)
+    inputpath, outputpath = validator.generate_filenames(filepath, base_dir, input_dir, project_dir, output_dir)
+    # print('copying', inputpath, outputpath)
 
     if not os.path.isfile(inputpath):
         print('File {} not found'.format(inputpath))
