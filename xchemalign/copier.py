@@ -3,7 +3,10 @@ from . import dbreader, validator
 
 
 def copy_files(base_dir, input_dir, output_dir):
-    dbfile = os.path.join(base_dir, input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
+    if base_dir:
+        dbfile = os.path.join(base_dir, input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
+    else:
+        dbfile = os.path.join(input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
     df = dbreader.filter_dbmeta(dbfile)
     count = 0
     copied = 0
@@ -44,7 +47,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='copier')
 
-    parser.add_argument('-b', '--base-dir', required=True, help="Base directory")
+    parser.add_argument('-b', '--base-dir', help="Base directory")
     parser.add_argument('-i', '--input-dir', required=True, help="Input directory (below base-dir)")
     parser.add_argument('-o', '--output-dir', required=True, help="Output directory")
 
