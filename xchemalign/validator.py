@@ -2,29 +2,31 @@ import os, re, datetime, argparse, shutil
 from . import dbreader
 from . import utils
 
+def generate_filenames(filepath, base_dir, input_dir, output_dir):
+
+    if filepath[0] == '/':
+        # absolute file path
+        inputpath = base_dir + filepath
+        outputpath = output_dir + filepath
+    else:
+        # relative path
+        inputpath = base_dir + '/' + input_dir + '/' + filepath
+        outputpath = output_dir + '/' + input_dir + '/' + filepath
+
+    return inputpath, outputpath
+
+
 class Validator:
 
-    def __init__(self, input_dir, output_dir, target_name, dbfile, logger=None):
-        self.input_dir = input_dir
+    def __init__(self, base_dir, input_dirs, output_dir, target_name, logger=None):
+        self.base_dir = base_dir
+        self.input_dirs = input_dirs
         self.output_dir = output_dir
         self.target_name = target_name
-        self.dbfile = dbfile
         if logger:
             self.logger = logger
         else:
             self.logger = utils.Logger()
-
-    def copy_files(self):
-        print('copy files')
-        df = dbreader.filter_dbmeta(self.dbfile)
-        count = 0
-        for index, row in df.iterrows():
-            count += 1
-            print('processing {} {}'.format(count, row['CrystalName']))
-            for colname in ['RefinementCIF', 'RefinementPDB_latest', 'RefinementMTZ_latest']:
-                ok = self._copy_file(row, colname)
-                if ok:
-                    print('copy ok')
 
     def validate_all(self):
         errors, warnings = self.validate_paths()
@@ -39,15 +41,22 @@ class Validator:
     def validate_paths(self):
         errors = 0
         warnings = 0
-        if self.input_dir:
-            if not os.path.exists(self.input_dir):
-                self.logger.log('input_dir does not exist:', self.input_dir, level=2)
-                errors += 1
-            elif not os.path.isdir(self.input_dir):
-                self.logger.log('input_dir argument is not a directory:', self.input_dir, level=2)
-                errors += 1
+        if self.input_dirs:
+            for input_dir in self.input_dirs:
+                if not os.path.exists(input_dir):
+                    self.logger.log('input_dir does not exist:', input_dir, level=2)
+                    errors += 1
+                elif not os.path.isdir(input_dir):
+                    self.logger.log('input_dir argument is not a directory:', input_dir, level=2)
+                    errors += 1
+                else:
+                    dbfile = os.path.join(input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
+                    if not os.path.isfile(dbfile):
+                        self.logger.log('SoakDB database not found:', dbfile, level=2)
+                        errors += 1
+
         else:
-            self.logger.log('Input dir not defined. Use the --input-dir to define this', level=2)
+            self.logger.log('input_dirs not defined in the config file', level=2)
             errors += 1
 
         if self.output_dir:
@@ -58,7 +67,7 @@ class Validator:
                 self.logger.log('output_dir argument is not a directory:', self.output_dir, level=2)
                 errors += 1
         else:
-            self.logger.log('Output dir not defined. Use the --output-dir to define this', level=2)
+            self.logger.log('Output dir not defined in the config file', level=2)
             errors += 1
 
         if not self.target_name:
@@ -78,64 +87,62 @@ class Validator:
         return errors, warnings
 
     def validate_metadata(self):
-        meta = {}
-        meta['run_on'] = str(datetime.datetime.now())
-        meta['input_dir'] = self.input_dir
-        meta['output_dir'] = self.output_dir
-        df = dbreader.filter_dbmeta(self.dbfile)
-        valid_ids = {}
-        meta['crystals'] = valid_ids
-        count = 0
-        for index, row in df.iterrows():
-            count += 1
-            for colname in ['RefinementCIF', 'RefinementPDB_latest', 'RefinementMTZ_latest']:
-                ok = self._check_file_exists(row, colname)
-                if ok:
-                    xtal_name = row['CrystalName']
-                    if not xtal_name:
-                        self.logger.log('Crystal name not found', level=1)
+        meta = {'run_on': str(datetime.datetime.now()), 'input_dirs': self.input_dirs, 'output_dir': self.output_dir}
+        for input_dir in self.input_dirs:
+            dbfile = os.path.join(self.base_dir, input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
+            df = dbreader.filter_dbmeta(dbfile)
+            valid_ids = {}
+            meta['crystals'] = valid_ids
+            count = 0
+            processed = 0
+            for index, row in df.iterrows():
+                count += 1
+                xtal_name = row['CrystalName']
+                if not xtal_name:
+                    self.logger.log('Crystal name not defined, cannot process row {}'.format(count), level=2)
+                else:
+                    missing_files = 0
+                    for colname in ['RefinementCIF', 'RefinementPDB_latest', 'RefinementMTZ_latest']:
+                        ok = self._check_file_exists(row, colname, input_dir)
+                        if not ok:
+                            missing_files += 1
+                            self.logger.log('File for {} not found: {}'.format(colname, row[colname]), level=1)
+
+                    if missing_files > 0:
+                        self.logger.log('{} files for {} missing. Will not process'.format(missing_files, xtal_name),
+                                        level=1)
                     else:
-                        valid_ids[xtal_name] = {'crystallographic_files': {
+                        processed += 1
+                        if valid_ids[xtal_name]:
+                            self.logger.log("Crystal {} already exists, it's data will be overriden".format(xtal_name),
+                                            level=1)
+
+                        self.logger.log('Adding crystal', xtal_name, level=0)
+                        data = {}
+                        valid_ids[xtal_name] = data
+                        last_updated = row['LastUpdated']
+                        if last_updated:
+                            data['last_updated'] = last_updated
+                        data['crystallographic_files'] = {
                             'xtal_pdb': row['RefinementPDB_latest'],
                             'xtal_mtz': row['RefinementMTZ_latest'],
-                            'ligand_cif': row['RefinementCIF']}}
-        self.logger.log('Handled {} rows from database'.format(count), level=1)
+                            'ligand_cif': row['RefinementCIF']}
+
+            self.logger.log('Handled {} rows from database, {} were valid'.format(count, processed), level=0)
+
         return meta
 
-    def _check_file_exists(self, row, colname):
+    def _check_file_exists(self, row, colname, input_dir):
         filepath = row[colname]
         if filepath:
-            if self.input_dir:
-                path = self.input_dir + filepath
-            else:
-                path = filepath
-            if not os.path.isfile(path):
-                self.logger.log('{} file {} not found'.format(colname, filepath), level=1)
+            inputpath, outputpath = generate_filenames(filepath, self.base_dir, input_dir, "")
+            if not os.path.isfile(inputpath):
+                self.logger.log('{} file {} not found'.format(colname, inputpath), level=1)
                 return False
         else:
             self.logger.log('{} file not defined'.format(colname), level=1)
             return False
-        return True
 
-    def _copy_file(self, row, colname):
-        filepath = row[colname]
-        if filepath:
-            if self.input_dir:
-                path = self.input_dir + filepath
-            else:
-                path = filepath
-            if not os.path.isfile(path):
-                self.logger.log('{} file {} not found'.format(colname, path), level=1)
-                return False
-        else:
-            self.logger.log('{} file not defined'.format(colname), level=1)
-            return False
-        outputpath = self.output_dir + filepath
-        os.makedirs(os.path.dirname(outputpath), exist_ok=True)
-        f = shutil.copy2(path, outputpath, follow_symlinks=True)
-        if not f:
-            self.logger.log('Failed to copy CIF file {} to {}'.format(path, outputpath), level=2)
-            return False
         return True
 
 
@@ -150,9 +157,9 @@ def main():
     args = parser.parse_args()
     print("validator: ", args)
 
-    v = Validator(args.input_dir, args.output_dir, '', args.db_file)
-
-    v.copy_files()
+    # v = Validator([args.input_dir], args.output_dir, 'targetname')
+    #
+    # v.copy_files(args.db_file)
 
 
 if __name__ == "__main__":

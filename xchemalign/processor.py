@@ -4,17 +4,21 @@ import yaml
 from . import utils, obabel_utils
 from .validator import Validator
 
-_metadata_filename = 'metadata.yaml'
-
+_METADATA_FILENAME = 'metadata.yaml'
+_CONFIG_FILENAME = 'config.yaml'
+_VERSION_DIR_PREFIX = 'upload_'
 
 class Processor:
 
-    def __init__(self, input_dir, output_dir, target_name, dbfile, new_version=True, logger=None):
-        self.input_dir = input_dir
-        self.output_dir = output_dir
-        self.target_name = target_name
-        self.dbfile = dbfile
-        self.new_version = new_version
+    def __init__(self, config_file, logger=None):
+        self.config_file = config_file
+
+        with open(config_file, 'r') as stream:
+            config = yaml.safe_load(stream)
+
+        self.input_dirs = config['input_dirs']
+        self.output_dir = config['output_dir']
+        self.target_name = config['target_name']
         self.version_dir = None
         self.meta_history = []
         if logger:
@@ -23,62 +27,84 @@ class Processor:
             self.logger = utils.Logger()
 
     def validate(self):
-        v = Validator(self.input_dir, self.output_dir, self.target_name, self.dbfile, logger=self.logger)
+        v = Validator(self.input_dirs, self.output_dir, self.target_name, logger=self.logger)
         meta = v.validate_all()
         infos, warnings, errors = self.logger.get_num_messages()
         return meta, warnings, errors
 
     def run(self, meta):
         self.logger.log('Running ...', level=0)
-        v_dir = self._create_version_dir()
+        v_dir = self._read_versions()
         self.logger.log('Using version dir {}'.format(v_dir), level=0)
         self.logger.log('Coping files ...', level=0)
         new_meta = self._copy_files(meta)
-        self.logger.log('Performing alignments ...', level=0)
-        new_meta = self._perform_alignments(new_meta)
-        self.logger.log('Extracting components ...', level=0)
-        new_meta = self._extract_components(new_meta)
         self.logger.log('Writing metadata ...', level=0)
         self._write_metadata(new_meta)
         return new_meta
 
-    def _create_version_dir(self):
+    def _read_versions(self):
+        # find out which version dirs exist
         version = 1
         while True:
-            v_dir = os.path.join(self.output_dir, 'upload_' + str(version))
-            if os.path.exists(v_dir):
-                meta_file = os.path.join(self.output_dir, 'upload_' + str(version), _metadata_filename)
-                with open(meta_file, 'r') as stream:
-                    try:
-                        meta = yaml.safe_load(stream)
-                    except yaml.YAMLError as exc:
-                        self.logger.log('Failed to read metadata file', meta_file)
-                        print(exc)
-                    self.meta_history.append(meta)
+            v_dir = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version))
+            if os.path.isdir(v_dir):
                 version += 1
-                dir_exists = True
             else:
-                dir_exists = False
                 break
 
-        if version == 1 or self.new_version:
-            # we don't have any versions so create the first
-            pass
-        else:
-            # no new version so we must remove the latest one
-            version -= 1
-            v_dir = os.path.join(self.output_dir, 'upload_' + str(version))
-            self.logger.log('Removing current version dir {}'.format(v_dir), level=0)
-            shutil.rmtree(v_dir)
-            # also remove the last metadata item from the history
-            self.meta_history.pop()
+        # the working version dir is one less than the current value
+        version -= 1
+        v_dir = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version))
 
-        self.logger.log('Creating current version dir {}'.format(v_dir), level=0)
-        self.logger.log('Metadata history has {} items'.format(len(self.meta_history)), level=0)
+        # read the metadata from the earlier versions
+        if version > 1:
+            for v in range(version -1)
+                meta_file = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(v), _METADATA_FILENAME)
+                if os.path.isfile(meta_file):
+                    with open(meta_file, 'r') as stream:
+                        meta = yaml.safe_load(stream)
+                        self.meta_history.append(meta)
 
-        os.makedirs(v_dir)
-        self.version_dir = v_dir
         return v_dir
+
+
+# def _create_version_dir(self):
+    #     version = 1
+    #     while True:
+    #         v_dir = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version))
+    #         if os.path.exists(v_dir):
+    #             meta_file = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version), _METADATA_FILENAME)
+    #             with open(meta_file, 'r') as stream:
+    #                 try:
+    #                     meta = yaml.safe_load(stream)
+    #                 except yaml.YAMLError as exc:
+    #                     self.logger.log('Failed to read metadata file', meta_file)
+    #                     print(exc)
+    #                 self.meta_history.append(meta)
+    #             version += 1
+    #             dir_exists = True
+    #         else:
+    #             dir_exists = False
+    #             break
+    #
+    #     if version == 1 or self.new_version:
+    #         # we don't have any versions so create the first
+    #         pass
+    #     else:
+    #         # no new version so we must remove the latest one
+    #         version -= 1
+    #         v_dir = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version))
+    #         self.logger.log('Removing current version dir {}'.format(v_dir), level=0)
+    #         shutil.rmtree(v_dir)
+    #         # also remove the last metadata item from the history
+    #         self.meta_history.pop()
+    #
+    #     self.logger.log('Creating current version dir {}'.format(v_dir), level=0)
+    #     self.logger.log('Metadata history has {} items'.format(len(self.meta_history)), level=0)
+    #
+    #     os.makedirs(v_dir)
+    #     self.version_dir = v_dir
+    #     return v_dir
 
     def _copy_files(self, meta):
         cryst_dir = os.path.join(self.version_dir, 'crystallographic')
@@ -154,7 +180,7 @@ class Processor:
         return meta
 
     def _write_metadata(self, meta):
-        f = os.path.join(self.version_dir, _metadata_filename)
+        f = os.path.join(self.version_dir, _METADATA_FILENAME)
         with open(f, 'w') as stream:
             yaml.dump(meta, stream, sort_keys=False)
 
@@ -163,13 +189,9 @@ def main():
 
     parser = argparse.ArgumentParser(description='processor')
 
-    parser.add_argument('-i', '--input-dir', required=True, help="Input directory")
-    parser.add_argument('-o', '--output-dir', required=True, help="Output directory")
-    parser.add_argument('-t', '--target-name', required=True, help="Target name")
-    parser.add_argument('-d', '--db-file', required=True, help="Sqlite DB file")
+    parser.add_argument('-c', '--config-file', required=True, help="Configuration file")
     parser.add_argument('-l', '--log-file', help="Sqlite DB file")
     parser.add_argument('--log-level', type=int, default=1, help="Logging level")
-    parser.add_argument('--new-version', action='store_true', help='Create a new version')
     parser.add_argument('--validate', action='store_true', help='Only perform validation')
 
     args = parser.parse_args()
@@ -180,8 +202,7 @@ def main():
     else:
         logger = None
 
-    p = Processor(args.input_dir, args.output_dir, args.target_name, args.db_file,
-                  new_version=args.new_version, logger=logger)
+    p = Processor(args.config_file, logger=logger)
 
     meta, warnings, errors = p.validate()
 

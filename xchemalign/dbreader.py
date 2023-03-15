@@ -12,15 +12,14 @@ def read_dbmeta(dbfile):
     cnx = sqlite3.connect(dbfile)
     df = pd.read_sql_query('''SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus, 
                             RefinementCIF, RefinementCIFStatus, RefinementPDB_latest, RefinementMTZ_latest,
-                            RefinementDate, RefinementOutcome
+                            RefinementDate, RefinementOutcome, RefinementDate, LastUpdated
                             FROM mainTable WHERE RefinementOutcome IS NOT NULL''', cnx)
     return df
 
 
 def filter_dbmeta(dbfile):
     df1 = read_dbmeta(dbfile)
-    df2 = df1[(
-               df1.RefinementOutcome.str.startswith('3') |
+    df2 = df1[(df1.RefinementOutcome.str.startswith('3') |
                df1.RefinementOutcome.str.startswith('5') |
                df1.RefinementOutcome.str.startswith('6'))]
     return df2
