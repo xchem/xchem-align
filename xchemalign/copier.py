@@ -15,32 +15,39 @@ def copy_files(base_dir, input_dir, output_dir):
         xtal_name = row['CrystalName']
         xtal_dir = validator.generate_xtal_dir(input_dir, xtal_name)
         print('processing {} {}'.format(count, xtal_name))
-        for colname in ['RefinementCIF', 'RefinementPDB_latest', 'RefinementMTZ_latest']:
+        for colname in ['RefinementPDB_latest', 'RefinementMTZ_latest', 'RefinementCIF']:
             file = row[colname]
             if file:
                 ok = _copy_file(file, base_dir, input_dir, xtal_dir, output_dir)
                 if ok:
                     copied += 1
+        # for the ligand CIF file also copy the corresponding PDB file
+        if file:
+            ok = _copy_file(file[:-3] + 'pdb', base_dir, input_dir, xtal_dir, output_dir)
+            if ok:
+                copied += 1
     print('Copied {} files'.format(copied))
 
 
 def _copy_file(filepath, base_dir, input_dir, xtal_dir, output_dir):
 
     # print('handling', filepath)
-    inputpath, outputpath = validator.generate_filenames(filepath, base_dir, xtal_dir, output_dir)
-    # print('copying', inputpath, outputpath)
+    inputpath, outputpath = validator.generate_filenames(filepath, xtal_dir, output_dir)
+    if base_dir:
+        full_inputpath = base_dir + '/' + inputpath
+    else:
+        full_inputpath = inputpath
+    # print('copying', full_inputpath, outputpath)
 
-    if not os.path.isfile(inputpath):
-        print('File {} not found'.format(inputpath))
+    if not os.path.isfile(full_inputpath):
+        print('File {} not found'.format(full_inputpath))
         return False
 
-
     os.makedirs(os.path.dirname(outputpath), exist_ok=True)
-    f = shutil.copy2(inputpath, outputpath, follow_symlinks=True)
+    f = shutil.copy2(full_inputpath, outputpath, follow_symlinks=True)
     if not f:
         print('Failed to copy file {} to {}'.format(inputpath, outputpath))
         return False
-    #print('Copied file {} to {}'.format(path, outputpath))
     return True
 
 

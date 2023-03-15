@@ -16,6 +16,7 @@ class Processor:
         with open(config_file, 'r') as stream:
             config = yaml.safe_load(stream)
 
+        self.base_dir = config['base_dir']
         self.input_dirs = config['input_dirs']
         self.output_dir = config['output_dir']
         self.target_name = config['target_name']
@@ -27,7 +28,7 @@ class Processor:
             self.logger = utils.Logger()
 
     def validate(self):
-        v = Validator(self.input_dirs, self.output_dir, self.target_name, logger=self.logger)
+        v = Validator(self.base_dir, self.input_dirs, self.output_dir, self.target_name, logger=self.logger)
         meta = v.validate_all()
         infos, warnings, errors = self.logger.get_num_messages()
         return meta, warnings, errors
@@ -58,53 +59,15 @@ class Processor:
 
         # read the metadata from the earlier versions
         if version > 1:
-            for v in range(version -1)
+            for v in range(version -1):
                 meta_file = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(v), _METADATA_FILENAME)
                 if os.path.isfile(meta_file):
                     with open(meta_file, 'r') as stream:
                         meta = yaml.safe_load(stream)
                         self.meta_history.append(meta)
 
+        self.version_dir = v_dir
         return v_dir
-
-
-# def _create_version_dir(self):
-    #     version = 1
-    #     while True:
-    #         v_dir = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version))
-    #         if os.path.exists(v_dir):
-    #             meta_file = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version), _METADATA_FILENAME)
-    #             with open(meta_file, 'r') as stream:
-    #                 try:
-    #                     meta = yaml.safe_load(stream)
-    #                 except yaml.YAMLError as exc:
-    #                     self.logger.log('Failed to read metadata file', meta_file)
-    #                     print(exc)
-    #                 self.meta_history.append(meta)
-    #             version += 1
-    #             dir_exists = True
-    #         else:
-    #             dir_exists = False
-    #             break
-    #
-    #     if version == 1 or self.new_version:
-    #         # we don't have any versions so create the first
-    #         pass
-    #     else:
-    #         # no new version so we must remove the latest one
-    #         version -= 1
-    #         v_dir = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version))
-    #         self.logger.log('Removing current version dir {}'.format(v_dir), level=0)
-    #         shutil.rmtree(v_dir)
-    #         # also remove the last metadata item from the history
-    #         self.meta_history.pop()
-    #
-    #     self.logger.log('Creating current version dir {}'.format(v_dir), level=0)
-    #     self.logger.log('Metadata history has {} items'.format(len(self.meta_history)), level=0)
-    #
-    #     os.makedirs(v_dir)
-    #     self.version_dir = v_dir
-    #     return v_dir
 
     def _copy_files(self, meta):
         cryst_dir = os.path.join(self.version_dir, 'crystallographic')
@@ -123,7 +86,7 @@ class Processor:
 
             # handle the PDB file
             pdb = xtal_files['xtal_pdb']
-            pdb_input = self.input_dir + pdb
+            pdb_input = self.base_dir + '/' + pdb
             pdb_output = os.path.join(dir, name + '.pdb')
             f = shutil.copy2(pdb_input, pdb_output, follow_symlinks=True)
             if not f:
@@ -134,7 +97,7 @@ class Processor:
 
             # handle the MTZ file
             mtz = xtal_files['xtal_mtz']
-            mtz_input = self.input_dir + mtz
+            mtz_input = self.base_dir + '/' + mtz
             mtz_output = os.path.join(dir, name + '.mtz')
             f = shutil.copy2(mtz_input, mtz_output, follow_symlinks=True)
             if not f:
@@ -145,7 +108,7 @@ class Processor:
 
             # handle the CIF file
             cif = xtal_files['ligand_cif']
-            cif_input = self.input_dir + cif
+            cif_input = self.base_dir + '/' + cif
             cif_output = os.path.join(dir, name + '.cif')
             f = shutil.copy2(cif_input, cif_output, follow_symlinks=True)
             if not f:
@@ -171,16 +134,9 @@ class Processor:
 
         return meta
 
-    def _perform_alignments(self, meta):
-        # do Conor's stuff
-        return meta
-
-    def _extract_components(self, meta):
-        # extract molfile, apo pdbs etc.
-        return meta
-
     def _write_metadata(self, meta):
         f = os.path.join(self.version_dir, _METADATA_FILENAME)
+        print('writing metadata to ', f)
         with open(f, 'w') as stream:
             yaml.dump(meta, stream, sort_keys=False)
 
@@ -205,8 +161,6 @@ def main():
     p = Processor(args.config_file, logger=logger)
 
     meta, warnings, errors = p.validate()
-
-    print(meta)
 
     if not args.validate:
         if errors:

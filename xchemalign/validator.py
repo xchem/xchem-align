@@ -3,26 +3,33 @@ from . import dbreader
 from . import utils
 
 
+def generate_soakdb_file(base_dir, input_dir):
+    dbfile = base_dir + '/' + input_dir + '/processing/database/soakDBDataFile.sqlite'
+    return dbfile
+
+
 def generate_xtal_dir(input_dir, xtal_name):
     xtal_dir = os.path.join(input_dir, 'processing', 'analysis', 'model_building', xtal_name)
     return xtal_dir
 
 
-def generate_filenames(filepath, base_dir, xtal_dir, output_dir):
+def prepend_base(base_dir, filepath):
+    if base_dir:
+        full_inputpath = base_dir + '/' + filepath
+    else:
+        full_inputpath = filepath
+    return full_inputpath
+
+
+def generate_filenames(filepath, xtal_dir, output_dir):
 
     if filepath[0] == '/':
         # absolute file path
-        if base_dir:
-            inputpath = base_dir + filepath
-        else:
-            inputpath = filepath
+        inputpath = filepath
         outputpath = output_dir + filepath
     else:
         # relative path
-        if base_dir:
-            inputpath = base_dir + '/' + xtal_dir + '/' + filepath
-        else:
-            inputpath = xtal_dir + '/' + filepath
+        inputpath = xtal_dir + '/' + filepath
         outputpath = output_dir + '/' + xtal_dir + '/' + filepath
 
     return inputpath, outputpath
@@ -55,14 +62,19 @@ class Validator:
         warnings = 0
         if self.input_dirs:
             for input_dir in self.input_dirs:
-                if not os.path.exists(input_dir):
-                    self.logger.log('input_dir does not exist:', input_dir, level=2)
+                if self.base_dir:
+                    input_path = self.base_dir + input_dir
+                else:
+                    input_path = input_dir
+
+                if not os.path.exists(input_path):
+                    self.logger.log('input_path does not exist:', input_path, level=2)
                     errors += 1
-                elif not os.path.isdir(input_dir):
-                    self.logger.log('input_dir argument is not a directory:', input_dir, level=2)
+                elif not os.path.isdir(input_path):
+                    self.logger.log('input_dir argument is not a directory:', input_path, level=2)
                     errors += 1
                 else:
-                    dbfile = os.path.join(input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
+                    dbfile = generate_soakdb_file(self.base_dir, input_dir)
                     if not os.path.isfile(dbfile):
                         self.logger.log('SoakDB database not found:', dbfile, level=2)
                         errors += 1
@@ -101,7 +113,8 @@ class Validator:
     def validate_metadata(self):
         meta = {'run_on': str(datetime.datetime.now()), 'input_dirs': self.input_dirs, 'output_dir': self.output_dir}
         for input_dir in self.input_dirs:
-            dbfile = os.path.join(self.base_dir, input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
+            dbfile = generate_soakdb_file(self.base_dir, input_dir)
+            print('Opening DB file:', dbfile)
             df = dbreader.filter_dbmeta(dbfile)
             valid_ids = {}
             meta['crystals'] = valid_ids
@@ -115,18 +128,29 @@ class Validator:
                     self.logger.log('Crystal name not defined, cannot process row {}'.format(count), level=2)
                 else:
                     missing_files = 0
-                    for colname in ['RefinementCIF', 'RefinementPDB_latest', 'RefinementMTZ_latest']:
-                        ok = self._check_file_exists(row, colname, xtal_dir)
-                        if not ok:
-                            missing_files += 1
-                            self.logger.log('File for {} not found: {}'.format(colname, row[colname]), level=1)
+                    expanded_files = []
+                    for colname in ['RefinementPDB_latest', 'RefinementMTZ_latest', 'RefinementCIF']:
+                        if not colname:
+                            self.logger.log('File not defined for {}'.format(colname), level=2)
+                            expanded_files.append(None)
+                        else:
+                            file = row[colname]
+                            inputpath, outputpath = generate_filenames(file, xtal_dir, "")
+                            full_inputpath = prepend_base(self.base_dir, inputpath)
+                            ok = self._check_file_exists(full_inputpath)
+                            if ok:
+                                expanded_files.append(inputpath)
+                            else:
+                                expanded_files.append(None)
+                                missing_files += 1
+                                self.logger.log('File for {} not found: {}'.format(colname, row[colname]), level=1)
 
                     if missing_files > 0:
                         self.logger.log('{} files for {} missing. Will not process'.format(missing_files, xtal_name),
                                         level=1)
                     else:
                         processed += 1
-                        if valid_ids[xtal_name]:
+                        if xtal_name in valid_ids.keys():
                             self.logger.log("Crystal {} already exists, it's data will be overriden".format(xtal_name),
                                             level=1)
 
@@ -137,25 +161,18 @@ class Validator:
                         if last_updated:
                             data['last_updated'] = last_updated
                         data['crystallographic_files'] = {
-                            'xtal_pdb': row['RefinementPDB_latest'],
-                            'xtal_mtz': row['RefinementMTZ_latest'],
-                            'ligand_cif': row['RefinementCIF']}
+                            'xtal_pdb': expanded_files[0],
+                            'xtal_mtz': expanded_files[1],
+                            'ligand_cif': expanded_files[2]}
 
             self.logger.log('Handled {} rows from database, {} were valid'.format(count, processed), level=0)
 
         return meta
 
-    def _check_file_exists(self, row, colname, input_dir):
-        filepath = row[colname]
-        if filepath:
-            inputpath, outputpath = generate_filenames(filepath, self.base_dir, input_dir, "")
-            if not os.path.isfile(inputpath):
-                self.logger.log('{} file {} not found'.format(colname, inputpath), level=1)
-                return False
-        else:
-            self.logger.log('{} file not defined'.format(colname), level=1)
+    def _check_file_exists(self, filepath):
+        if not os.path.isfile(filepath):
+            self.logger.log('File {} not found'.format(filepath), level=1)
             return False
-
         return True
 
 
