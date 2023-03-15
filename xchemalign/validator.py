@@ -3,19 +3,38 @@ from . import dbreader
 from . import utils
 
 
+def make_path_relative(filepath):
+    if filepath[0] == '/':
+        return filepath[1:]
+    else:
+        return filepath
+
+
 def generate_soakdb_file(base_dir, input_dir):
-    dbfile = base_dir + '/' + input_dir + '/processing/database/soakDBDataFile.sqlite'
+    dbfile = os.path.join(base_dir, make_path_relative(input_dir), 'processing', 'database', 'soakDBDataFile.sqlite')
     return dbfile
 
 
 def generate_xtal_dir(input_dir, xtal_name):
+    """
+    Generate the directory with the crystal data
+    :param input_dir:
+    :param xtal_name:
+    :return:
+    """
     xtal_dir = os.path.join(input_dir, 'processing', 'analysis', 'model_building', xtal_name)
     return xtal_dir
 
 
 def prepend_base(base_dir, filepath):
+    """
+    Prepend the base path to the file path, if one exists.
+    :param base_dir:
+    :param filepath:
+    :return:
+    """
     if base_dir:
-        full_inputpath = base_dir + '/' + filepath
+        full_inputpath = os.path.join(base_dir, make_path_relative(filepath))
     else:
         full_inputpath = filepath
     return full_inputpath
@@ -23,14 +42,14 @@ def prepend_base(base_dir, filepath):
 
 def generate_filenames(filepath, xtal_dir, output_dir):
 
-    if filepath[0] == '/':
+    if os.path.isabs(filepath):
         # absolute file path
         inputpath = filepath
-        outputpath = output_dir + filepath
+        outputpath = os.path.join(output_dir, make_path_relative(filepath))
     else:
         # relative path
-        inputpath = xtal_dir + '/' + filepath
-        outputpath = output_dir + '/' + xtal_dir + '/' + filepath
+        inputpath = os.path.join(xtal_dir, filepath)
+        outputpath = os.path.join(output_dir, make_path_relative(xtal_dir), filepath)
 
     return inputpath, outputpath
 
@@ -58,6 +77,13 @@ class Validator:
         return meta
 
     def validate_paths(self):
+        """
+        Validate that the inputs and outputs that are defined in the config file are valid.
+        Warnings can probably be tolerated, but should be investigated.
+        Errors should be fixed before trying again.
+
+        :return: the number of errors and warnings
+        """
         errors = 0
         warnings = 0
         if self.input_dirs:
@@ -78,7 +104,6 @@ class Validator:
                     if not os.path.isfile(dbfile):
                         self.logger.log('SoakDB database not found:', dbfile, level=2)
                         errors += 1
-
         else:
             self.logger.log('input_dirs not defined in the config file', level=2)
             errors += 1
@@ -111,13 +136,21 @@ class Validator:
         return errors, warnings
 
     def validate_metadata(self):
-        meta = {'run_on': str(datetime.datetime.now()), 'input_dirs': self.input_dirs, 'output_dir': self.output_dir}
+        """
+        Read info from the SoakDB database and verify that the necessary entries are present
+        :return: The generated metadata
+        """
+        valid_ids = {}
+        meta = {
+            'run_on': str(datetime.datetime.now()),
+            'input_dirs': self.input_dirs,
+            'output_dir': self.output_dir,
+            'crystals': valid_ids}
+
         for input_dir in self.input_dirs:
             dbfile = generate_soakdb_file(self.base_dir, input_dir)
-            print('Opening DB file:', dbfile)
+            self.logger.log('Opening DB file:', dbfile, level=0)
             df = dbreader.filter_dbmeta(dbfile)
-            valid_ids = {}
-            meta['crystals'] = valid_ids
             count = 0
             processed = 0
             for index, row in df.iterrows():
@@ -125,8 +158,9 @@ class Validator:
                 xtal_name = row['CrystalName']
                 xtal_dir = generate_xtal_dir(input_dir, xtal_name)
                 if not xtal_name:
-                    self.logger.log('Crystal name not defined, cannot process row {}'.format(count), level=2)
+                    self.logger.log('Crystal name not defined, cannot process row {}'.format(xtal_name), level=2)
                 else:
+                    self.logger.log('Processing crystal {} {}'.format(count, xtal_name), level=0)
                     missing_files = 0
                     expanded_files = []
                     for colname in ['RefinementPDB_latest', 'RefinementMTZ_latest', 'RefinementCIF']:
@@ -135,15 +169,19 @@ class Validator:
                             expanded_files.append(None)
                         else:
                             file = row[colname]
-                            inputpath, outputpath = generate_filenames(file, xtal_dir, "")
-                            full_inputpath = prepend_base(self.base_dir, inputpath)
-                            ok = self._check_file_exists(full_inputpath)
-                            if ok:
-                                expanded_files.append(inputpath)
+                            if file:
+                                inputpath, outputpath = generate_filenames(file, xtal_dir, "")
+                                full_inputpath = prepend_base(self.base_dir, inputpath)
+                                ok = self._check_file_exists(full_inputpath)
+                                if ok:
+                                    expanded_files.append(inputpath)
+                                else:
+                                    expanded_files.append(None)
+                                    missing_files += 1
+                                    self.logger.log('File for {} not found: {}'.format(colname, row[colname]), level=1)
                             else:
                                 expanded_files.append(None)
-                                missing_files += 1
-                                self.logger.log('File for {} not found: {}'.format(colname, row[colname]), level=1)
+                                self.logger.log('Entry for {} not defined in SoakDB'.format(colname), level=1)
 
                     if missing_files > 0:
                         self.logger.log('{} files for {} missing. Will not process'.format(missing_files, xtal_name),
@@ -154,7 +192,6 @@ class Validator:
                             self.logger.log("Crystal {} already exists, it's data will be overriden".format(xtal_name),
                                             level=1)
 
-                        self.logger.log('Adding crystal', xtal_name, level=0)
                         data = {}
                         valid_ids[xtal_name] = data
                         last_updated = row['LastUpdated']
@@ -171,25 +208,26 @@ class Validator:
 
     def _check_file_exists(self, filepath):
         if not os.path.isfile(filepath):
-            self.logger.log('File {} not found'.format(filepath), level=1)
             return False
         return True
 
 
 def main():
 
-    parser = argparse.ArgumentParser(description='processor')
-
-    parser.add_argument('-i', '--input-dir', required=True, help="Input directory")
-    parser.add_argument('-o', '--output-dir', required=True, help="Output directory")
-    parser.add_argument('-d', '--db-file', required=True, help="Sqlite DB file")
-
-    args = parser.parse_args()
-    print("validator: ", args)
+    # parser = argparse.ArgumentParser(description='processor')
+    #
+    # parser.add_argument('-i', '--input-dir', required=True, help="Input directory")
+    # parser.add_argument('-o', '--output-dir', required=True, help="Output directory")
+    # parser.add_argument('-d', '--db-file', required=True, help="Sqlite DB file")
+    #
+    # args = parser.parse_args()
+    # print("validator: ", args)
 
     # v = Validator([args.input_dir], args.output_dir, 'targetname')
     #
     # v.copy_files(args.db_file)
+
+    print(os.path.join('foo/bar', '/baz/boo'[1:]))
 
 
 if __name__ == "__main__":

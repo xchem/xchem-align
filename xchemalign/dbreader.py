@@ -19,7 +19,7 @@ def read_dbmeta(dbfile):
 
 def filter_dbmeta(dbfile):
     df1 = read_dbmeta(dbfile)
-    df2 = df1[(df1.RefinementOutcome.str.startswith('3') |
+    df2 = df1[(df1.RefinementOutcome.str.startswith('4') |
                df1.RefinementOutcome.str.startswith('5') |
                df1.RefinementOutcome.str.startswith('6'))]
     return df2

@@ -6,7 +6,7 @@ class Logger:
     Logger class that allows to write lines to the console and/or a file.
     """
 
-    def __init__(self, logfile=None, console=sys.stderr, level=1):
+    def __init__(self, logfile=None, console=sys.stderr, level=0):
         """
 
         :param logfilename: The name of a file to log to. If none then messages are not written to a file
@@ -56,7 +56,7 @@ class Logger:
             if level == 0:
                 key = 'INFO:'
             elif level == 1:
-                key = 'WARNING:'
+                key = 'WARN:'
             elif level == 2:
                 key = 'ERROR:'
             else:
