@@ -3,7 +3,12 @@ from . import dbreader
 from . import utils
 
 
-def generate_filenames(filepath, base_dir, input_dir, project_dir, output_dir):
+def generate_xtal_dir(input_dir, xtal_name):
+    xtal_dir = os.path.join(input_dir, 'processing', 'analysis', 'model_building', xtal_name)
+    return xtal_dir
+
+
+def generate_filenames(filepath, base_dir, xtal_dir, output_dir):
 
     if filepath[0] == '/':
         # absolute file path
@@ -15,10 +20,10 @@ def generate_filenames(filepath, base_dir, input_dir, project_dir, output_dir):
     else:
         # relative path
         if base_dir:
-            inputpath = base_dir + '/' + project_dir + '/' + filepath
+            inputpath = base_dir + '/' + xtal_dir + '/' + filepath
         else:
-            inputpath = project_dir + '/' + filepath
-        outputpath = output_dir + '/' + project_dir + '/' + filepath
+            inputpath = xtal_dir + '/' + filepath
+        outputpath = output_dir + '/' + xtal_dir + '/' + filepath
 
     return inputpath, outputpath
 
@@ -105,12 +110,13 @@ class Validator:
             for index, row in df.iterrows():
                 count += 1
                 xtal_name = row['CrystalName']
+                xtal_dir = generate_xtal_dir(input_dir, xtal_name)
                 if not xtal_name:
                     self.logger.log('Crystal name not defined, cannot process row {}'.format(count), level=2)
                 else:
                     missing_files = 0
                     for colname in ['RefinementCIF', 'RefinementPDB_latest', 'RefinementMTZ_latest']:
-                        ok = self._check_file_exists(row, colname, input_dir)
+                        ok = self._check_file_exists(row, colname, xtal_dir)
                         if not ok:
                             missing_files += 1
                             self.logger.log('File for {} not found: {}'.format(colname, row[colname]), level=1)
