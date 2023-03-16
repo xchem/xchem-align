@@ -1,6 +1,5 @@
 import os, re, datetime, argparse, shutil
-from . import dbreader
-from . import utils
+from . import dbreader, utils
 
 
 def make_path_relative(filepath):

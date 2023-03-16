@@ -1,7 +1,7 @@
 import argparse, os, shutil
 import yaml
 
-from . import utils, obabel_utils, validator
+from . import utils, validator
 
 
 _METADATA_FILENAME = 'metadata.yaml'
@@ -9,7 +9,7 @@ _CONFIG_FILENAME = 'config.yaml'
 _VERSION_DIR_PREFIX = 'upload_'
 
 
-class Processor:
+class Collator:
 
     def __init__(self, config_file, logger=None):
         self.config_file = config_file
@@ -190,7 +190,7 @@ def main():
 
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
 
-    p = Processor(args.config_file, logger=logger)
+    p = Collator(args.config_file, logger=logger)
 
     meta, warnings, errors = p.validate()
 
