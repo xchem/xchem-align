@@ -1,3 +1,15 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os, re, datetime, argparse, shutil
 from . import dbreader, utils
 
@@ -131,7 +143,7 @@ class Validator:
                     self.logger.log('Invalid target_name:', self.target_name, level=2)
                     errors += 1
 
-        self.logger.log('Path validation encounters {} errors and {} warnings'.format(errors, warnings), level=0)
+        self.logger.log('Path validation encountered {} errors and {} warnings'.format(errors, warnings), level=0)
         return errors, warnings
 
     def validate_metadata(self):
@@ -177,10 +189,10 @@ class Validator:
                                 else:
                                     expanded_files.append(None)
                                     missing_files += 1
-                                    self.logger.log('File for {} not found: {}'.format(colname, row[colname]), level=1)
+                                    self.logger.log('File {} for {} not found: {}'.format(colname, xtal_name, row[colname]), level=1)
                             else:
                                 expanded_files.append(None)
-                                self.logger.log('Entry for {} not defined in SoakDB'.format(colname), level=1)
+                                self.logger.log('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name), level=1)
 
                     if missing_files > 0:
                         self.logger.log('{} files for {} missing. Will not process'.format(missing_files, xtal_name),
@@ -193,15 +205,17 @@ class Validator:
 
                         data = {}
                         valid_ids[xtal_name] = data
-                        last_updated = row['LastUpdated']
-                        if last_updated:
-                            data['last_updated'] = last_updated
+                        last_updated_date = row['LastUpdatedDate']
+                        if last_updated_date:
+                            dt_str = last_updated_date.strftime(utils._DATETIME_FORMAT)
+                            print('date', dt_str)
+                            data['last_updated'] = dt_str
                         data['crystallographic_files'] = {
                             'xtal_pdb': expanded_files[0],
                             'xtal_mtz': expanded_files[1],
                             'ligand_cif': expanded_files[2]}
 
-            self.logger.log('Handled {} rows from database, {} were valid'.format(count, processed), level=0)
+            self.logger.log('Validator handled {} rows from database, {} were valid'.format(count, processed), level=0)
 
         return meta
 

@@ -1,3 +1,15 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse, os, shutil
 import yaml
 
@@ -21,8 +33,11 @@ class Collator:
         self.input_dirs = config['input_dirs']
         self.output_dir = config['output_dir']
         self.target_name = config['target_name']
+        self.config = config
         self.version_dir = None
         self.meta_history = []
+        self.all_xtals = None
+        self.new_or_updated_xtals = None
         if logger:
             self.logger = logger
         else:
@@ -35,7 +50,7 @@ class Collator:
         return meta, warnings, errors
 
     def run(self, meta):
-        self.logger.log('Running ...', level=0)
+        self.logger.log('Running collator...', level=0)
         v_dir = self._read_versions()
         if not v_dir:
             self.logger.log('Error with version dir. Please fix and try again.', level=2)
@@ -43,8 +58,10 @@ class Collator:
         self.logger.log('Using version dir {}'.format(v_dir), level=0)
         self.logger.log('Coping files ...', level=0)
         new_meta = self._copy_files(meta)
+        self.logger.log('Munging the history ...', level=0)
+        all_xtals, new_xtals = self._munge_history(meta)
         self.logger.log('Writing metadata ...', level=0)
-        self._write_metadata(new_meta)
+        self._write_metadata(new_meta, all_xtals, new_xtals)
         self.logger.log('Copying config ...', level=0)
         self._copy_config()
         self.logger.log('Run complete', level=0)
@@ -163,10 +180,78 @@ class Collator:
 
         return meta
 
-    def _write_metadata(self, meta):
+    def _munge_history(self, meta):
+        all_xtals = {}
+        new_or_updated_xtals = {}
+
+        # handle any user defined deprecations
+        if 'overrides' in self.config and 'deprecations' in self.config['overrides']:
+            deprecations = self.config['overrides']['deprecations']
+        else:
+            deprecations = {}
+        self.logger.info('{} deprecations were defined'.format(len(deprecations)))
+
+        count = 0
+        for metad in self.meta_history:
+            count += 1
+            self.logger.info('Munging metadata {}'.format(count))
+            xtals = metad['crystals']
+            total = 0
+            for xtal_name, xtal_data in xtals.items():
+                total += 1
+                all_xtals[xtal_name] = xtal_data
+            self.logger.info('Metadata {} has {} items'.format(count, total))
+
+        count += 1
+        self.logger.info('Munging current metadata')
+        xtals = meta['crystals']
+        total = 0
+        for xtal_name, xtal_data in xtals.items():
+            total += 1
+            if xtal_name in all_xtals:
+                old_xtal_data = all_xtals[xtal_name]
+                old_date = old_xtal_data['last_updated']
+                new_date = xtal_data['last_updated']
+                if not old_date or not new_date:
+                    self.logger.warn('Dates not defined for {}, must assume xtal is updated {} {}'.format(xtal_name, ))
+                    xtal_data['status'] = 'supersedes'
+                    new_or_updated_xtals[xtal_name] = xtal_data
+                elif utils.to_datetime(new_date) > utils.to_datetime(old_date):
+                    self.logger.info('Xtal {} is updated'.format(xtal_name))
+                    xtal_data['status'] = 'supersedes'
+                    new_or_updated_xtals[xtal_name] = xtal_data
+                else:
+                    # self.logger.info('Xtal {} is unchanged'.format(xtal_name))
+                    xtal_data['status'] = 'unchanged'
+            else:
+                xtal_data['status'] = 'new'
+                new_or_updated_xtals[xtal_name] = xtal_data
+            all_xtals[xtal_name] = xtal_data
+
+            # look for any deprecations
+            if xtal_name in deprecations:
+                xtal_data['status'] = 'deprecated'
+                xtal_data['reason'] = deprecations[xtal_name]
+                self.logger.info('Deprecating xtal {}'.format(xtal_name))
+
+        self.logger.info('Metadata {} has {} items'.format(count, total))
+        self.logger.info('Munging resulted in {} total xtals, {} are new or updated'.format(
+            len(all_xtals), len(new_or_updated_xtals)))
+
+        self.all_xtals = all_xtals
+        self.new_or_updated_xtals = new_or_updated_xtals
+        return all_xtals, new_or_updated_xtals
+
+    def _write_metadata(self, meta, all_xtals, new_xtals):
         f = os.path.join(self.version_dir, _METADATA_FILENAME)
         with open(f, 'w') as stream:
             yaml.dump(meta, stream, sort_keys=False)
+        f = os.path.join(self.version_dir, 'all_xtals.yaml')
+        with open(f, 'w') as stream:
+            yaml.dump(all_xtals, stream, sort_keys=False)
+            f = os.path.join(self.version_dir, 'new_xtals.yaml')
+        with open(f, 'w') as stream:
+            yaml.dump(new_xtals, stream, sort_keys=False)
 
     def _copy_config(self):
         f = shutil.copy2(self.config_file, self.version_dir)

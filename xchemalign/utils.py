@@ -1,4 +1,19 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import sys, atexit, datetime, hashlib
+import datetime
+
+_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class Logger:
@@ -30,11 +45,19 @@ class Logger:
         self.log('Initialising logging at level {} at {}'.format(level, x), level=0)
         self.level = level
 
-
     def close(self):
         if self.logfile and not self.closed:
             self.logfile.close()
             self.closed = True
+
+    def info(self, *args, **kwargs):
+        self.log(*args, level=0, **kwargs)
+
+    def warn(self, *args, **kwargs):
+        self.log(*args, level=1, **kwargs)
+
+    def error(self, *args, **kwargs):
+        self.log(*args, level=2, **kwargs)
 
     def log(self, *args, level=0, **kwargs):
         """
@@ -75,6 +98,11 @@ def gen_sha256(file):
         for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
+
+
+def to_datetime(datetime_str):
+    datetime_object = datetime.datetime.strptime(datetime_str, _DATETIME_FORMAT)
+    return datetime_object
 
 
 def main():
