@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, re, datetime, argparse, shutil
+import os, re, datetime
 from . import dbreader, utils
 
 
@@ -80,11 +80,11 @@ class Validator:
     def validate_all(self):
         errors, warnings = self.validate_paths()
         if errors:
-            self.logger.log('Path validation failed with', errors, 'errors', level=2)
+            self.logger.error('Path validation failed with', errors, 'errors')
             return None
         if warnings:
-            self.logger.log('Continuing with', warnings, 'warnings', level=0)
-        meta = self.validate_metadata()
+            self.logger.info('Continuing with', warnings, 'warnings')
+        meta = self.validate_soakdb_data()
         return meta
 
     def validate_paths(self):
@@ -105,48 +105,48 @@ class Validator:
                     input_path = input_dir
 
                 if not os.path.exists(input_path):
-                    self.logger.log('input_path does not exist:', input_path, level=2)
+                    self.logger.error('input_path does not exist:', input_path)
                     errors += 1
                 elif not os.path.isdir(input_path):
-                    self.logger.log('input_dir argument is not a directory:', input_path, level=2)
+                    self.logger.error('input_dir argument is not a directory:', input_path)
                     errors += 1
                 else:
                     dbfile = generate_soakdb_file(self.base_dir, input_dir)
                     if not os.path.isfile(dbfile):
-                        self.logger.log('SoakDB database not found:', dbfile, level=2)
+                        self.logger.error('SoakDB database not found:', dbfile)
                         errors += 1
         else:
-            self.logger.log('input_dirs not defined in the config file', level=2)
+            self.logger.error('input_dirs not defined in the config file')
             errors += 1
 
         if self.output_dir:
             if not os.path.exists(self.output_dir):
-                self.logger.log('output_dir does not exist:', self.output_dir, level=2)
+                self.logger.error('output_dir does not exist:', self.output_dir)
                 errors += 1
             elif not os.path.isdir(self.output_dir):
-                self.logger.log('output_dir argument is not a directory:', self.output_dir, level=2)
+                self.logger.error('output_dir argument is not a directory:', self.output_dir)
                 errors += 1
         else:
-            self.logger.log('Output dir not defined in the config file', level=2)
+            self.logger.error('Output dir not defined in the config file')
             errors += 1
 
         if not self.target_name:
-            self.logger.log('target_name not defined', level=2)
+            self.logger.error('target_name not defined')
             errors += 1
         else:
             if len(self.target_name) < 4:
-                self.logger.log('target_name must have at least 4 characters:', self.target_name, level=2)
+                self.logger.error('target_name must have at least 4 characters:', self.target_name)
                 errors += 1
             else:
                 x = re.search("^[A-Za-z]+[A-Za-z0-9_\\-]*$", self.target_name)
                 if not x:
-                    self.logger.log('Invalid target_name:', self.target_name, level=2)
+                    self.logger.error('Invalid target_name:', self.target_name)
                     errors += 1
 
-        self.logger.log('Path validation encountered {} errors and {} warnings'.format(errors, warnings), level=0)
+        self.logger.info('Path validation encountered {} errors and {} warnings'.format(errors, warnings))
         return errors, warnings
 
-    def validate_metadata(self):
+    def validate_soakdb_data(self):
         """
         Read info from the SoakDB database and verify that the necessary entries are present
         :return: The generated metadata
@@ -160,7 +160,7 @@ class Validator:
 
         for input_dir in self.input_dirs:
             dbfile = generate_soakdb_file(self.base_dir, input_dir)
-            self.logger.log('Opening DB file:', dbfile, level=0)
+            self.logger.info('Opening DB file:', dbfile)
             df = dbreader.filter_dbmeta(dbfile)
             count = 0
             processed = 0
@@ -169,14 +169,14 @@ class Validator:
                 xtal_name = row['CrystalName']
                 xtal_dir = generate_xtal_dir(input_dir, xtal_name)
                 if not xtal_name:
-                    self.logger.log('Crystal name not defined, cannot process row {}'.format(xtal_name), level=2)
+                    self.logger.error('Crystal name not defined, cannot process row {}'.format(xtal_name))
                 else:
-                    self.logger.log('Processing crystal {} {}'.format(count, xtal_name), level=0)
+                    self.logger.info('Processing crystal {} {}'.format(count, xtal_name))
                     missing_files = 0
                     expanded_files = []
                     for colname in ['RefinementPDB_latest', 'RefinementMTZ_latest', 'RefinementCIF']:
                         if not colname:
-                            self.logger.log('File not defined for {}'.format(colname), level=2)
+                            self.logger.error('File not defined for {}'.format(colname))
                             expanded_files.append(None)
                         else:
                             file = row[colname]
@@ -189,19 +189,17 @@ class Validator:
                                 else:
                                     expanded_files.append(None)
                                     missing_files += 1
-                                    self.logger.log('File {} for {} not found: {}'.format(colname, xtal_name, row[colname]), level=1)
+                                    self.logger.warn('File {} for {} not found: {}'.format(colname, xtal_name, row[colname]))
                             else:
                                 expanded_files.append(None)
-                                self.logger.log('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name), level=1)
+                                self.logger.warn('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
 
                     if missing_files > 0:
-                        self.logger.log('{} files for {} missing. Will not process'.format(missing_files, xtal_name),
-                                        level=1)
+                        self.logger.warn('{} files for {} missing. Will not process'.format(missing_files, xtal_name))
                     else:
                         processed += 1
                         if xtal_name in valid_ids.keys():
-                            self.logger.log("Crystal {} already exists, it's data will be overriden".format(xtal_name),
-                                            level=1)
+                            self.logger.warn("Crystal {} already exists, it's data will be overriden".format(xtal_name))
 
                         data = {}
                         valid_ids[xtal_name] = data
@@ -215,33 +213,17 @@ class Validator:
                             'xtal_mtz': expanded_files[1],
                             'ligand_cif': expanded_files[2]}
 
-            self.logger.log('Validator handled {} rows from database, {} were valid'.format(count, processed), level=0)
+            self.logger.info('Validator handled {} rows from database, {} were valid'.format(count, processed))
 
         return meta
 
     def _check_file_exists(self, filepath):
+        """
+        Check whether this path exists and is a file
+        :param filepath:
+        :return:
+        """
         if not os.path.isfile(filepath):
             return False
         return True
 
-
-def main():
-
-    # parser = argparse.ArgumentParser(description='processor')
-    #
-    # parser.add_argument('-i', '--input-dir', required=True, help="Input directory")
-    # parser.add_argument('-o', '--output-dir', required=True, help="Output directory")
-    # parser.add_argument('-d', '--db-file', required=True, help="Sqlite DB file")
-    #
-    # args = parser.parse_args()
-    # print("validator: ", args)
-
-    # v = Validator([args.input_dir], args.output_dir, 'targetname')
-    #
-    # v.copy_files(args.db_file)
-
-    print(os.path.join('foo/bar', '/baz/boo'[1:]))
-
-
-if __name__ == "__main__":
-    main()

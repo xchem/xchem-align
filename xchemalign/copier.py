@@ -63,6 +63,23 @@ def _copy_file(filepath, base_dir, input_dir, xtal_dir, output_dir):
     return True
 
 
+def find_panddas(dirname):
+    """
+    Find the PanDDAs event maps (.ccp4 files) that are relevant to the data contained in this directory
+    :param dirname: The directory in which to look e.g. /dls/labxchem/data/2020/lb18145-153
+    :return: A list of paths to the .ccp4 files?
+    """
+    # TODO Conor to implement.
+
+    # Will be used by copier.py to copy those .ccp4 files from Diamond.
+    # The collator.py tool will copy those files to a standard location under outputs/<target_name>/upload_n/crystallographic
+    # and list those files in the metadata.yaml file.
+
+    # Question: will the returned value be a list of .ccp4 files for the whole set of data, or will it be crystal specific?
+
+    pass
+
+
 def main():
 
     parser = argparse.ArgumentParser(description='copier')

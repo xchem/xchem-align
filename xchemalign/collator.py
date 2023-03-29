@@ -13,35 +13,15 @@
 import argparse, os, shutil
 import yaml
 
-from . import utils, validator
+from . import utils, validator, processor
 
 
-_METADATA_FILENAME = 'metadata.yaml'
-_CONFIG_FILENAME = 'config.yaml'
-_VERSION_DIR_PREFIX = 'upload_'
-
-
-class Collator:
+class Collator(processor.Processor):
 
     def __init__(self, config_file, logger=None):
-        self.config_file = config_file
-
-        with open(config_file, 'r') as stream:
-            config = yaml.safe_load(stream)
-
-        self.base_dir = config['base_dir']
-        self.input_dirs = config['input_dirs']
-        self.output_dir = config['output_dir']
-        self.target_name = config['target_name']
-        self.config = config
-        self.version_dir = None
-        self.meta_history = []
+        super(Collator, self).__init__(config_file, logger=None)
         self.all_xtals = None
         self.new_or_updated_xtals = None
-        if logger:
-            self.logger = logger
-        else:
-            self.logger = utils.Logger()
 
     def validate(self):
         v = validator.Validator(self.base_dir, self.input_dirs, self.output_dir, self.target_name, logger=self.logger)
@@ -50,69 +30,69 @@ class Collator:
         return meta, warnings, errors
 
     def run(self, meta):
-        self.logger.log('Running collator...', level=0)
-        v_dir = self._read_versions()
+        self.logger.info('Running collator...')
+        v_dir = self.read_versions()
         if not v_dir:
-            self.logger.log('Error with version dir. Please fix and try again.', level=2)
+            self.logger.error('Error with version dir. Please fix and try again.')
             return None
-        self.logger.log('Using version dir {}'.format(v_dir), level=0)
-        self.logger.log('Coping files ...', level=0)
+        self.logger.info('Using version dir {}'.format(v_dir))
+        self.logger.info('Coping files ...')
         new_meta = self._copy_files(meta)
-        self.logger.log('Munging the history ...', level=0)
+        self.logger.info('Munging the history ...')
         all_xtals, new_xtals = self._munge_history(meta)
-        self.logger.log('Writing metadata ...', level=0)
+        self.logger.info('Writing metadata ...')
         self._write_metadata(new_meta, all_xtals, new_xtals)
-        self.logger.log('Copying config ...', level=0)
+        self.logger.info('Copying config ...')
         self._copy_config()
-        self.logger.log('Run complete', level=0)
+        self.logger.info('Run complete')
         return new_meta
 
-    def _read_versions(self):
+    def read_versions(self):
         # find out which version dirs exist
         version = 1
         while True:
-            v_dir = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version))
+            v_dir = os.path.join(self.output_dir, processor.VERSION_DIR_PREFIX + str(version))
             if os.path.isdir(v_dir):
                 version += 1
             else:
                 break
         if version == 1:
-            self.logger.log('No version directory found. Please create one named upload_1', level=2)
+            self.logger.error('No version directory found. Please create one named upload_1')
             return None
 
         # the working version dir is one less than the current value
         version -= 1
-        self.logger.log('Version is {}'.format(version), level=0)
-        v_dir = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(version))
+        self.logger.info('Version is {}'.format(version))
+        v_dir = os.path.join(self.output_dir, processor.VERSION_DIR_PREFIX + str(version))
 
         # read the metadata from the earlier versions
         if version > 1:
             for v in range(1, version):
-                self.logger.log('Reading metadata for version {}'.format(v), level=0)
-                meta_file = os.path.join(self.output_dir, _VERSION_DIR_PREFIX + str(v), _METADATA_FILENAME)
+                self.logger.info('Reading metadata for version {}'.format(v))
+                meta_file = os.path.join(self.output_dir, processor.VERSION_DIR_PREFIX + str(v), processor.METADATA_FILENAME)
                 if os.path.isfile(meta_file):
                     with open(meta_file, 'r') as stream:
                         meta = yaml.safe_load(stream)
                         self.meta_history.append(meta)
                 else:
-                    self.logger.log('Metadata file {} not found'.format(meta_file), level=2)
+                    self.logger.error('Metadata file {} not found'.format(meta_file))
                     return None
 
         self.version_dir = v_dir
 
         num_old_metas = len(self.meta_history)
         if num_old_metas:
-            self.logger.log('Found {} metadata files from previous versions'.format(num_old_metas), level=0)
+            self.logger.info('Found {} metadata files from previous versions'.format(num_old_metas))
 
         return v_dir
 
     def _copy_files(self, meta):
         cryst_dir = os.path.join(self.version_dir, 'crystallographic')
-        self.logger.log('Using cryst_dir of', cryst_dir, level=0)
+        self.logger.info('Using cryst_dir of', cryst_dir)
         if os.path.exists(cryst_dir):
-            self.logger.log('removing old cryst_dir', level=0)
+            self.logger.info('removing old cryst_dir')
             shutil.rmtree(cryst_dir)
-        self.logger.log('creating cryst_dir', level=0)
+        self.logger.info('creating cryst_dir')
         os.makedirs(cryst_dir)
 
         for name, data in meta['crystals'].items():
@@ -128,12 +108,12 @@ class Collator:
                 pdb_output = os.path.join(dir, name + '.pdb')
                 f = shutil.copy2(pdb_input, pdb_output, follow_symlinks=True)
                 if not f:
-                    self.logger.log('Failed to copy PDB file {} to {}'.format(pdb_input, pdb_output), level=2)
+                    self.logger.error('Failed to copy PDB file {} to {}'.format(pdb_input, pdb_output))
                     return None
                 digest = utils.gen_sha256(pdb_output)
                 xtal_files['xtal_pdb'] = {'file': pdb_output, 'sha256': digest}
             else:
-                self.logger.log('PDB entry missing for {}'.format(name), level=1)
+                self.logger.warn('PDB entry missing for {}'.format(name))
 
             # handle the MTZ file
             mtz = xtal_files['xtal_mtz']
@@ -142,12 +122,12 @@ class Collator:
                 mtz_output = os.path.join(dir, name + '.mtz')
                 f = shutil.copy2(mtz_input, mtz_output, follow_symlinks=True)
                 if not f:
-                    self.logger.log('Failed to copy MTZ file {} to {}'.format(mtz_input, mtz_output), level=2)
+                    self.logger.error('Failed to copy MTZ file {} to {}'.format(mtz_input, mtz_output))
                     return None
                 digest = utils.gen_sha256(mtz_output)
                 xtal_files['xtal_mtz'] = {'file': mtz_output, 'sha256': digest}
             else:
-                self.logger.log('MTZ entry missing for {}'.format(name), level=1)
+                self.logger.warn('MTZ entry missing for {}'.format(name))
 
             # handle the CIF file
             cif = xtal_files['ligand_cif']
@@ -156,7 +136,7 @@ class Collator:
                 cif_output = os.path.join(dir, name + '.cif')
                 f = shutil.copy2(cif_input, cif_output, follow_symlinks=True)
                 if not f:
-                    self.logger.log('Failed to copy CIF file {} to {}'.format(cif_input, cif_output), level=2)
+                    self.logger.error('Failed to copy CIF file {} to {}'.format(cif_input, cif_output))
                     return None
                 digest = utils.gen_sha256(cif_output)
                 xtal_files['ligand_cif'] = {'file': cif_output, 'sha256': digest}
@@ -172,11 +152,11 @@ class Collator:
                 #         digest = utils.gen_sha256(sdf_file)
                 #         xtal_files['ligand_sdf'] = {'file': sdf_file, 'sha256': digest}
                 #     else:
-                #         self.logger.log('Ligand SDF file was not generated', level=1)
+                #         self.logger.warn('Ligand SDF file was not generated')
                 # else:
-                #     self.logger.log('Ligand PDB file {} not found'.format(ligand_pdb), level=1)
+                #     self.logger.warn('Ligand PDB file {} not found'.format(ligand_pdb))
             else:
-                self.logger.log('CIF entry missing for {}'.format(name), level=1)
+                self.logger.warn('CIF entry missing for {}'.format(name))
 
         return meta
 
@@ -243,7 +223,7 @@ class Collator:
         return all_xtals, new_or_updated_xtals
 
     def _write_metadata(self, meta, all_xtals, new_xtals):
-        f = os.path.join(self.version_dir, _METADATA_FILENAME)
+        f = os.path.join(self.version_dir, processor.METADATA_FILENAME)
         with open(f, 'w') as stream:
             yaml.dump(meta, stream, sort_keys=False)
         f = os.path.join(self.version_dir, 'all_xtals.yaml')
@@ -263,15 +243,15 @@ class Collator:
 
 def main():
 
-    parser = argparse.ArgumentParser(description='processor')
+    parser = argparse.ArgumentParser(description='collator')
 
-    parser.add_argument('-c', '--config-file', required=True, help="Configuration file")
-    parser.add_argument('-l', '--log-file', help="Sqlite DB file")
+    parser.add_argument('-c', '--config-file', default='config.yaml', help="Configuration file")
+    parser.add_argument('-l', '--log-file', help="File to write logs to")
     parser.add_argument('--log-level', type=int, default=0, help="Logging level")
     parser.add_argument('--validate', action='store_true', help='Only perform validation')
 
     args = parser.parse_args()
-    print("processor: ", args)
+    print("collator: ", args)
 
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
 

@@ -10,8 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, atexit, datetime, hashlib
+import sys, os, atexit, hashlib
 import datetime
+import yaml, json
 
 _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -92,6 +93,7 @@ class Logger:
     def get_num_messages(self):
         return self.infos, self.warnings, self.errors
 
+
 def gen_sha256(file):
     sha256_hash = hashlib.sha256()
     with open(file, "rb") as f:
@@ -103,6 +105,24 @@ def gen_sha256(file):
 def to_datetime(datetime_str):
     datetime_object = datetime.datetime.strptime(datetime_str, _DATETIME_FORMAT)
     return datetime_object
+
+
+def read_config_file(filename):
+
+    if os.path.isfile(filename):
+        if filename.endswith('.yaml'):
+            with open(filename, 'r') as stream:
+                config = yaml.safe_load(stream)
+                return config
+        elif filename.endswith('.json'):
+            with open(filename, 'r') as stream:
+                config = json.load(stream)
+                return config
+        else:
+            raise ValueError('Only .json or .yaml files are supported. {} was specified'.format(filename))
+    else:
+        msg = 'Config file {} not found'.format(filename)
+        raise ValueError(msg)
 
 
 def main():
