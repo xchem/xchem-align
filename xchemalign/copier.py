@@ -124,7 +124,11 @@ def get_ligand_coords(structure: gemmi.Structure, ) -> dict[tuple[str, str, str]
     return ligand_coords
 
 
-def get_closest_event_map(dataset: DatasetInterface, ligand_coord: np.array, event_tables: dict[Path, pd.DataFrame]) -> Path:
+def get_closest_event_map(
+        dataset: DatasetInterface,
+        ligand_coord: np.array,
+        event_tables: dict[Path, pd.DataFrame],
+) -> Path:
     distances = {}
     for pandda_path, event_table in event_tables.items():
         dataset_events = event_table[event_table[Constants.EVENT_TABLE_DTAG] == dataset.dtag]
@@ -156,7 +160,7 @@ def get_dataset_event_maps(
     # Get the closest events within some reasonable radius
     closest_event_maps = {}
     for ligand_key, ligand_coord in ligand_coords.items():
-        closest_event_map = get_closest_event_map(ligand_coord, event_tables)
+        closest_event_map = get_closest_event_map(dataset, ligand_coord, event_tables)
         closest_event_maps[ligand_key] = closest_event_map
 
     return closest_event_maps
