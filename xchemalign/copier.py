@@ -166,6 +166,7 @@ def get_dataset_event_maps(
     return closest_event_maps
 
 
+
 def test_function_get_all_event_maps(datasets: dict[str, DatasetInterface], pandda_event_tables: dict[Path, pd.DataFrame]) -> dict[str, dict[tuple[str, str, str], Path]]:
 
     datasets_event_maps = {}
