@@ -11,36 +11,75 @@
 # limitations under the License.
 
 import os, argparse, shutil
+from pathlib import Path
 
 import pandas as pd
 
 from . import dbreader, validator
 
 
-def copy_files(base_dir, input_dir, output_dir):
-    if base_dir:
-        dbfile = os.path.join(base_dir, input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
+def _generate_path(base_dir, input_dir, file):
+    if input_dir:
+        if base_dir:
+            return base_dir + '/' + input_dir + '/' + file
+        else:
+            return input_dir + '/' + file
     else:
-        dbfile = os.path.join(input_dir, 'processing', 'database', 'soakDBDataFile.sqlite')
+        if base_dir:
+            return base_dir + file
+        else:
+            return file
+
+
+def copy_files(base_dir, input_dir, output_dir, soakdb_file, panddas_files):
+
+    dbfile = _generate_path(base_dir, input_dir, soakdb_file)
+
+    print('Reading soakdb file', dbfile)
     df = dbreader.filter_dbmeta(dbfile)
     count = 0
     copied = 0
+    datasets = {}
     for index, row in df.iterrows():
         count += 1
         xtal_name = row['CrystalName']
         xtal_dir = validator.generate_xtal_dir(input_dir, xtal_name)
         print('processing {} {}'.format(count, xtal_name))
-        for colname in ['RefinementPDB_latest', 'RefinementMTZ_latest', 'RefinementCIF']:
-            file = row[colname]
-            if file:
-                ok = _copy_file(file, base_dir, input_dir, xtal_dir, output_dir)
-                if ok:
-                    copied += 1
-        # for the ligand CIF file also copy the corresponding PDB file
+
+        file = row['RefinementPDB_latest']
         if file:
-            ok = _copy_file(file[:-3] + 'pdb', base_dir, input_dir, xtal_dir, output_dir)
+            ok = _copy_file(file, base_dir, input_dir, xtal_dir, output_dir)
             if ok:
                 copied += 1
+                datasets[xtal_name] = file
+                # if PDB is OK then continue with the other files
+                file = row['RefinementMTZ_latest']
+                if file:
+                    ok = _copy_file(file, base_dir, input_dir, xtal_dir, output_dir)
+                    if ok:
+                        copied += 1
+                file = row['RefinementCIF']
+                if file:
+                    ok = _copy_file(file, base_dir, input_dir, xtal_dir, output_dir)
+                    if ok:
+                        copied += 1
+                        # for the ligand CIF file also copy the corresponding PDB file
+                        ok = _copy_file(file[:-3] + 'pdb', base_dir, input_dir, xtal_dir, output_dir)
+                        if ok:
+                            copied += 1
+
+    # copy the specified csv files with the panddas info
+    print('Copying panddas csv files')
+    for panddas_file in panddas_files:
+        if base_dir:
+            f = base_dir + input_dir + '/' + panddas_file
+        else:
+            f = input_dir + '/' + panddas_file
+        ok = _copy_csv(panddas_file, base_dir, input_dir, output_dir)
+
+    # copy the relevant panddas event map files
+    _copy_panddas(datasets, base_dir, input_dir, output_dir, panddas_files)
+
     print('Copied {} files'.format(copied))
 
 
@@ -65,21 +104,58 @@ def _copy_file(filepath, base_dir, input_dir, xtal_dir, output_dir):
     return True
 
 
-def find_panddas(dirname):
+def _copy_csv(filepath, base_dir, input_dir, output_dir):
+    if base_dir:
+        csv_src = base_dir + '/' + input_dir + '/' + filepath
+    else:
+        csv_src = input_dir + '/' + filepath
+    if not os.path.isfile(csv_src):
+        print('File {} not found'.format(csv_src))
+        return False
+    dest_file = output_dir + '/' + input_dir + '/' + filepath
+    dest_dir = os.path.dirname(dest_file)
+    print('Copying', csv_src, 'to', dest_dir)
+    os.makedirs(dest_dir, exist_ok=True)
+    f = shutil.copy2(csv_src, dest_dir + '/', follow_symlinks=True)
+    if not f:
+        print('Failed to copy file {} to {}'.format(dest_dir, dest_dir))
+        return False
+    return True
+
+
+def _copy_panddas(datasets, base_dir, input_dir, output_dir, panddas_files):
     """
     Find the PanDDAs event maps (.ccp4 files) that are relevant to the data contained in this directory
     :param dirname: The directory in which to look e.g. /dls/labxchem/data/2020/lb18145-153
     :return: A list of paths to the .ccp4 files?
     """
-    # TODO Conor to implement.
 
-    # Will be used by copier.py to copy those .ccp4 files from Diamond.
-    # The collator.py tool will copy those files to a standard location under outputs/<target_name>/upload_n/crystallographic
-    # and list those files in the metadata.yaml file.
+    if not panddas_files:
+        return
 
-    # Question: will the returned value be a list of .ccp4 files for the whole set of data, or will it be crystal specific?
+    print(len(datasets), 'datasets')
 
-    pass
+    panddas_dict = {}
+    for panddas_file in panddas_files:
+        f = _generate_path(base_dir, input_dir, panddas_file)
+        print('Reading CSV:', f)
+        df = pd.read_csv(f)
+        print('Data frame shape:', df.shape)
+        panddas_dict[Path(f)] = df
+
+        for xtal_name, pdb_path in datasets.items():
+
+            dataset_events = df[df[Constants.EVENT_TABLE_DTAG] == xtal_name]
+            for idx, row in dataset_events.iterrows():
+                print('  event', idx, xtal_name)
+                event_idx = row[Constants.EVENT_TABLE_EVENT_IDX]
+                bdc = row[Constants.EVENT_TABLE_BDC]
+                event_map_path = Path(panddas_file).parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
+                    dtag=xtal_name,
+                    event_idx=event_idx,
+                    bdc=bdc
+                )
+                print(event_map_path)
 
 
 from typing import Protocol
@@ -125,20 +201,22 @@ def get_ligand_coords(structure: gemmi.Structure, ) -> dict[tuple[str, str, str]
 
 
 def get_closest_event_map(
-        dataset: DatasetInterface,
+        xtal_name: str,
         ligand_coord: np.array,
         event_tables: dict[Path, pd.DataFrame],
 ) -> Path:
     distances = {}
     for pandda_path, event_table in event_tables.items():
-        dataset_events = event_table[event_table[Constants.EVENT_TABLE_DTAG] == dataset.dtag]
+        print('Processing', pandda_path)
+        dataset_events = event_table[event_table[Constants.EVENT_TABLE_DTAG] == xtal_name]
         for idx, row in dataset_events.iterrows():
             event_idx = row[Constants.EVENT_TABLE_EVENT_IDX]
             bdc = row[Constants.EVENT_TABLE_BDC]
             x,y,z = row[Constants.EVENT_TABLE_X], row[Constants.EVENT_TABLE_Y], row[Constants.EVENT_TABLE_Z]
             distance = np.linalg.norm(np.array([x,y,z]).flatten() - ligand_coord.flatten())
-            event_map_path = pandda_path / Constants.PROCESSED_DATASETS_DIR / dataset.dtag / Constants.EVENT_MAP_TEMPLATE.format(
-                dtag=dataset.dtag,
+            print('Distance:', distance)
+            event_map_path = pandda_path / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
+                dtag=xtal_name,
                 event_idx=event_idx,
                 bdc=bdc
             )
@@ -148,11 +226,16 @@ def get_closest_event_map(
 
 
 def get_dataset_event_maps(
-        dataset: DatasetInterface,
+        xtal_name: str,
+        pdb_file: Path,
+        base_dir: str,
+        input_dir: str,
         event_tables: dict[Path, pd.DataFrame],
 ) -> dict[tuple[str, str, str], Path]:
     # Get the relevant structure
-    structure = gemmi.read_structure(str(dataset.pdb))
+    p = _generate_path(base_dir, None, pdb_file)
+    print('Reading', xtal_name, p)
+    structure = gemmi.read_structure(p)
 
     # Get the coordinates of ligands
     ligand_coords = get_ligand_coords(structure)
@@ -160,11 +243,11 @@ def get_dataset_event_maps(
     # Get the closest events within some reasonable radius
     closest_event_maps = {}
     for ligand_key, ligand_coord in ligand_coords.items():
-        closest_event_map = get_closest_event_map(dataset, ligand_coord, event_tables)
+        print('coord:', ligand_coord)
+        closest_event_map = get_closest_event_map(xtal_name, ligand_coord, event_tables)
         closest_event_maps[ligand_key] = closest_event_map
 
     return closest_event_maps
-
 
 
 def test_function_get_all_event_maps(datasets: dict[str, DatasetInterface], pandda_event_tables: dict[Path, pd.DataFrame]) -> dict[str, dict[tuple[str, str, str], Path]]:
@@ -188,12 +271,15 @@ def main():
 
     parser.add_argument('-b', '--base-dir', help="Base directory")
     parser.add_argument('-i', '--input-dir', required=True, help="Input directory (below base-dir)")
+    parser.add_argument('-s', '--soakdb-file', default='processing/database/soakDBDataFile.sqlite',
+                        help="Relative path to soakdb file")
+    parser.add_argument('-p', '--panddas-files', nargs='*', help="Relative path to CSV files with panddas data")
     parser.add_argument('-o', '--output-dir', required=True, help="Output directory")
 
     args = parser.parse_args()
     print("copier: ", args)
 
-    copy_files(args.base_dir, args.input_dir, args.output_dir)
+    copy_files(args.base_dir, args.input_dir, args.output_dir, args.soakdb_file, args.panddas_files)
 
     # _copy_file('compound/foo.cif', 'dls/labxchem/data/lb18145/lb18145-216', 'data', 'data/outputs')
     # _copy_file('/dls/labxchem/data/lb18145/lb18145-216/compound/foo.cif', 'dls/labxchem/data/lb18145/lb18145-216', 'data', 'data/outputs')
