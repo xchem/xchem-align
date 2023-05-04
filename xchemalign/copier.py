@@ -57,7 +57,8 @@ class Copier(processor.Processor):
         self.logger.info('reading soakdb file', dbfile)
         df = dbreader.filter_dbmeta(dbfile)
         count = 0
-        copied = 0
+        num_files = 0
+        num_csv = 0
         datasets = {}
         for index, row in df.iterrows():
             count += 1
@@ -70,7 +71,7 @@ class Copier(processor.Processor):
                 path = Path(file)
                 ok = self.copy_file(path, xtal_dir_path)
                 if ok:
-                    copied += 1
+                    num_files += 1
                     datasets[xtal_name] = path
                     # if PDB is OK then continue with the other files
                     file = row['RefinementMTZ_latest']
@@ -78,30 +79,29 @@ class Copier(processor.Processor):
                         path = Path(file)
                         ok = self.copy_file(path, xtal_dir_path)
                         if ok:
-                            copied += 1
+                            num_files += 1
                     file = row['RefinementCIF']
                     if file:
                         path = Path(file)
                         ok = self.copy_file(path, xtal_dir_path)
                         if ok:
-                            copied += 1
+                            num_files += 1
                             # for the ligand CIF file also copy the corresponding PDB file
                             ok = self.copy_file(path.with_suffix('.pdb'), xtal_dir_path)
                             if ok:
-                                copied += 1
+                                num_files += 1
 
         # copy the specified csv files with the panddas info
         self.logger.info('Copying panddas csv files')
         for panddas_path in self.panddas_file_paths:
             ok = self.copy_csv(panddas_path)
             if ok:
-                copied += 1
+                num_csv += 1
 
         # copy the relevant panddas event map files
-        self.copy_panddas(datasets, self.panddas_file_paths)
+        num_ccp4 = self.copy_panddas(datasets, self.panddas_file_paths)
 
-        self.logger.info('Copied {} files'.format(copied))
-
+        self.logger.info('Copied {} structure, {} csv, {} ccp4 files'.format(num_files, num_csv, num_ccp4))
 
     def copy_file(self, filepath: Path, xtal_dir_path: Path):
 
@@ -136,9 +136,9 @@ class Copier(processor.Processor):
             self.logger.warn('File {} not found'.format(csv_src))
             return False
 
-        dest_path = self.output_path / self.input_path / filepath
+        dest_path = self.output_path / utils.make_path_relative(self.input_path) / filepath
         dest_dir_path = dest_path.parent
-        # print('Copying', csv_src, 'to', dest_dir_path)
+        self.logger.info('copying', csv_src, 'to', dest_dir_path)
         dest_dir_path.mkdir(exist_ok=True, parents=True)
         f = shutil.copy2(csv_src, dest_dir_path, follow_symlinks=True)
         if not f:
@@ -160,12 +160,13 @@ class Copier(processor.Processor):
         self.logger.info(len(datasets), 'datasets')
 
         panddas_dict = {}
+        ccp4_count = 0
         for panddas_file in panddas_files:
-            f = utils.expand_path(self.base_path, self.input_path / panddas_file)
-            self.logger.info('Reading CSV:', f)
-            df = pd.read_csv(f)
+            pfp = utils.expand_path(self.base_path, self.input_path / panddas_file)
+            self.logger.info('Reading CSV:', pfp)
+            df = pd.read_csv(pfp)
             self.logger.info('Data frame shape:', df.shape)
-            panddas_dict[Path(f)] = df
+            panddas_dict[pfp] = df
 
             for xtal_name, pdb_path in datasets.items():
 
@@ -174,20 +175,23 @@ class Copier(processor.Processor):
                     self.logger.info('event', idx, xtal_name)
                     event_idx = row[Constants.EVENT_TABLE_EVENT_IDX]
                     bdc = row[Constants.EVENT_TABLE_BDC]
-                    event_map_path = Path(panddas_file).parent.parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
+                    event_map_path = pfp.parent.parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
                         dtag=xtal_name,
                         event_idx=event_idx,
                         bdc=bdc
                     )
                     if event_map_path.is_file():
-                        outfile = utils.expand_path(self.output_path, self.input_path / event_map_path)
+                        outfile = utils.expand_path(self.output_path, utils.make_path_relative(self.input_path) / event_map_path)
                         self.logger.info('copying {} to {}'.format(event_map_path, outfile))
                         outfile.parent.mkdir(exist_ok=True, parents=True)
                         f = shutil.copy2(event_map_path, outfile, follow_symlinks=True)
                         if not f:
                             self.logger.warn('failed to copy event map file', event_map_path)
+                        else:
+                            ccp4_count += 1
                     else:
                         self.logger.warn('event map file not found:', event_map_path)
+        return ccp4_count
 
     def generate_file_paths(self, filepath: Path, xtal_dir_path: Path, output_path: Path):
 
