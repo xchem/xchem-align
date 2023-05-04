@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import sys, os, atexit, hashlib
+from pathlib import Path
 import datetime
 import yaml, json
 
@@ -124,6 +125,31 @@ def read_config_file(filename):
         msg = 'Config file {} not found'.format(filename)
         raise ValueError(msg)
 
+def find_property(my_dict, key, default=None):
+    if key in my_dict:
+        return my_dict[key]
+    else:
+        return default
+
+
+def find_path(my_dict, key, default=None):
+    value = find_property(my_dict, key, default=default)
+    if value:
+        return Path(value)
+    else:
+        return default
+
+def make_path_relative(p):
+    if p.is_absolute():
+        return p.relative_to('/')
+    else:
+        return p
+
+def expand_path(base_path, p, expand=True):
+    if expand and base_path:
+        return base_path / make_path_relative(p)
+    else:
+        return p
 
 def main():
 

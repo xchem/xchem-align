@@ -12,7 +12,7 @@
 
 import argparse
 
-from . import utils, processor, validator
+from . import utils, processor
 
 
 class Aligner(processor.Processor):

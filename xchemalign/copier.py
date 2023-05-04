@@ -15,147 +15,181 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import dbreader, validator
+from . import dbreader, processor, utils
 
 
-def _generate_path(base_dir, input_dir, file):
-    if input_dir:
-        if base_dir:
-            return base_dir + '/' + input_dir + '/' + file
+
+def _generate_path(base_path: Path, input_path: Path, file_path):
+    if input_path:
+        if base_path:
+            return base_path / input_path / file_path
         else:
-            return input_dir + '/' + file
+            return input_path / file_path
     else:
-        if base_dir:
-            return base_dir + file
+        if base_path:
+            return base_path / file_path
         else:
-            return file
+            return file_path
+
+class Copier(processor.Processor):
+
+    def __init__(self, base_path: Path, input_path:Path, output_path: Path, soakdb_file_path: Path, panddas_file_paths: list[Path], logger=None):
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = utils.Logger()
+
+        self.base_path = base_path
+        self.input_path = input_path
+        self.output_path = output_path
+        self.soakdb_file_path = soakdb_file_path
+        self.panddas_file_paths = panddas_file_paths
 
 
-def copy_files(base_dir, input_dir, output_dir, soakdb_file, panddas_files):
+    def copy_files(self):
 
-    dbfile = _generate_path(base_dir, input_dir, soakdb_file)
+        if self.base_path and self.input_path.is_absolute():
+            self.logger.warn('INFO: making input_path relative as a base_path is specified')
+            self.input_path = self.input_path.relative_to('/')
 
-    print('Reading soakdb file', dbfile)
-    df = dbreader.filter_dbmeta(dbfile)
-    count = 0
-    copied = 0
-    datasets = {}
-    for index, row in df.iterrows():
-        count += 1
-        xtal_name = row['CrystalName']
-        xtal_dir = validator.generate_xtal_dir(input_dir, xtal_name)
-        print('processing {} {}'.format(count, xtal_name))
+        dbfile = utils.expand_path(self.base_path, self.input_path / self.soakdb_file_path)
 
-        file = row['RefinementPDB_latest']
-        if file:
-            ok = _copy_file(file, base_dir, input_dir, xtal_dir, output_dir)
-            if ok:
-                copied += 1
-                datasets[xtal_name] = file
-                # if PDB is OK then continue with the other files
-                file = row['RefinementMTZ_latest']
-                if file:
-                    ok = _copy_file(file, base_dir, input_dir, xtal_dir, output_dir)
-                    if ok:
-                        copied += 1
-                file = row['RefinementCIF']
-                if file:
-                    ok = _copy_file(file, base_dir, input_dir, xtal_dir, output_dir)
-                    if ok:
-                        copied += 1
-                        # for the ligand CIF file also copy the corresponding PDB file
-                        ok = _copy_file(file[:-3] + 'pdb', base_dir, input_dir, xtal_dir, output_dir)
+        self.logger.info('reading soakdb file', dbfile)
+        df = dbreader.filter_dbmeta(dbfile)
+        count = 0
+        copied = 0
+        datasets = {}
+        for index, row in df.iterrows():
+            count += 1
+            xtal_name = row['CrystalName']
+            xtal_dir_path = processor.generate_xtal_dir(self.input_path, xtal_name)
+            self.logger.info('processing {} {}'.format(count, xtal_name))
+
+            file = row['RefinementPDB_latest']
+            if file:
+                path = Path(file)
+                ok = self.copy_file(path, xtal_dir_path)
+                if ok:
+                    copied += 1
+                    datasets[xtal_name] = path
+                    # if PDB is OK then continue with the other files
+                    file = row['RefinementMTZ_latest']
+                    if file:
+                        path = Path(file)
+                        ok = self.copy_file(path, xtal_dir_path)
                         if ok:
                             copied += 1
+                    file = row['RefinementCIF']
+                    if file:
+                        path = Path(file)
+                        ok = self.copy_file(path, xtal_dir_path)
+                        if ok:
+                            copied += 1
+                            # for the ligand CIF file also copy the corresponding PDB file
+                            ok = self.copy_file(path.with_suffix('.pdb'), xtal_dir_path)
+                            if ok:
+                                copied += 1
 
-    # copy the specified csv files with the panddas info
-    print('Copying panddas csv files')
-    for panddas_file in panddas_files:
-        if base_dir:
-            f = base_dir + input_dir + '/' + panddas_file
+        # copy the specified csv files with the panddas info
+        self.logger.info('Copying panddas csv files')
+        for panddas_path in self.panddas_file_paths:
+            f = utils.expand_path(self.base_path, self.input_path / panddas_path)
+            ok = self.copy_csv(panddas_path)
+            if ok:
+                copied += 1
+
+        # copy the relevant panddas event map files
+        self.copy_panddas(datasets, self.panddas_file_paths)
+
+        self.logger.info('Copied {} files'.format(copied))
+
+
+    def copy_file(self, filepath: Path, xtal_dir_path: Path):
+        # print('handling', base_path, filepath)
+        inputpath, outputpath = processor.generate_file_paths(filepath, xtal_dir_path, self.output_path)
+        if self.base_path:
+            if inputpath.is_absolute():
+                full_inputpath = self.base_path / inputpath.relative_to('/')
+            else:
+                full_inputpath = self.base_path / inputpath
         else:
-            f = input_dir + '/' + panddas_file
-        ok = _copy_csv(panddas_file, base_dir, input_dir, output_dir)
+            full_inputpath = inputpath
+        # print('copying', full_inputpath, outputpath)
 
-    # copy the relevant panddas event map files
-    _copy_panddas(datasets, base_dir, input_dir, output_dir, panddas_files)
+        if not full_inputpath.is_file():
+            self.logger.warn('file {} not found'.format(full_inputpath))
+            return False
 
-    print('Copied {} files'.format(copied))
-
-
-def _copy_file(filepath, base_dir, input_dir, xtal_dir, output_dir):
-    # print('handling', filepath)
-    inputpath, outputpath = validator.generate_filenames(filepath, xtal_dir, output_dir)
-    if base_dir:
-        full_inputpath = base_dir + '/' + inputpath
-    else:
-        full_inputpath = inputpath
-    # print('copying', full_inputpath, outputpath)
-
-    if not os.path.isfile(full_inputpath):
-        print('File {} not found'.format(full_inputpath))
-        return False
-
-    os.makedirs(os.path.dirname(outputpath), exist_ok=True)
-    f = shutil.copy2(full_inputpath, outputpath, follow_symlinks=True)
-    if not f:
-        print('Failed to copy file {} to {}'.format(inputpath, outputpath))
-        return False
-    return True
+        outputpath.parent.mkdir(exist_ok=True, parents=True)
+        f = shutil.copy2(full_inputpath, outputpath, follow_symlinks=True)
+        if not f:
+            self.logger.warn('Failed to copy file {} to {}'.format(full_inputpath, outputpath))
+            return False
+        return True
 
 
-def _copy_csv(filepath, base_dir, input_dir, output_dir):
-    if base_dir:
-        csv_src = base_dir + '/' + input_dir + '/' + filepath
-    else:
-        csv_src = input_dir + '/' + filepath
-    if not os.path.isfile(csv_src):
-        print('File {} not found'.format(csv_src))
-        return False
-    dest_file = output_dir + '/' + input_dir + '/' + filepath
-    dest_dir = os.path.dirname(dest_file)
-    print('Copying', csv_src, 'to', dest_dir)
-    os.makedirs(dest_dir, exist_ok=True)
-    f = shutil.copy2(csv_src, dest_dir + '/', follow_symlinks=True)
-    if not f:
-        print('Failed to copy file {} to {}'.format(dest_dir, dest_dir))
-        return False
-    return True
+    def copy_csv(self, filepath: Path):
+
+        csv_src = utils.expand_path(self.base_path, self.input_path / filepath)
+
+        if not csv_src.is_file():
+            self.logger.warn('File {} not found'.format(csv_src))
+            return False
+
+        dest_path = self.output_path / self.input_path / filepath
+        dest_dir_path = dest_path.parent
+        # print('Copying', csv_src, 'to', dest_dir_path)
+        dest_dir_path.mkdir(exist_ok=True, parents=True)
+        f = shutil.copy2(csv_src, dest_dir_path, follow_symlinks=True)
+        if not f:
+            self.logger.warn('Failed to copy file {} to {}'.format(csv_src, dest_dir_path))
+            return False
+        return True
 
 
-def _copy_panddas(datasets, base_dir, input_dir, output_dir, panddas_files):
-    """
-    Find the PanDDAs event maps (.ccp4 files) that are relevant to the data contained in this directory
-    :param dirname: The directory in which to look e.g. /dls/labxchem/data/2020/lb18145-153
-    :return: A list of paths to the .ccp4 files?
-    """
+    def copy_panddas(self, datasets, panddas_files):
+        """
+        Find the PanDDAs event maps (.ccp4 files) that are relevant to the data contained in this directory
+        :param dirname: The directory in which to look e.g. /dls/labxchem/data/2020/lb18145-153
+        :return: A list of paths to the .ccp4 files?
+        """
 
-    if not panddas_files:
-        return
+        if not panddas_files:
+            return
 
-    print(len(datasets), 'datasets')
+        self.logger.info(len(datasets), 'datasets')
 
-    panddas_dict = {}
-    for panddas_file in panddas_files:
-        f = _generate_path(base_dir, input_dir, panddas_file)
-        print('Reading CSV:', f)
-        df = pd.read_csv(f)
-        print('Data frame shape:', df.shape)
-        panddas_dict[Path(f)] = df
+        panddas_dict = {}
+        for panddas_file in panddas_files:
+            f = utils.expand_path(self.base_path, self.input_path / panddas_file)
+            self.logger.info('Reading CSV:', f)
+            df = pd.read_csv(f)
+            self.logger.info('Data frame shape:', df.shape)
+            panddas_dict[Path(f)] = df
 
-        for xtal_name, pdb_path in datasets.items():
+            for xtal_name, pdb_path in datasets.items():
 
-            dataset_events = df[df[Constants.EVENT_TABLE_DTAG] == xtal_name]
-            for idx, row in dataset_events.iterrows():
-                print('  event', idx, xtal_name)
-                event_idx = row[Constants.EVENT_TABLE_EVENT_IDX]
-                bdc = row[Constants.EVENT_TABLE_BDC]
-                event_map_path = Path(panddas_file).parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
-                    dtag=xtal_name,
-                    event_idx=event_idx,
-                    bdc=bdc
-                )
-                print(event_map_path)
+                dataset_events = df[df[Constants.EVENT_TABLE_DTAG] == xtal_name]
+                for idx, row in dataset_events.iterrows():
+                    self.logger.info('event', idx, xtal_name)
+                    event_idx = row[Constants.EVENT_TABLE_EVENT_IDX]
+                    bdc = row[Constants.EVENT_TABLE_BDC]
+                    event_map_path = Path(panddas_file).parent.parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
+                        dtag=xtal_name,
+                        event_idx=event_idx,
+                        bdc=bdc
+                    )
+                    if event_map_path.is_file():
+                        outfile = utils.expand_path(self.output_path, self.input_path / event_map_path)
+                        self.logger.info('copying {} to {}'.format(event_map_path, outfile))
+                        outfile.parent.mkdir(exist_ok=True, parents=True)
+                        f = shutil.copy2(event_map_path, outfile, follow_symlinks=True)
+                        if not f:
+                            self.logger.warn('failed to copy event map file', event_map_path)
+                    else:
+                        self.logger.warn('event map file not found:', event_map_path)
+
+
 
 
 from typing import Protocol
@@ -178,7 +212,7 @@ class Constants:
     EVENT_TABLE_BDC = "1-BDC"
     LIGAND_NAMES = ["LIG", "XXX"]
     PROCESSED_DATASETS_DIR = "processed_datasets"
-    EVENT_MAP_TEMPLATE = "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4"
+    EVENT_MAP_TEMPLATE = "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4"
 
 
 def get_ligand_coords(structure: gemmi.Structure, ) -> dict[tuple[str, str, str], np.array]:
@@ -269,20 +303,27 @@ def test_function_get_all_event_maps(datasets: dict[str, DatasetInterface], pand
 def main():
     parser = argparse.ArgumentParser(description='copier')
 
-    parser.add_argument('-b', '--base-dir', help="Base directory")
-    parser.add_argument('-i', '--input-dir', required=True, help="Input directory (below base-dir)")
+    parser.add_argument('-b', '--base-dir', help="Base directory (optional)")
+    parser.add_argument('-i', '--input-dir', required=True, help="Input directory (below base-dir or absolute file path)")
     parser.add_argument('-s', '--soakdb-file', default='processing/database/soakDBDataFile.sqlite',
                         help="Relative path to soakdb file")
     parser.add_argument('-p', '--panddas-files', nargs='*', help="Relative path to CSV files with panddas data")
     parser.add_argument('-o', '--output-dir', required=True, help="Output directory")
+    parser.add_argument('-l', '--log-file', help="File to write logs to")
+    parser.add_argument('--log-level', type=int, default=0, help="Logging level")
 
     args = parser.parse_args()
-    print("copier: ", args)
+    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    logger.info("copier: ", args)
 
-    copy_files(args.base_dir, args.input_dir, args.output_dir, args.soakdb_file, args.panddas_files)
+    if args.panddas_files:
+        panddas_paths = [Path(p) for p in args.panddas_files]
+    else:
+        panddas_paths = []
 
-    # _copy_file('compound/foo.cif', 'dls/labxchem/data/lb18145/lb18145-216', 'data', 'data/outputs')
-    # _copy_file('/dls/labxchem/data/lb18145/lb18145-216/compound/foo.cif', 'dls/labxchem/data/lb18145/lb18145-216', 'data', 'data/outputs')
+    c = Copier(Path(args.base_dir), Path(args.input_dir), Path(args.output_dir), Path(args.soakdb_file), panddas_paths)
+
+    c.copy_files()
 
 
 if __name__ == "__main__":

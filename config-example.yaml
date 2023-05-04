@@ -1,18 +1,14 @@
 target_name: Mpro
 base_dir: data/inputs
-input_dirs:
-- /dls/labxchem/data/2020/lb18145-153
-#- /dls/labxchem/data/2020/lb18145-158
-
-inputs:
-- dir: /dls/labxchem/data/2020/lb18145-153/processing/analysis/model_building
-  soakbd: /dls/labxchem/data/2020/lb18145-153/processing/database/soakDBDatafile.sqlite
-  panddas:
-  - /dls/labxchem/data/2020/lb18145-153/processing/analysis/pandda_2_2020_04_30/analyses/pandda_inspect_events.csv
-  - /dls/labxchem/data/2020/lb18145-153/processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv
-  - /dls/labxchem/data/2020/lb18145-153/processing/analysis/pandda_2_2020_05_10/analyses/pandda_inspect_events.csv
-
 output_dir: data/outputs/Mpro
+copy_dir: data/inputs/copied
+inputs:
+  - dir: dls/labxchem/data/2020/lb18145-153
+    soakbd: processing/database/soakDBDatafile.sqlite
+    panddas_event_files:
+      - processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv
+      - processing/analysis/pandda_2_2020_04_30/analyses/pandda_inspect_events.csv
+      - processing/analysis/pandda_2_2020_05_10/analyses/pandda_inspect_events.csv
 
 overrides:
   deprecations:
@@ -21,9 +17,9 @@ overrides:
   assemblies: assemblies.yaml
   xtal_forms: xtal_forms.yaml
   commands:
-  - type: site_merge
-    sites:
-    - canonical
-    - binding_pocket_1
-    - allosteric
+    - type: site_merge
+      sites:
+        - canonical
+        - binding_pocket_1
+        - allosteric
 

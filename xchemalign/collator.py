@@ -13,21 +13,26 @@
 import argparse, os, shutil
 import yaml
 
-from . import utils, validator, processor
+from . import utils, processor
 
 
 class Collator(processor.Processor):
 
     def __init__(self, config_file, logger=None):
-        super(Collator, self).__init__(config_file, logger=None)
+        super(Collator, self).__init__(config_file, logger=logger)
         self.all_xtals = None
         self.new_or_updated_xtals = None
 
     def validate(self):
-        v = validator.Validator(self.base_dir, self.input_dirs, self.output_dir, self.target_name, logger=self.logger)
-        meta = v.validate_all()
-        infos, warnings, errors = self.logger.get_num_messages()
-        return meta, warnings, errors
+
+        num_errors, num_warnings = self.validate_paths()
+
+        if num_errors == 0:
+            meta = self.validate_soakdb_data()
+        else:
+            meta = {}
+
+        return meta, len(self.errors), len(self.warnings)
 
     def run(self, meta):
         self.logger.info('Running collator...')
@@ -51,8 +56,8 @@ class Collator(processor.Processor):
         # find out which version dirs exist
         version = 1
         while True:
-            v_dir = os.path.join(self.output_dir, processor.VERSION_DIR_PREFIX + str(version))
-            if os.path.isdir(v_dir):
+            v_dir = self.output_path / (processor.VERSION_DIR_PREFIX + str(version))
+            if v_dir.is_dir():
                 version += 1
             else:
                 break
@@ -63,14 +68,14 @@ class Collator(processor.Processor):
         # the working version dir is one less than the current value
         version -= 1
         self.logger.info('Version is {}'.format(version))
-        v_dir = os.path.join(self.output_dir, processor.VERSION_DIR_PREFIX + str(version))
+        v_dir = self.output_path / (processor.VERSION_DIR_PREFIX + str(version))
 
         # read the metadata from the earlier versions
         if version > 1:
             for v in range(1, version):
                 self.logger.info('Reading metadata for version {}'.format(v))
-                meta_file = os.path.join(self.output_dir, processor.VERSION_DIR_PREFIX + str(v), processor.METADATA_FILENAME)
-                if os.path.isfile(meta_file):
+                meta_file = self.output_path / (processor.VERSION_DIR_PREFIX + str(v)) / processor.METADATA_FILENAME
+                if meta_file.is_file():
                     with open(meta_file, 'r') as stream:
                         meta = yaml.safe_load(stream)
                         self.meta_history.append(meta)
@@ -87,9 +92,9 @@ class Collator(processor.Processor):
         return v_dir
 
     def _copy_files(self, meta):
-        cryst_dir = os.path.join(self.version_dir, 'crystallographic')
+        cryst_dir = self.version_dir / 'crystallographic'
         self.logger.info('Using cryst_dir of', cryst_dir)
-        if os.path.exists(cryst_dir):
+        if cryst_dir.exists():
             self.logger.info('removing old cryst_dir')
             shutil.rmtree(cryst_dir)
         self.logger.info('creating cryst_dir')
@@ -104,7 +109,7 @@ class Collator(processor.Processor):
             # handle the PDB file
             pdb = xtal_files['xtal_pdb']
             if pdb:
-                pdb_input = validator.prepend_base(self.base_dir, pdb)
+                pdb_input = utils.expand_path(self.base_path, pdb)
                 pdb_output = os.path.join(dir, name + '.pdb')
                 f = shutil.copy2(pdb_input, pdb_output, follow_symlinks=True)
                 if not f:
@@ -118,7 +123,7 @@ class Collator(processor.Processor):
             # handle the MTZ file
             mtz = xtal_files['xtal_mtz']
             if mtz:
-                mtz_input = validator.prepend_base(self.base_dir, mtz)
+                mtz_input = utils.expand_path(self.base_path, mtz)
                 mtz_output = os.path.join(dir, name + '.mtz')
                 f = shutil.copy2(mtz_input, mtz_output, follow_symlinks=True)
                 if not f:
@@ -132,7 +137,7 @@ class Collator(processor.Processor):
             # handle the CIF file
             cif = xtal_files['ligand_cif']
             if cif:
-                cif_input = validator.prepend_base(self.base_dir, cif)
+                cif_input = utils.expand_path(self.base_path, cif)
                 cif_output = os.path.join(dir, name + '.cif')
                 f = shutil.copy2(cif_input, cif_output, follow_symlinks=True)
                 if not f:
@@ -251,21 +256,19 @@ def main():
     parser.add_argument('--validate', action='store_true', help='Only perform validation')
 
     args = parser.parse_args()
-    print("collator: ", args)
-
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    logger.info("collator: ", args)
 
-    p = Collator(args.config_file, logger=logger)
+    c = Collator(args.config_file, logger=logger)
 
-    meta, warnings, errors = p.validate()
+    meta, num_errors, num_warnings = c.validate()
 
     if not args.validate:
-        if errors:
+        if num_errors:
             print('There are errors, cannot continue')
             exit(1)
         else:
-            p.run(meta)
-
+            c.run(meta)
 
 if __name__ == "__main__":
     main()
