@@ -31,16 +31,6 @@ def generate_xtal_dir(input_path: Path, xtal_name: str):
     xtal_dir = input_path / 'processing/analysis/model_building' / xtal_name
     return xtal_dir
 
-def generate_file_paths(filepath: Path, xtal_dir_path: Path, output_path: Path):
-
-    if filepath.is_absolute():
-        inputpath = filepath
-        outputpath = output_path / filepath.relative_to('/')
-    else:
-        inputpath = xtal_dir_path / filepath
-        outputpath = output_path / xtal_dir_path / filepath
-
-    return inputpath, outputpath
 
 def expand_file_path(filepath: Path, default='.'):
     if filepath.is_absolute():

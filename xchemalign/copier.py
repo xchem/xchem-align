@@ -104,28 +104,29 @@ class Copier(processor.Processor):
 
 
     def copy_file(self, filepath: Path, xtal_dir_path: Path):
-        # print('handling', base_path, filepath)
-        inputpath, outputpath = processor.generate_file_paths(filepath, xtal_dir_path, self.output_path)
-        if self.base_path:
-            if inputpath.is_absolute():
-                full_inputpath = self.base_path / inputpath.relative_to('/')
-            else:
-                full_inputpath = self.base_path / inputpath
-        else:
-            full_inputpath = inputpath
-        # print('copying', full_inputpath, outputpath)
 
-        if not full_inputpath.is_file():
-            self.logger.warn('file {} not found'.format(full_inputpath))
+        if filepath.is_absolute():
+            inputpath_short = filepath
+            outputpath = self.output_path / filepath.relative_to('/')
+        else:
+            inputpath_short = xtal_dir_path / filepath
+            outputpath = self.output_path / xtal_dir_path / filepath
+
+        inputpath_long = utils.expand_path(self.base_path, inputpath_short)
+
+        # print('copying', inputpath_long, outputpath)
+
+        if not inputpath_long.is_file():
+            self.logger.warn('file {} not found'.format(inputpath_long))
             return False
 
         outputpath.parent.mkdir(exist_ok=True, parents=True)
-        f = shutil.copy2(full_inputpath, outputpath, follow_symlinks=True)
+        f = shutil.copy2(inputpath_long, outputpath, follow_symlinks=True)
         if not f:
-            self.logger.warn('Failed to copy file {} to {}'.format(full_inputpath, outputpath))
+            self.logger.warn('Failed to copy file {} to {}'.format(inputpath_long, outputpath))
             return False
-        return True
 
+        return True
 
     def copy_csv(self, filepath: Path):
 
@@ -188,7 +189,16 @@ class Copier(processor.Processor):
                     else:
                         self.logger.warn('event map file not found:', event_map_path)
 
+    def generate_file_paths(self, filepath: Path, xtal_dir_path: Path, output_path: Path):
 
+        if filepath.is_absolute():
+            inputpath = filepath
+            outputpath = output_path / filepath.relative_to('/')
+        else:
+            inputpath = xtal_dir_path / filepath
+            outputpath = output_path / xtal_dir_path / filepath
+
+        return inputpath, outputpath
 
 
 from typing import Protocol
