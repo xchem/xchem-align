@@ -93,7 +93,6 @@ class Copier(processor.Processor):
         # copy the specified csv files with the panddas info
         self.logger.info('Copying panddas csv files')
         for panddas_path in self.panddas_file_paths:
-            f = utils.expand_path(self.base_path, self.input_path / panddas_path)
             ok = self.copy_csv(panddas_path)
             if ok:
                 copied += 1
@@ -321,7 +320,12 @@ def main():
     else:
         panddas_paths = []
 
-    c = Copier(Path(args.base_dir), Path(args.input_dir), Path(args.output_dir), Path(args.soakdb_file), panddas_paths)
+    if args.base_dir:
+        base_path = Path(args.base_dir)
+    else:
+        base_path = None
+
+    c = Copier(base_path, Path(args.input_dir), Path(args.output_dir), Path(args.soakdb_file), panddas_paths)
 
     c.copy_files()
 
