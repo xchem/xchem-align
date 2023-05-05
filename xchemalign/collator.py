@@ -109,7 +109,7 @@ class Collator(processor.Processor):
             # handle the PDB file
             pdb = xtal_files['xtal_pdb']
             if pdb:
-                pdb_input = utils.expand_path(self.base_path, pdb)
+                pdb_input = self.base_path / pdb
                 pdb_output = os.path.join(dir, name + '.pdb')
                 f = shutil.copy2(pdb_input, pdb_output, follow_symlinks=True)
                 if not f:
@@ -123,7 +123,7 @@ class Collator(processor.Processor):
             # handle the MTZ file
             mtz = xtal_files['xtal_mtz']
             if mtz:
-                mtz_input = utils.expand_path(self.base_path, mtz)
+                mtz_input = self.base_path / mtz
                 mtz_output = os.path.join(dir, name + '.mtz')
                 f = shutil.copy2(mtz_input, mtz_output, follow_symlinks=True)
                 if not f:
@@ -137,7 +137,7 @@ class Collator(processor.Processor):
             # handle the CIF file
             cif = xtal_files['ligand_cif']
             if cif:
-                cif_input = utils.expand_path(self.base_path, cif)
+                cif_input = self.base_path / cif
                 cif_output = os.path.join(dir, name + '.cif')
                 f = shutil.copy2(cif_input, cif_output, follow_symlinks=True)
                 if not f:
@@ -253,7 +253,7 @@ def main():
     parser.add_argument('-c', '--config-file', default='config.yaml', help="Configuration file")
     parser.add_argument('-l', '--log-file', help="File to write logs to")
     parser.add_argument('--log-level', type=int, default=0, help="Logging level")
-    parser.add_argument('--validate', action='store_true', help='Only perform validation')
+    parser.add_argument('-v', '--validate', action='store_true', help='Only perform validation')
 
     args = parser.parse_args()
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)

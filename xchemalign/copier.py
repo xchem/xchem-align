@@ -44,7 +44,27 @@ class Copier(processor.Processor):
         self.output_path = output_path
         self.soakdb_file_path = soakdb_file_path
         self.panddas_file_paths = panddas_file_paths
+        self.errors = []
+        self.warnings = []
 
+    def _log_error(self, msg):
+        self.logger.error(msg)
+        self.errors.append(msg)
+
+    def _log_warning(self, msg):
+        self.logger.warn(msg)
+        self.warnings.append(msg)
+    def validate(self):
+        if not self.base_path:
+            self._log_error('base path must be defined')
+        if not self.input_path:
+            self._log_error('input path must be defined')
+        elif self.input_path.is_absolute():
+            self._log_error('input_path must be a path relative to base_path')
+        if self.soakdb_file_path.is_absolute():
+            self._log_error('soakdb_file_path must be a path relative to input_path')
+
+        return len(self.errors), len(self.warnings)
 
     def copy_files(self):
 
@@ -52,7 +72,10 @@ class Copier(processor.Processor):
             self.logger.warn('INFO: making input_path relative as a base_path is specified')
             self.input_path = self.input_path.relative_to('/')
 
-        dbfile = utils.expand_path(self.base_path, self.input_path / self.soakdb_file_path)
+        dbfile = self.base_path / self.input_path / self.soakdb_file_path
+        dbfile_out = self.output_path / self.input_path / self.soakdb_file_path
+        dbfile_out.parent.mkdir(exist_ok=True, parents=True)
+        f = shutil.copy2(dbfile, dbfile_out, follow_symlinks=True)
 
         self.logger.info('reading soakdb file', dbfile)
         df = dbreader.filter_dbmeta(dbfile)
@@ -110,9 +133,9 @@ class Copier(processor.Processor):
             outputpath = self.output_path / filepath.relative_to('/')
         else:
             inputpath_short = xtal_dir_path / filepath
-            outputpath = self.output_path / xtal_dir_path / filepath
+            outputpath = self.output_path / utils.make_path_relative(xtal_dir_path) / filepath
 
-        inputpath_long = utils.expand_path(self.base_path, inputpath_short)
+        inputpath_long = self.base_path / inputpath_short
 
         # print('copying', inputpath_long, outputpath)
 
@@ -129,8 +152,13 @@ class Copier(processor.Processor):
         return True
 
     def copy_csv(self, filepath: Path):
+        """
+        Copy a CSV files with the panddas data
+        :param filepath:
+        :return:
+        """
 
-        csv_src = utils.expand_path(self.base_path, self.input_path / filepath)
+        csv_src = self.base_path / self.input_path / filepath
 
         if not csv_src.is_file():
             self.logger.warn('File {} not found'.format(csv_src))
@@ -138,7 +166,6 @@ class Copier(processor.Processor):
 
         dest_path = self.output_path / utils.make_path_relative(self.input_path) / filepath
         dest_dir_path = dest_path.parent
-        self.logger.info('copying', csv_src, 'to', dest_dir_path)
         dest_dir_path.mkdir(exist_ok=True, parents=True)
         f = shutil.copy2(csv_src, dest_dir_path, follow_symlinks=True)
         if not f:
@@ -146,12 +173,13 @@ class Copier(processor.Processor):
             return False
         return True
 
-
-    def copy_panddas(self, datasets, panddas_files):
+    def copy_panddas(self, datasets: dict[str, Path], panddas_files: list[Path]):
         """
-        Find the PanDDAs event maps (.ccp4 files) that are relevant to the data contained in this directory
-        :param dirname: The directory in which to look e.g. /dls/labxchem/data/2020/lb18145-153
-        :return: A list of paths to the .ccp4 files?
+        Find the PanDDAs event maps (.ccp4 files) that are relevant to the data contained in the CSV files
+        can copy then to the corresponding locations in the output dir.
+        :param datasets: Dict, keys being the crystal name (e.g. Mpro-x1234) and values being the path to the PDB file
+        :param panddas_files: A list of paths to the CSV files with the panddas data
+        :return: The number of .ccp4 files copies
         """
 
         if not panddas_files:
@@ -162,7 +190,7 @@ class Copier(processor.Processor):
         panddas_dict = {}
         ccp4_count = 0
         for panddas_file in panddas_files:
-            pfp = utils.expand_path(self.base_path, self.input_path / panddas_file)
+            pfp = self.base_path / self.input_path / panddas_file
             self.logger.info('Reading CSV:', pfp)
             df = pd.read_csv(pfp)
             self.logger.info('Data frame shape:', df.shape)
@@ -181,8 +209,7 @@ class Copier(processor.Processor):
                         bdc=bdc
                     )
                     if event_map_path.is_file():
-                        outfile = utils.expand_path(self.output_path, utils.make_path_relative(self.input_path) / event_map_path)
-                        self.logger.info('copying {} to {}'.format(event_map_path, outfile))
+                        outfile = self.output_path / utils.make_path_relative(self.input_path) / event_map_path
                         outfile.parent.mkdir(exist_ok=True, parents=True)
                         f = shutil.copy2(event_map_path, outfile, follow_symlinks=True)
                         if not f:
@@ -316,11 +343,11 @@ def test_function_get_all_event_maps(datasets: dict[str, DatasetInterface], pand
 def main():
     parser = argparse.ArgumentParser(description='copier')
 
-    parser.add_argument('-b', '--base-dir', help="Base directory (optional)")
-    parser.add_argument('-i', '--input-dir', required=True, help="Input directory (below base-dir or absolute file path)")
+    parser.add_argument('-b', '--base-dir', required=True, help="Base directory")
+    parser.add_argument('-i', '--input-dir', required=True, help="Input directory (relative to base-dir)")
     parser.add_argument('-s', '--soakdb-file', default='processing/database/soakDBDataFile.sqlite',
-                        help="Relative path to soakdb file")
-    parser.add_argument('-p', '--panddas-files', nargs='*', help="Relative path to CSV files with panddas data")
+                        help="Path to soakdb file relative to input-dir")
+    parser.add_argument('-p', '--panddas-files', nargs='*', help="Path to CSV files with panddas data relative to input-dir")
     parser.add_argument('-o', '--output-dir', required=True, help="Output directory")
     parser.add_argument('-l', '--log-file', help="File to write logs to")
     parser.add_argument('--log-level', type=int, default=0, help="Logging level")
@@ -340,8 +367,12 @@ def main():
         base_path = None
 
     c = Copier(base_path, Path(args.input_dir), Path(args.output_dir), Path(args.soakdb_file), panddas_paths)
-
-    c.copy_files()
+    errors, warnings = c.validate()
+    if errors:
+        print('There are errors, cannot continue')
+        exit(1)
+    else:
+        c.copy_files()
 
 
 if __name__ == "__main__":

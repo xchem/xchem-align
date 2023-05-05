@@ -145,11 +145,11 @@ def make_path_relative(p):
     else:
         return p
 
-def expand_path(base_path, p, expand=True):
-    if expand and base_path:
-        return base_path / make_path_relative(p)
+def expand_path(p1, p2, expand=True):
+    if expand and p1:
+        return p1 / make_path_relative(p2)
     else:
-        return p
+        return p2
 
 def main():
 

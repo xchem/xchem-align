@@ -49,30 +49,50 @@ class Input:
         self.errors = []
         self.warnings = []
 
-    def expand_path(self, p, expand=True):
-        return utils.expand_path(self.base_path, p, expand=expand)
-
-
     def get_input_dir_path(self, expand=True):
-        return self.expand_path(self.input_dir_path, expand=expand)
+        if expand:
+            return self.base_path / self.input_dir_path
+        else:
+            return self.input_dir_path
 
     def get_soakdb_file_path(self, expand=True):
-        return self.expand_path(self.soakdb_file_path, expand=expand)
+        if expand:
+            return self.base_path / self.input_dir_path / self.soakdb_file_path
+        else:
+            return self.soakdb_file_path
 
     def validate(self):
-        if not self.expand_path(self.input_dir_path):
-            self.errors.append('input_dir_path is not defined')
-        elif not self.expand_path(self.input_dir_path).exists():
-            self.errors.append('input_dir_path does not exist: {}'.format(self.input_dir_path))
-        elif not self.expand_path(self.input_dir_path).is_dir():
-            self.errors.append('input_dir_path is not a directory: {}'.format(self.input_dir_path))
 
-        if not self.expand_path(self.soakdb_file_path):
+        if not self.base_path:
+            self.errors.append('base path must be defined')
+        elif not self.base_path.exists():
+            self.errors.append('base_path does not exist: {}'.format(self.base_path))
+        elif not self.base_path.is_dir():
+            self.errors.append('base_path is not a directory: {}'.format(self.base_path))
+
+        if not self.input_dir_path:
+            self.errors.append('input_dir_path is not defined')
+        elif self.input_dir_path.is_absolute():
+            self.errors.append('input_path must be a path relative to base_path')
+        else:
+            p = self.get_input_dir_path()
+            print('testing', p)
+            if not p.exists():
+                self.errors.append('input_dir_path does not exist: {}'.format(p))
+            elif not p.is_dir():
+                self.errors.append('input_dir_path is not a directory: {}'.format(p))
+
+        if not self.soakdb_file_path:
             self.errors.append('soakdb_file_path is not defined')
-        elif not self.expand_path(self.soakdb_file_path).exists():
-            self.errors.append('soakdb_file_path does not exist: {}'.format(self.soakdb_file_path))
-        elif not self.expand_path(self.soakdb_file_path).is_file():
-            self.errors.append('soakdb_file_path is not a file: {}'.format(self.soakdb_file_path))
+        elif self.soakdb_file_path.is_absolute():
+            self.errors.append('soakdb_file_path must be a path relative to input_path')
+        else:
+            p = self.get_soakdb_file_path()
+            print('testing', p)
+            if not p.exists():
+                self.errors.append('soakdb_file_path does not exist: {}'.format(p))
+            elif not p.is_file():
+                self.errors.append('soakdb_file_path is not a file: {}'.format(p))
 
         return len(self.errors), len(self.warnings)
 
@@ -112,7 +132,7 @@ class Processor:
             # TODO - handle panddas
             panddas_paths = []
 
-            self.inputs.append(Input(self.base_path, input_path, input_path / soakdb_path, panddas_paths))
+            self.inputs.append(Input(self.base_path, input_path, soakdb_path, panddas_paths))
 
     def _log_error(self, msg):
         self.logger.error(msg)
@@ -164,13 +184,15 @@ class Processor:
         :return: The generated metadata
         """
         valid_ids = {}
+        input_dirs = []
         meta = {
             'run_on': str(datetime.datetime.now()),
-            'input_dirs': '',
+            'input_dirs': input_dirs,
             'output_dir': str(self.output_path),
             'crystals': valid_ids}
 
         for input in self.inputs:
+            input_dirs.append(str(input.get_input_dir_path()))
             dbfile = input.get_soakdb_file_path()
             self.logger.info('Opening DB file:', dbfile)
             df = dbreader.filter_dbmeta(dbfile)
@@ -189,10 +211,12 @@ class Processor:
                     expanded_files = []
                     colname = 'RefinementPDB_latest'
                     file = row[colname]
+                    # RefinementPDB_latest file names are specified as absolute file names, but need to be handled as
+                    # relative to the base_path
                     if file:
                         # print('handling', colname, file)
-                        inputpath = expand_file_path(Path(file))
-                        full_inputpath = utils.expand_path(self.base_path, inputpath)
+                        inputpath = utils.make_path_relative(Path(file))
+                        full_inputpath = self.base_path / inputpath
                         # print('generated', full_inputpath)
                         ok = full_inputpath.exists()
                         if ok:
@@ -207,10 +231,12 @@ class Processor:
 
                     colname = 'RefinementMTZ_latest'
                     file = row[colname]
+                    # RefinementMTZ_latest file names are specified as absolute file names, but need to be handled as
+                    # relative to the base_path
                     if file:
                         # print('handling', colname, file)
-                        inputpath = expand_file_path(Path(file))
-                        full_inputpath = utils.expand_path(self.base_path, inputpath)
+                        inputpath = utils.make_path_relative(Path(file))
+                        full_inputpath = self.base_path / inputpath
                         # print('generated', full_inputpath)
                         ok = full_inputpath.exists()
                         if ok:
@@ -225,10 +251,11 @@ class Processor:
 
                     colname = 'RefinementCIF'
                     file = row[colname]
+                    # RefinementCIF file names are relative to the xtal_dir
                     if file:
                         # print('handling', colname, file)
-                        inputpath = expand_file_path(Path(file), default=xtal_dir)
-                        full_inputpath = utils.expand_path(self.base_path, inputpath)
+                        inputpath = xtal_dir / file
+                        full_inputpath = self.base_path / inputpath
                         # print('generated', full_inputpath)
                         ok = full_inputpath.exists()
                         if ok:
@@ -253,7 +280,6 @@ class Processor:
                         last_updated_date = row['LastUpdatedDate']
                         if last_updated_date:
                             dt_str = last_updated_date.strftime(utils._DATETIME_FORMAT)
-                            print('date', dt_str)
                             data['last_updated'] = dt_str
                         data['crystallographic_files'] = {
                             'xtal_pdb': expanded_files[0],
