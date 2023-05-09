@@ -17,6 +17,16 @@ import yaml, json
 
 _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
+class Constants:
+    EVENT_TABLE_DTAG = "dtag"
+    EVENT_TABLE_EVENT_IDX = "event_idx"
+    EVENT_TABLE_X = "x"
+    EVENT_TABLE_Y = "y"
+    EVENT_TABLE_Z = "z"
+    EVENT_TABLE_BDC = "1-BDC"
+    LIGAND_NAMES = ["LIG", "XXX"]
+    PROCESSED_DATASETS_DIR = "processed_datasets"
+    EVENT_MAP_TEMPLATE = "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4"
 
 class Logger:
     """

@@ -16,6 +16,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import dbreader, processor, utils
+from .utils import Constants
 
 
 
@@ -129,7 +130,7 @@ class Copier(processor.Processor):
     def copy_file(self, filepath: Path, xtal_dir_path: Path):
 
         if filepath.is_absolute():
-            inputpath_short = filepath
+            inputpath_short =  utils.make_path_relative(filepath)
             outputpath = self.output_path / filepath.relative_to('/')
         else:
             inputpath_short = xtal_dir_path / filepath
@@ -230,114 +231,6 @@ class Copier(processor.Processor):
             outputpath = output_path / xtal_dir_path / filepath
 
         return inputpath, outputpath
-
-
-from typing import Protocol
-from pathlib import Path
-import numpy as np
-import gemmi
-
-
-class DatasetInterface(Protocol):
-    dtag: str
-    pdb: Path
-
-
-class Constants:
-    EVENT_TABLE_DTAG = "dtag"
-    EVENT_TABLE_EVENT_IDX = "event_idx"
-    EVENT_TABLE_X = "x"
-    EVENT_TABLE_Y = "y"
-    EVENT_TABLE_Z = "z"
-    EVENT_TABLE_BDC = "1-BDC"
-    LIGAND_NAMES = ["LIG", "XXX"]
-    PROCESSED_DATASETS_DIR = "processed_datasets"
-    EVENT_MAP_TEMPLATE = "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4"
-
-
-def get_ligand_coords(structure: gemmi.Structure, ) -> dict[tuple[str, str, str], np.array]:
-    ligand_coords = {}
-    for model in structure:
-        for chain in model:
-            for residue in chain:
-                if residue.name in Constants.LIGAND_NAMES:
-
-                    poss = []
-                    for atom in residue:
-                        pos = atom.pos
-                        poss.append([pos.x, pos.y, pos.z])
-
-                    arr = np.array(poss)
-                    mean = np.mean(arr, axis=0)
-                    ligand_coords[(model.name, chain.name, residue.name)] = mean
-
-    return ligand_coords
-
-
-def get_closest_event_map(
-        xtal_name: str,
-        ligand_coord: np.array,
-        event_tables: dict[Path, pd.DataFrame],
-) -> Path:
-    distances = {}
-    for pandda_path, event_table in event_tables.items():
-        print('Processing', pandda_path)
-        dataset_events = event_table[event_table[Constants.EVENT_TABLE_DTAG] == xtal_name]
-        for idx, row in dataset_events.iterrows():
-            event_idx = row[Constants.EVENT_TABLE_EVENT_IDX]
-            bdc = row[Constants.EVENT_TABLE_BDC]
-            x,y,z = row[Constants.EVENT_TABLE_X], row[Constants.EVENT_TABLE_Y], row[Constants.EVENT_TABLE_Z]
-            distance = np.linalg.norm(np.array([x,y,z]).flatten() - ligand_coord.flatten())
-            print('Distance:', distance)
-            event_map_path = pandda_path / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
-                dtag=xtal_name,
-                event_idx=event_idx,
-                bdc=bdc
-            )
-            distances[event_map_path] = distance
-
-    return min(distances, key=lambda _key: distances[_key])
-
-
-def get_dataset_event_maps(
-        xtal_name: str,
-        pdb_file: Path,
-        base_dir: str,
-        input_dir: str,
-        event_tables: dict[Path, pd.DataFrame],
-) -> dict[tuple[str, str, str], Path]:
-    # Get the relevant structure
-    p = _generate_path(base_dir, None, pdb_file)
-    print('Reading', xtal_name, p)
-    structure = gemmi.read_structure(p)
-
-    # Get the coordinates of ligands
-    ligand_coords = get_ligand_coords(structure)
-
-    # Get the closest events within some reasonable radius
-    closest_event_maps = {}
-    for ligand_key, ligand_coord in ligand_coords.items():
-        print('coord:', ligand_coord)
-        closest_event_map = get_closest_event_map(xtal_name, ligand_coord, event_tables)
-        closest_event_maps[ligand_key] = closest_event_map
-
-    return closest_event_maps
-
-
-def test_function_get_all_event_maps(datasets: dict[str, DatasetInterface], pandda_event_tables: dict[Path, pd.DataFrame]) -> dict[str, dict[tuple[str, str, str], Path]]:
-
-    datasets_event_maps = {}
-    for dtag, dataset in datasets.items():
-        dataset_event_maps = get_dataset_event_maps(
-            dataset,
-            pandda_event_tables
-        )
-        datasets_event_maps[dtag] = dataset_event_maps
-
-    return datasets_event_maps
-
-
-
 
 
 def main():

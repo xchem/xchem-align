@@ -15,6 +15,14 @@ import yaml
 
 from . import utils, processor
 
+from .utils import Constants
+
+import pandas as pd
+from typing import Protocol
+from pathlib import Path
+import numpy as np
+import gemmi
+
 
 class Collator(processor.Processor):
 
@@ -100,8 +108,10 @@ class Collator(processor.Processor):
         self.logger.info('creating cryst_dir')
         os.makedirs(cryst_dir)
 
-        for name, data in meta['crystals'].items():
-            dir = os.path.join(cryst_dir, name)
+        num_event_maps = 0
+
+        for xtal_name, data in meta['crystals'].items():
+            dir = os.path.join(cryst_dir, xtal_name)
             os.makedirs(dir)
 
             xtal_files = data['crystallographic_files']
@@ -110,7 +120,7 @@ class Collator(processor.Processor):
             pdb = xtal_files['xtal_pdb']
             if pdb:
                 pdb_input = self.base_path / pdb
-                pdb_output = os.path.join(dir, name + '.pdb')
+                pdb_output = os.path.join(dir, xtal_name + '.pdb')
                 f = shutil.copy2(pdb_input, pdb_output, follow_symlinks=True)
                 if not f:
                     self.logger.error('Failed to copy PDB file {} to {}'.format(pdb_input, pdb_output))
@@ -118,13 +128,14 @@ class Collator(processor.Processor):
                 digest = utils.gen_sha256(pdb_output)
                 xtal_files['xtal_pdb'] = {'file': pdb_output, 'sha256': digest}
             else:
-                self.logger.warn('PDB entry missing for {}'.format(name))
+                self.logger.error('PDB entry missing for {}'.format(xtal_name))
+                return meta
 
             # handle the MTZ file
             mtz = xtal_files['xtal_mtz']
             if mtz:
                 mtz_input = self.base_path / mtz
-                mtz_output = os.path.join(dir, name + '.mtz')
+                mtz_output = os.path.join(dir, xtal_name + '.mtz')
                 f = shutil.copy2(mtz_input, mtz_output, follow_symlinks=True)
                 if not f:
                     self.logger.error('Failed to copy MTZ file {} to {}'.format(mtz_input, mtz_output))
@@ -132,13 +143,13 @@ class Collator(processor.Processor):
                 digest = utils.gen_sha256(mtz_output)
                 xtal_files['xtal_mtz'] = {'file': mtz_output, 'sha256': digest}
             else:
-                self.logger.warn('MTZ entry missing for {}'.format(name))
+                self.logger.warn('MTZ entry missing for {}'.format(xtal_name))
 
             # handle the CIF file
             cif = xtal_files['ligand_cif']
             if cif:
                 cif_input = self.base_path / cif
-                cif_output = os.path.join(dir, name + '.cif')
+                cif_output = os.path.join(dir, xtal_name + '.cif')
                 f = shutil.copy2(cif_input, cif_output, follow_symlinks=True)
                 if not f:
                     self.logger.error('Failed to copy CIF file {} to {}'.format(cif_input, cif_output))
@@ -149,7 +160,7 @@ class Collator(processor.Processor):
                 # # convert ligand PDB to SDF
                 # # The ligand CIF file does not seem to be readable using OpenBabel so we resort to using the PDB
                 # # that also seems to be generated but is not referenced in the database
-                # sdf_file = os.path.join(dir, name + '.sdf')
+                # sdf_file = os.path.join(dir, xtal_name + '.sdf')
                 # ligand_pdb = cif_input[:-4] + '.pdb'
                 # if os.path.isfile(ligand_pdb):
                 #     count = obabel_utils.convert_molecules(ligand_pdb, 'pdb', sdf_file, 'sdf')
@@ -161,7 +172,33 @@ class Collator(processor.Processor):
                 # else:
                 #     self.logger.warn('Ligand PDB file {} not found'.format(ligand_pdb))
             else:
-                self.logger.warn('CIF entry missing for {}'.format(name))
+                self.logger.warn('CIF entry missing for {}'.format(xtal_name))
+
+            if pdb:
+                event_tables = {}
+                for input in self.inputs:
+                    for panddas_file in input.panddas_event_file_paths:
+                        pfp = panddas_file
+                        # self.logger.info('Reading CSV:', pfp)
+                        df = pd.read_csv(input.get_input_dir_path() / pfp)
+                        event_tables[pfp] = df
+
+                # TODO - copy the event map files to the output_dir
+                # and move the definitions to the crystallographic_files section of the YAML
+
+                if xtal_name in meta['crystals']:
+                    best_event_map_paths = self.get_dataset_event_maps(xtal_name, pdb_input, event_tables)
+                    if best_event_map_paths:
+                        p_paths = []
+                        for k in best_event_map_paths:
+                            # print('testing', xtal_name, k)
+                            p_paths.append({'model': k[0], 'chain': k[1], 'res': k[2], 'path': str(best_event_map_paths[k])})
+                            num_event_maps += 1
+                        meta['crystals'][xtal_name]['panddas_event_files'] = p_paths
+                else:
+                    self.logger.warn('crystal {} not found in metadata - strange!'.format(xtal_name))
+
+        self.logger.info('found {} event map files'.format(num_event_maps))
 
         return meta
 
@@ -244,6 +281,74 @@ class Collator(processor.Processor):
             print('Failed to copy config file to {}'.format(self.version_dir))
             return False
         return True
+
+    def get_ligand_coords(self, structure: gemmi.Structure, ) -> dict[tuple[str, str, str], np.array]:
+        ligand_coords = {}
+        for model in structure:
+            for chain in model:
+                for residue in chain:
+                    if residue.name in Constants.LIGAND_NAMES:
+
+                        poss = []
+                        for atom in residue:
+                            pos = atom.pos
+                            poss.append([pos.x, pos.y, pos.z])
+
+                        arr = np.array(poss)
+                        mean = np.mean(arr, axis=0)
+                        ligand_coords[(model.name, chain.name, residue.name)] = mean
+
+        return ligand_coords
+
+    def get_closest_event_map(
+            self,
+            xtal_name: str,
+            ligand_coord: np.array,
+            event_tables: dict[Path, pd.DataFrame],
+    ) -> Path:
+        distances = {}
+        for pandda_path, event_table in event_tables.items():
+            # print('Processing', xtal_name, pandda_path)
+            dataset_events = event_table[event_table[Constants.EVENT_TABLE_DTAG] == xtal_name]
+            for idx, row in dataset_events.iterrows():
+                event_idx = row[Constants.EVENT_TABLE_EVENT_IDX]
+                bdc = row[Constants.EVENT_TABLE_BDC]
+                x,y,z = row[Constants.EVENT_TABLE_X], row[Constants.EVENT_TABLE_Y], row[Constants.EVENT_TABLE_Z]
+                distance = np.linalg.norm(np.array([x,y,z]).flatten() - ligand_coord.flatten())
+                # print('Distance:', distance)
+                event_map_path = pandda_path.parent.parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
+                    dtag=xtal_name,
+                    event_idx=event_idx,
+                    bdc=bdc
+                )
+                distances[event_map_path] = distance
+
+        if distances:
+            return min(distances, key=lambda _key: distances[_key])
+        else:
+            return None
+
+    def get_dataset_event_maps(self, xtal_name: str, pdb_file: Path, event_tables: dict[Path, pd.DataFrame]
+                               ) -> dict[tuple[str, str, str], Path]:
+        # Get the relevant structure
+        # self.logger.info('Reading', xtal_name, pdb_file)
+        # self.logger.info('Using {} event tables'.format(len(event_tables)))
+
+        structure = gemmi.read_structure(str(pdb_file))
+
+        # Get the coordinates of ligands
+        ligand_coords = self.get_ligand_coords(structure)
+
+        # Get the closest events within some reasonable radius
+        closest_event_maps = {}
+        for ligand_key, ligand_coord in ligand_coords.items():
+            # print('coord:', ligand_coord)
+            closest_event_map = self.get_closest_event_map(xtal_name, ligand_coord, event_tables)
+            if closest_event_map:
+                # print('closest:', closest_event_map)
+                closest_event_maps[ligand_key] = closest_event_map
+
+        return closest_event_maps
 
 
 def main():

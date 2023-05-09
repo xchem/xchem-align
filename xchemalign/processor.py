@@ -129,8 +129,11 @@ class Processor:
                 input_path = utils.find_path(input, 'dir')
                 soakdb_path = utils.find_path(input, 'soakdb', default='processing/database/soakDBDataFile.sqlite')
 
-            # TODO - handle panddas
-            panddas_paths = []
+                panddas_csvs = utils.find_property(input, 'panddas_event_files')
+                if panddas_csvs:
+                    panddas_paths = [Path(p) for p in panddas_csvs]
+                else:
+                    panddas_paths = []
 
             self.inputs.append(Input(self.base_path, input_path, soakdb_path, panddas_paths))
 
