@@ -23,19 +23,30 @@ complete set of files.
 If you can run directly against the Diamond files system you do not necessarily need to use this tool.
 
 This tool reads the SoakDB file (found at `processing/database/soakDBDataFile.sqlite`), reads the files that
-are needed from `mainTable` and copies those files to the output directory. From there they can bar tared up and
+are needed from `mainTable` and copies those files to the output directory. From there they can be tared up and
 copied to your local system.
 
 Usage:
 
 ```commandline
-python -m xchemalign.copier -i /dls/labxchem/data/2020/lb18145-158 -o xce-outputs/lb18145-158
+python -m xchemalign.copier -b / -i dls/labxchem/data/2020/lb18145-153 \
+  -p processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv \
+  processing/analysis/pandda_2_2020_04_30/analyses/pandda_inspect_events.csv \
+  processing/analysis/pandda_2_2020_05_10/analyses/pandda_inspect_events.csv \
+  -o xce-outputs/lb18145-158
 ```
 
-That example copies the required data for the crystal found at `2020/lb18145-158` to the output directory
+That example copies the required data for the visit found at `2020/lb18145-158` to the output directory
 `xce-outputs/lb18145-158`. The full path names are retained, and typically the required files can be located
-anywhere under the `processing/analysis/model_building` directory in unpredictable locations. Only the
+anywhere under the `processing` directory in unpredictable locations. Only the
 SoakDB database knows where the necessary files are actually located.
+
+The files copied are:
+* the soakdb sqlite database file
+* the PDB and MTZ files for each crystal
+* the CIF file for the ligand in the crystal
+* the panddas event map data in `pandda_inspect_events.csv` files
+* the *best* panddas event map (`.ccp4` file) identified from the `.csv` file
 
 ### 2. Collator
 
@@ -57,15 +68,32 @@ You must create a `config.yaml` file containing the configuration data. It can l
 ```yaml
 target_name: Mpro
 base_dir: data/inputs
-input_dirs:
-- /dls/labxchem/data/2020/lb18145-153
 output_dir: data/outputs/Mpro
+copy_dir: data/inputs/copied
+inputs:
+- dir: dls/labxchem/data/2020/lb18145-153
+  soakbd: processing/database/soakDBDataFile.sqlite
+  panddas_event_files:
+  - processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv
+  - processing/analysis/pandda_2_2020_04_30/analyses/pandda_inspect_events.csv
+  - processing/analysis/pandda_2_2020_05_10/analyses/pandda_inspect_events.csv
+
+overrides:
+  deprecations:
+    Mpro-x0104: Cat did a wee on the crystal
+    Mpro-x0165: Bad karma
 ```
 
-`base_dir` is optional and is used to specify a path prefix should your input directories not reside at their
-specified absolute file path (e.g. if you have used the *copier* tool). The `input_dirs` property is a list
-of *visits* (Diamond nomenclature) containing data for a number of crystals. There can be one or more input_dirs.
+`base_dir` is required and is used to specify a path prefix should your input directories not reside at their
+specified absolute file path (e.g. if you have used the *copier* tool). If running directly against the files at Diamond 
+then the base path should be `/`.
+
 The `output_dir` must exist and contain the required `upload_*` directories (initially just a `upload_1` directory).
+
+The `inputs` property is a list of *visits* (Diamond nomenclature) containing data for a number of crystals.
+There can be one or more inputs. `inputs` is specified **relative** to `base_dir`. The properties of `inputs` are the
+data required to be processed, specified as paths **relative** to the `dir` path which is the base dir of the data
+for that visit.
 
 Then you can run the collator tool. You can use the `--validate` option to just perform validation.
 
@@ -94,10 +122,11 @@ The output directory will now contain data like this:
     │   │   ├── Mpro-x0072.cif
     │   │   ├── Mpro-x0072.mtz
     │   │   └── Mpro-x0072.pdb
-    │   ├── Mpro-x0104
-    │   │   ├── Mpro-x0104.cif
-    │   │   ├── Mpro-x0104.mtz
-    │   │   └── Mpro-x0104.pdb
+    │   ├── Mpro-x2910
+    │   ├── Mpro-x2910.cif
+    │   ├── Mpro-x2910-event_1_1-BDC_0.36_map.ccp4
+    │   ├── Mpro-x2910.mtz
+    │   └── Mpro-x2910.pdb
     │   ├── ...
     └── metadata.yaml
 ```
