@@ -18,7 +18,6 @@ from . import utils, processor
 from .utils import Constants
 
 import pandas as pd
-from typing import Protocol
 from pathlib import Path
 import numpy as np
 import gemmi
@@ -64,7 +63,7 @@ class Collator(processor.Processor):
         # find out which version dirs exist
         version = 1
         while True:
-            v_dir = self.output_path / (processor.VERSION_DIR_PREFIX + str(version))
+            v_dir = self.output_path / (Constants.VERSION_DIR_PREFIX + str(version))
             if v_dir.is_dir():
                 version += 1
             else:
@@ -76,13 +75,13 @@ class Collator(processor.Processor):
         # the working version dir is one less than the current value
         version -= 1
         self.logger.info('Version is {}'.format(version))
-        v_dir = self.output_path / (processor.VERSION_DIR_PREFIX + str(version))
+        v_dir = self.output_path / (Constants.VERSION_DIR_PREFIX + str(version))
 
         # read the metadata from the earlier versions
         if version > 1:
             for v in range(1, version):
                 self.logger.info('Reading metadata for version {}'.format(v))
-                meta_file = self.output_path / (processor.VERSION_DIR_PREFIX + str(v)) / processor.METADATA_FILENAME
+                meta_file = self.output_path / (Constants.VERSION_DIR_PREFIX + str(v)) / Constants.METADATA_FILENAME
                 if meta_file.is_file():
                     with open(meta_file, 'r') as stream:
                         meta = yaml.safe_load(stream)
@@ -272,7 +271,7 @@ class Collator(processor.Processor):
         return all_xtals, new_or_updated_xtals
 
     def _write_metadata(self, meta, all_xtals, new_xtals):
-        f = os.path.join(self.version_dir, processor.METADATA_FILENAME)
+        f = os.path.join(self.version_dir, Constants.METADATA_FILENAME)
         with open(f, 'w') as stream:
             yaml.dump(meta, stream, sort_keys=False)
         f = os.path.join(self.version_dir, 'all_xtals.yaml')

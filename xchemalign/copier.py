@@ -55,6 +55,7 @@ class Copier(processor.Processor):
     def _log_warning(self, msg):
         self.logger.warn(msg)
         self.warnings.append(msg)
+
     def validate(self):
         if not self.base_path:
             self._log_error('base path must be defined')

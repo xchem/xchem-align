@@ -15,11 +15,8 @@ from pathlib import Path
 import re, datetime
 
 from . import utils, dbreader
+from .utils import Constants
 
-
-METADATA_FILENAME = 'metadata.yaml'
-CONFIG_FILENAME = 'config.yaml'
-VERSION_DIR_PREFIX = 'upload_'
 
 def generate_xtal_dir(input_path: Path, xtal_name: str):
     """
@@ -28,7 +25,7 @@ def generate_xtal_dir(input_path: Path, xtal_name: str):
     :param xtal_name:
     :return: The Path to the base dir for this crystal
     """
-    xtal_dir = input_path / 'processing/analysis/model_building' / xtal_name
+    xtal_dir = input_path / Constants.DEFAULT_MODEL_BUILDING_DIR / xtal_name
     return xtal_dir
 
 
@@ -127,7 +124,7 @@ class Processor:
         if inputs:
             for input in inputs:
                 input_path = utils.find_path(input, 'dir')
-                soakdb_path = utils.find_path(input, 'soakdb', default='processing/database/soakDBDataFile.sqlite')
+                soakdb_path = utils.find_path(input, 'soakdb', default=Constants.DEFAULT_SOAKDB_PATH)
 
                 panddas_csvs = utils.find_property(input, 'panddas_event_files')
                 if panddas_csvs:
@@ -297,7 +294,7 @@ class Processor:
         # find out which version dirs exist
         version = 1
         while True:
-            v_dir = self.output_path / VERSION_DIR_PREFIX + str(version)
+            v_dir = self.output_path / Constants.VERSION_DIR_PREFIX + str(version)
             if v_dir.is_dir():
                 version += 1
             else:
@@ -309,13 +306,13 @@ class Processor:
         # the working version dir is one less than the current value
         version -= 1
         self.logger.info('Version is {}'.format(version))
-        v_dir = self.output_path / VERSION_DIR_PREFIX + str(version)
+        v_dir = self.output_path / Constants.VERSION_DIR_PREFIX + str(version)
 
         # read the metadata from the earlier versions
         if version > 1:
             for v in range(1, version):
                 self.logger.info('Reading metadata for version {}'.format(v))
-                dir_name = self.output_path / VERSION_DIR_PREFIX + str(v)
+                dir_name = self.output_path / Constants.VERSION_DIR_PREFIX + str(v)
                 meta = self.read_metadata(dir_name)
                 self.meta_history.append(meta)
 
@@ -330,7 +327,7 @@ class Processor:
 
     def read_metadata(self, version_dir):
         self.logger.info('Reading metadata for version {}'.format(version_dir))
-        meta_file = version_dir / METADATA_FILENAME
+        meta_file = version_dir / Constants.METADATA_FILENAME
 
         meta = utils.read_config_file(meta_file)
         return meta

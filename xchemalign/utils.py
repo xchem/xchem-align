@@ -30,6 +30,10 @@ class Constants:
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4",
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4"
     ]
+    METADATA_FILENAME = 'metadata.yaml'
+    VERSION_DIR_PREFIX = 'upload_'
+    DEFAULT_SOAKDB_PATH = 'processing/database/soakDBDataFile.sqlite'
+    DEFAULT_MODEL_BUILDING_DIR = 'processing/analysis/model_building'
 
 class Logger:
     """
