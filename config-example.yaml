@@ -4,7 +4,7 @@ output_dir: data/outputs/Mpro
 copy_dir: data/inputs/copied
 inputs:
   - dir: dls/labxchem/data/2020/lb18145-153
-    soakbd: processing/database/soakDBDatafile.sqlite
+    soakbd: processing/database/soakDBDataFile.sqlite
     panddas_event_files:
       - processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv
       - processing/analysis/pandda_2_2020_04_30/analyses/pandda_inspect_events.csv

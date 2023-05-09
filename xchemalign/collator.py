@@ -111,7 +111,7 @@ class Collator(processor.Processor):
         num_event_maps = 0
 
         for xtal_name, data in meta['crystals'].items():
-            dir = os.path.join(cryst_dir, xtal_name)
+            dir = cryst_dir / xtal_name
             os.makedirs(dir)
 
             xtal_files = data['crystallographic_files']
@@ -181,20 +181,27 @@ class Collator(processor.Processor):
                         pfp = panddas_file
                         # self.logger.info('Reading CSV:', pfp)
                         df = pd.read_csv(input.get_input_dir_path() / pfp)
-                        event_tables[pfp] = df
+                        event_tables[input.get_input_dir_path() / pfp] = df
 
-                # TODO - copy the event map files to the output_dir
-                # and move the definitions to the crystallographic_files section of the YAML
-
+                # find the best event maps, then copy them to the standard location and update the metadata
                 if xtal_name in meta['crystals']:
                     best_event_map_paths = self.get_dataset_event_maps(xtal_name, pdb_input, event_tables)
                     if best_event_map_paths:
                         p_paths = []
-                        for k in best_event_map_paths:
-                            # print('testing', xtal_name, k)
-                            p_paths.append({'model': k[0], 'chain': k[1], 'res': k[2], 'path': str(best_event_map_paths[k])})
-                            num_event_maps += 1
-                        meta['crystals'][xtal_name]['panddas_event_files'] = p_paths
+                        for k, ccp4_file_path in best_event_map_paths.items():
+                            # print('handling', xtal_name, ccp4_file_path)
+                            ccp4_output = cryst_dir / xtal_name / ccp4_file_path.name
+                            self.logger.info('copying CCP4 file {} to {}'.format(ccp4_file_path, ccp4_output))
+                            f = shutil.copy2(ccp4_file_path, ccp4_output, follow_symlinks=True)
+                            if f:
+                                digest = utils.gen_sha256(ccp4_output)
+                                p_paths.append({'model': k[0], 'chain': k[1], 'res': k[2], 'file': str(ccp4_output), 'sha256': digest})
+                                num_event_maps += 1
+                            else:
+                                self.logger.error('Failed to copy CCP4 file {} to {}'.format(ccp4_file_path, ccp4_output))
+
+                        if p_paths:
+                            meta['crystals'][xtal_name]['crystallographic_files']['panddas_event_files'] = p_paths
                 else:
                     self.logger.warn('crystal {} not found in metadata - strange!'.format(xtal_name))
 
@@ -316,12 +323,15 @@ class Collator(processor.Processor):
                 x,y,z = row[Constants.EVENT_TABLE_X], row[Constants.EVENT_TABLE_Y], row[Constants.EVENT_TABLE_Z]
                 distance = np.linalg.norm(np.array([x,y,z]).flatten() - ligand_coord.flatten())
                 # print('Distance:', distance)
-                event_map_path = pandda_path.parent.parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
-                    dtag=xtal_name,
-                    event_idx=event_idx,
-                    bdc=bdc
-                )
-                distances[event_map_path] = distance
+                for template in Constants.EVENT_MAP_TEMPLATES:
+                    event_map_path = pandda_path.parent.parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / template.format(
+                        dtag=xtal_name,
+                        event_idx=event_idx,
+                        bdc=bdc
+                    )
+                    if event_map_path.exists() and event_map_path.is_file():
+                        distances[event_map_path] = distance
+                        continue
 
         if distances:
             return min(distances, key=lambda _key: distances[_key])

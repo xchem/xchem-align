@@ -204,21 +204,26 @@ class Copier(processor.Processor):
                     self.logger.info('event', idx, xtal_name)
                     event_idx = row[Constants.EVENT_TABLE_EVENT_IDX]
                     bdc = row[Constants.EVENT_TABLE_BDC]
-                    event_map_path = pfp.parent.parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / Constants.EVENT_MAP_TEMPLATE.format(
-                        dtag=xtal_name,
-                        event_idx=event_idx,
-                        bdc=bdc
-                    )
-                    if event_map_path.is_file():
-                        outfile = self.output_path / utils.make_path_relative(self.input_path) / event_map_path
-                        outfile.parent.mkdir(exist_ok=True, parents=True)
-                        f = shutil.copy2(event_map_path, outfile, follow_symlinks=True)
-                        if not f:
-                            self.logger.warn('failed to copy event map file', event_map_path)
-                        else:
-                            ccp4_count += 1
-                    else:
-                        self.logger.warn('event map file not found:', event_map_path)
+                    found = False
+                    event_map_paths = []
+                    for template in Constants.EVENT_MAP_TEMPLATES:
+                        event_map_path = pfp.parent.parent / Constants.PROCESSED_DATASETS_DIR / xtal_name / template.format(
+                            dtag=xtal_name,
+                            event_idx=event_idx,
+                            bdc=bdc
+                        )
+                        event_map_paths.append(event_map_path)
+                        if event_map_path.exists() and event_map_path.is_file():
+                            outfile = self.output_path / utils.make_path_relative(self.input_path) / event_map_path
+                            outfile.parent.mkdir(exist_ok=True, parents=True)
+                            f = shutil.copy2(event_map_path, outfile, follow_symlinks=True)
+                            if not f:
+                                self.logger.warn('failed to copy event map file', event_map_path)
+                            else:
+                                ccp4_count += 1
+                                found = True
+                    if not found:
+                        self.logger.warn('event map file not found:', *event_map_paths)
         return ccp4_count
 
     def generate_file_paths(self, filepath: Path, xtal_dir_path: Path, output_path: Path):

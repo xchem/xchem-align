@@ -26,7 +26,10 @@ class Constants:
     EVENT_TABLE_BDC = "1-BDC"
     LIGAND_NAMES = ["LIG", "XXX"]
     PROCESSED_DATASETS_DIR = "processed_datasets"
-    EVENT_MAP_TEMPLATE = "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4"
+    EVENT_MAP_TEMPLATES = [
+        "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4",
+        "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4"
+    ]
 
 class Logger:
     """
