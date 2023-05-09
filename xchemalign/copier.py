@@ -216,7 +216,7 @@ class Copier(processor.Processor):
                         )
                         event_map_paths.append(event_map_path)
                         if event_map_path.exists() and event_map_path.is_file():
-                            outfile = self.output_path / utils.make_path_relative(self.input_path) / event_map_path
+                            outfile = self.output_path / utils.make_path_relative(event_map_path)
                             outfile.parent.mkdir(exist_ok=True, parents=True)
                             f = shutil.copy2(event_map_path, outfile, follow_symlinks=True)
                             if not f:
@@ -235,7 +235,7 @@ class Copier(processor.Processor):
             outputpath = output_path / filepath.relative_to('/')
         else:
             inputpath = xtal_dir_path / filepath
-            outputpath = output_path / xtal_dir_path / filepath
+            outputpath = output_path / utils.make_path_relative(xtal_dir_path) / filepath
 
         return inputpath, outputpath
 

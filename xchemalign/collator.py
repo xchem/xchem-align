@@ -195,7 +195,7 @@ class Collator(processor.Processor):
                             f = shutil.copy2(ccp4_file_path, ccp4_output, follow_symlinks=True)
                             if f:
                                 digest = utils.gen_sha256(ccp4_output)
-                                p_paths.append({'model': k[0], 'chain': k[1], 'res': k[2], 'file': str(ccp4_output), 'sha256': digest})
+                                p_paths.append({'model': int(k[0]), 'chain': k[1], 'res': k[2], 'file': str(ccp4_output), 'sha256': digest})
                                 num_event_maps += 1
                             else:
                                 self.logger.error('Failed to copy CCP4 file {} to {}'.format(ccp4_file_path, ccp4_output))
