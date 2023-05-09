@@ -77,6 +77,8 @@ class Copier(processor.Processor):
         dbfile_out = self.output_path / self.input_path / self.soakdb_file_path
         dbfile_out.parent.mkdir(exist_ok=True, parents=True)
         f = shutil.copy2(dbfile, dbfile_out, follow_symlinks=True)
+        if not f:
+            self.logger.error('failed to copy soakdb file {} to {}'.format(dbfile, dbfile_out))
 
         self.logger.info('reading soakdb file', dbfile)
         df = dbreader.filter_dbmeta(dbfile)
