@@ -16,7 +16,7 @@ from pathlib import Path
 from . import utils, processor
 
 # Local alignment imports
-from ligand_neighbourhood_alignment import lna_constants
+from ligand_neighbourhood_alignment import constants as lna_constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
 from ligand_neighbourhood_alignment.data import (
     Assemblies,
