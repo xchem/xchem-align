@@ -16,7 +16,7 @@ from pathlib import Path
 from . import utils, processor
 
 # Local alignment imports
-from ligand_neighbourhood_alignment import constants
+from ligand_neighbourhood_alignment import lna_constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
 from ligand_neighbourhood_alignment.data import (
     Assemblies,
@@ -258,7 +258,7 @@ class Aligner(processor.Processor):
                 chain_output.aligned_ligands[residue].aligned_structures[site_id] = (
                         output.aligned_dir
                         + "/"
-                        + constants.ALIGNED_STRUCTURE_TEMPLATE.format(
+                        + lna_constants.ALIGNED_STRUCTURE_TEMPLATE.format(
                     dtag=dtag, chain=chain, residue=residue, site=site_id
                 )
                 )
@@ -266,7 +266,7 @@ class Aligner(processor.Processor):
                 chain_output.aligned_ligands[residue].aligned_artefacts[site_id] = (
                         output.aligned_dir
                         + "/"
-                        + constants.ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE.format(
+                        + lna_constants.ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE.format(
                     dtag=dtag, chain=chain, residue=residue, site=site_id
                 )
                 )
@@ -274,13 +274,13 @@ class Aligner(processor.Processor):
                 chain_output.aligned_ligands[residue].aligned_xmaps[site_id] = (
                         output.aligned_dir
                         + "/"
-                        + constants.ALIGNED_XMAP_TEMPLATE.format(dtag=dtag, chain=chain, residue=residue, site=site_id)
+                        + lna_constants.ALIGNED_XMAP_TEMPLATE.format(dtag=dtag, chain=chain, residue=residue, site=site_id)
                 )
 
                 chain_output.aligned_ligands[residue].aligned_event_maps[site_id] = (
                         output.aligned_dir
                         + "/"
-                        + constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
+                        + lna_constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
                     dtag=dtag, chain=chain, residue=residue, site=site_id
                 )
                 )
