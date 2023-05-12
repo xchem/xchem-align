@@ -99,25 +99,25 @@ class Aligner(processor.Processor):
 
         # Add the datasources in the options json and add them to
         # the datasource json
-        visits = meta[constants.META_INPUT]
+        # visits = meta[constants.META_INPUT]
         crystals = meta[constants.META_CRYSTALS]
 
-        datasources = [
-            Datasource(
-                path=visit[constants.META_DATA_DIR],
-                datasource_type=visit[constants.META_DATA_DIR_TYPE],
-            )
-            for visit
-            in visits
-        ]
-        panddas = [
-            PanDDA(
-                path=visit[constants.META_PANDDAS][constants.META_PANDDAS_PATH],
-                event_table_path=visit[constants.META_PANDDAS][constants.META_PANDDAS_EVENT_TABLE_PATH],
-            )
-            for visit
-            in visits
-        ]
+        # datasources = [
+        #     Datasource(
+        #         path=visit[constants.META_DATA_DIR],
+        #         datasource_type=visit[constants.META_DATA_DIR_TYPE],
+        #     )
+        #     for visit
+        #     in visits
+        # ]
+        # panddas = [
+        #     PanDDA(
+        #         path=visit[constants.META_PANDDAS][constants.META_PANDDAS_PATH],
+        #         event_table_path=visit[constants.META_PANDDAS][constants.META_PANDDAS_EVENT_TABLE_PATH],
+        #     )
+        #     for visit
+        #     in visits
+        # ]
         dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
         datasets = [
             Dataset(
@@ -162,7 +162,7 @@ class Aligner(processor.Processor):
         xtalforms = XtalForms.read(Path(meta[constants.XTALFORM_JSON]))
 
         # Parse the data sources and PanDDAs, matching ligands up to events
-        system_data = _add_data_to_system_data(system_data)
+        # system_data = _add_data_to_system_data(system_data)
 
         # Assign each dataset to the clsoest xtalform and fail if this
         # is not possible
