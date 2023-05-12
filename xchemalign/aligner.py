@@ -152,8 +152,10 @@ class Aligner(processor.Processor):
             in crystals.items()
         ]
         system_data = SystemData(
-            datasources=datasources,
-            panddas=panddas,
+            # datasources=datasources,
+            # panddas=panddas,
+            datasources=[],
+            panddas=[],
             dataset_ids=dataset_ids,
             datasets=datasets
         )
