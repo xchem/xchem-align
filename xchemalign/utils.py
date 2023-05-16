@@ -34,6 +34,21 @@ class Constants:
     VERSION_DIR_PREFIX = 'upload_'
     DEFAULT_SOAKDB_PATH = 'processing/database/soakDBDataFile.sqlite'
     DEFAULT_MODEL_BUILDING_DIR = 'processing/analysis/model_building'
+    CONFIG_TYPE = 'type'
+    CONFIG_TYPE_MODEL_BUILDING = 'model_building'
+    CONFIG_TYPE_MANUAL = 'manual'
+    META_LAST_UPDATED = 'last_updated'
+    META_XTALS = 'crystals'
+    META_FILE = 'file'
+    META_SHA256 = 'sha256'
+    META_XTAL_FILES = 'crystallographic_files'
+    META_XTAL_PDB = 'xtal_pdb'
+    META_XTAL_MTZ = 'xtal_mtz'
+    META_XTAL_CIF = 'ligand_cif'
+    META_BINDING_EVENT = 'panddas_event_files'
+    META_PROT_MODEL = 'model'
+    META_PROT_CHAIN = 'chain'
+    META_PROT_RES = 'res'
 
 class Logger:
     """
@@ -156,17 +171,20 @@ def find_path(my_dict, key, default=None):
     else:
         return default
 
+
 def make_path_relative(p):
     if p.is_absolute():
         return p.relative_to('/')
     else:
         return p
 
+
 def expand_path(p1, p2, expand=True):
     if expand and p1:
         return p1 / make_path_relative(p2)
     else:
         return p2
+
 
 def main():
 

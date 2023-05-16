@@ -14,6 +14,7 @@ import argparse
 from pathlib import Path
 
 from . import utils, processor
+from .utils import Constants
 
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
@@ -72,48 +73,75 @@ from ligand_neighbourhood_alignment.cli import _add_model_building_dir_to_system
     _add_pandda_to_system_data, _add_data_to_system_data, _get_assigned_xtalforms
 
 
-class Aligner(processor.Processor):
+class Aligner():
+
+    def __init__(self, version_dir, metadata_file, xtalforms_file, logger=None):
+        self.version_dir = Path(version_dir)
+        self.metadata_file = metadata_file
+        self.xtalforms_file = xtalforms_file
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = utils.Logger()
+        self.errors = []
+        self.warnings = []
+
+    def _log_error(self, msg):
+        self.logger.error(msg)
+        self.errors.append(msg)
 
     def validate(self):
-        v = validator.Validator(self.base_dir, self.input_dirs, self.output_dir, self.target_name, logger=self.logger)
-        warnings, errors = v.validate_paths()
-        return warnings, errors
+
+        if not self.version_dir.exists():
+            self._log_error('version dir {} does not exist'.format(self.version_dir))
+        elif not self.version_dir.is_dir():
+            self._log_error('version dir {} is not a directory'.format(self.version_dir))
+        else:
+            p = self.version_dir / self.metadata_file
+            if not p.exists():
+                self._log_error('metadata_file {} does not exist'.format(p))
+            if not p.is_file():
+                self._log_error('metadata_file {} is not a file'.format(p))
+
+        p = Path(self.xtalforms_file)
+        if not p.exists():
+            self._log_error('xtalforms_file {} does not exist'.format(p))
+        elif not p.is_file():
+            self._log_error('xtalforms_file {} is not a file'.format(p))
+
+        return len(self.errors), len(self.warnings)
 
     def run(self):
         self.logger.info('Running aligner...')
-        v_dir = self.read_versions()
-        if not v_dir:
-            self.logger.error('Error with version dir. Please fix and try again.')
-            return None
-        self.logger.info('Using version dir {}'.format(v_dir))
 
-        meta = self.read_metadata(v_dir)
+        meta = utils.read_config_file(str(self.version_dir / self.metadata_file))
 
-        self._perform_alignments(self.config, meta, self.meta_history, [], self.output_dir)
+        self._perform_alignments(meta)
 
-    def _perform_alignments(self, config, meta, meta_history, panddas_dirs, output_dir):
-        self.logger.info('Performing alignments (well, not really)')
+    def _perform_alignments(self, meta):
+        self.logger.info('Performing alignments')
 
         # Initialize the output directory and create empty
         # jsons in it
 
         # Add the datasources in the options json and add them to
         # the datasource json
-        # visits = meta[constants.META_INPUT]
-        crystals = meta[constants.META_CRYSTALS]
+        # visits = meta[lna_constants.META_INPUT]
+        crystals = meta[Constants.META_XTALS]
+        base = meta['output_dir']
 
         # datasources = [
         #     Datasource(
-        #         path=visit[constants.META_DATA_DIR],
-        #         datasource_type=visit[constants.META_DATA_DIR_TYPE],
+        #         path=visit[lna_constants.META_DATA_DIR],
+        #         datasource_type=visit[lna_constants.META_DATA_DIR_TYPE],
         #     )
         #     for visit
         #     in visits
         # ]
         # panddas = [
         #     PanDDA(
-        #         path=visit[constants.META_PANDDAS][constants.META_PANDDAS_PATH],
-        #         event_table_path=visit[constants.META_PANDDAS][constants.META_PANDDAS_EVENT_TABLE_PATH],
+        #         path=visit[lna_constants.META_PANDDAS][lna_constants.META_PANDDAS_PATH],
+        #         event_table_path=visit[lna_constants.META_PANDDAS][lna_constants.META_PANDDAS_EVENT_TABLE_PATH],
         #     )
         #     for visit
         #     in visits
@@ -122,29 +150,29 @@ class Aligner(processor.Processor):
         datasets = [
             Dataset(
                 dtag=dtag,
-                pdb=crystal[constants.META_XTAL_PDB][constants.META_XTAL_PDB_FILE],
-                xmap=None,
-                mtz=crystal[constants.META_XTAL_MTZ][constants.META_XTAL_MTZ_FILE],
+                pdb=crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE],
+                xmap='',
+                mtz=crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE),
                 ligand_binding_events=LigandBindingEvents(
                     ligand_ids=[
                         LigandID(
                             dtag=dtag,
-                            chain=binding_event[constants.META_BINDING_EVENT_CHAIN],
-                            residue=binding_event[constants.META_BINDING_EVENT_RES],
+                            chain=binding_event.get(Constants.META_PROT_CHAIN),
+                            residue=binding_event.get(Constants.META_PROT_RES),
                         )
                         for binding_event
-                        in crystal[constants.META_BINDING_EVENT]
+                        in crystal.get(Constants.META_BINDING_EVENT, {})
                     ],
                     ligand_binding_events=[
                         LigandBindingEvent(
                             id=0,
                             dtag=dtag,
-                            chain=binding_event[constants.META_BINDING_EVENT_CHAIN],
-                            residue=binding_event[constants.META_BINDING_EVENT_RES],
-                            xmap=binding_event[constants.META_BINDING_EVENT_EVENT_MAP],
+                            chain=binding_event.get(Constants.META_PROT_CHAIN),
+                            residue=binding_event.get(Constants.META_PROT_RES),
+                            xmap=base + '/' + binding_event.get(Constants.META_FILE),
                         )
                         for binding_event
-                        in crystal[constants.META_BINDING_EVENT]
+                        in crystal.get(Constants.META_BINDING_EVENT, {})
                     ]
                 ),
             )
@@ -161,7 +189,8 @@ class Aligner(processor.Processor):
         )
 
         # Copy the xtalform json into the source directory (checking validity)
-        xtalforms = XtalForms.read(Path(meta[constants.XTALFORM_JSON]))
+        # xtalforms = XtalForms.read(Path(meta[lna_constants.XTALFORM_JSON]))
+        xtalforms = XtalForms.read(self.xtalforms_file)
 
         # Parse the data sources and PanDDAs, matching ligands up to events
         # system_data = _add_data_to_system_data(system_data)
@@ -225,7 +254,7 @@ class Aligner(processor.Processor):
             conformer_site_transforms=[tr for tr in subsite_transforms.values()],
         )
         # Fully specify the output now that the sites are known
-        output = read_output(Path(meta[constants.ALIGNED_DIR]))
+        output = read_output(Path(meta[lna_constants.ALIGNED_DIR]))
         dataset_output_dict = {}
         for ligand_id in ligand_neighbourhoods.ligand_ids:
             dtag, chain, residue = (
@@ -326,7 +355,7 @@ class Aligner(processor.Processor):
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata
-            aligned_output = crystal[constants.META_ALIGNED] = {}
+            aligned_output = crystal[lna_constants.META_ALIGNED] = {}
 
             dataset_output = dataset_output_dict[dtag]
             for chain_name, chain_output in dataset_output.aligned_chain_output.items():
@@ -338,10 +367,10 @@ class Aligner(processor.Processor):
                         aligned_event_map_path = ligand_output.aligned_event_maps[site_id]
                         aligned_xmap_path = ligand_output.aligned_xmaps[site_id]
                         aligned_ligand_output[site_id] = {
-                            constants.META_ALIGNED_STRUCTURE: aligned_structure_path,
-                            constants.META_ALIGNED_ARTEFACTS: aligned_artefacts_path,
-                            constants.META_ALIGNED_EVENT_MAP: aligned_event_map_path,
-                            constants.META_ALIGNED_XMAP: aligned_xmap_path
+                            lna_constants.META_ALIGNED_STRUCTURE: aligned_structure_path,
+                            lna_constants.META_ALIGNED_ARTEFACTS: aligned_artefacts_path,
+                            lna_constants.META_ALIGNED_EVENT_MAP: aligned_event_map_path,
+                            lna_constants.META_ALIGNED_XMAP: aligned_xmap_path
                         }
 
         return meta
@@ -350,7 +379,9 @@ class Aligner(processor.Processor):
 def main():
     parser = argparse.ArgumentParser(description='aligner')
 
-    parser.add_argument('-c', '--config-file', default='config.yaml', help="Configuration file")
+    parser.add_argument('-v', '--version-dir', required=True, help="Path to version dir")
+    parser.add_argument('-d', '--metadata', default='metadata.yaml', help="Metadata YAML file")
+    parser.add_argument('-x', '--xtalforms', default='xtalforms.json', help="Crystal forms JSON file")
     parser.add_argument('-l', '--log-file', help="File to write logs to")
     parser.add_argument('--log-level', type=int, default=0, help="Logging level")
     parser.add_argument('--validate', action='store_true', help='Only perform validation')
@@ -360,12 +391,11 @@ def main():
 
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
 
-    a = Aligner(args.config_file, logger=logger)
-
-    warnings, errors = a.validate()
+    a = Aligner(args.version_dir, args.metadata, args.xtalforms, logger=logger)
+    num_errors, num_warnings = a.validate()
 
     if not args.validate:
-        if errors:
+        if num_errors:
             print('There are errors, cannot continue')
             exit(1)
         else:

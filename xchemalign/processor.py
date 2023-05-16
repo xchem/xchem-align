@@ -38,9 +38,10 @@ def expand_file_path(filepath: Path, default='.'):
 
 class Input:
 
-    def __init__(self, base_path: Path, input_dir_path: Path, soakdb_file_path, panddas_event_file_paths: list[Path]):
+    def __init__(self, base_path: Path, input_dir_path: Path, type: str, soakdb_file_path, panddas_event_file_paths: list[Path]):
         self.base_path = base_path
         self.input_dir_path = input_dir_path
+        self.type = type
         self.soakdb_file_path = soakdb_file_path
         self.panddas_event_file_paths = panddas_event_file_paths
         self.errors = []
@@ -79,17 +80,17 @@ class Input:
             elif not p.is_dir():
                 self.errors.append('input_dir_path is not a directory: {}'.format(p))
 
-        if not self.soakdb_file_path:
-            self.errors.append('soakdb_file_path is not defined')
-        elif self.soakdb_file_path.is_absolute():
-            self.errors.append('soakdb_file_path must be a path relative to input_path')
-        else:
-            p = self.get_soakdb_file_path()
-            print('testing', p)
-            if not p.exists():
-                self.errors.append('soakdb_file_path does not exist: {}'.format(p))
-            elif not p.is_file():
-                self.errors.append('soakdb_file_path is not a file: {}'.format(p))
+        if self.type == Constants.CONFIG_TYPE_MODEL_BUILDING:
+            if not self.soakdb_file_path:
+                self.errors.append('soakdb_file_path is not defined')
+            elif self.soakdb_file_path.is_absolute():
+                self.errors.append('soakdb_file_path must be a path relative to input_path')
+            else:
+                p = self.get_soakdb_file_path()
+                if not p.exists():
+                    self.errors.append('soakdb_file_path does not exist: {}'.format(p))
+                elif not p.is_file():
+                    self.errors.append('soakdb_file_path is not a file: {}'.format(p))
 
         return len(self.errors), len(self.warnings)
 
@@ -121,18 +122,28 @@ class Processor:
 
         self.inputs = []
         inputs = utils.find_property(config, 'inputs')
+        self.logger.info('found {} inputs'.format(len(inputs)))
         if inputs:
             for input in inputs:
                 input_path = utils.find_path(input, 'dir')
-                soakdb_path = utils.find_path(input, 'soakdb', default=Constants.DEFAULT_SOAKDB_PATH)
+                type = utils.find_property(input, Constants.CONFIG_TYPE)
+                if type == Constants.CONFIG_TYPE_MODEL_BUILDING:
+                    soakdb_path = utils.find_path(input, 'soakdb', default=Constants.DEFAULT_SOAKDB_PATH)
+                    panddas_csvs = utils.find_property(input, Constants.META_BINDING_EVENT)
+                    if panddas_csvs:
+                        panddas_paths = [Path(p) for p in panddas_csvs]
+                    else:
+                        panddas_paths = []
 
-                panddas_csvs = utils.find_property(input, 'panddas_event_files')
-                if panddas_csvs:
-                    panddas_paths = [Path(p) for p in panddas_csvs]
+                    self.logger.info('adding input', input_path)
+                    self.inputs.append(Input(self.base_path, input_path, type, soakdb_path, panddas_paths))
+
+                elif type == Constants.CONFIG_TYPE_MANUAL:
+                    self.logger.info('adding input', input_path)
+                    self.inputs.append(Input(self.base_path, input_path, type, None, []))
+
                 else:
-                    panddas_paths = []
-
-            self.inputs.append(Input(self.base_path, input_path, soakdb_path, panddas_paths))
+                    raise ValueError('unexpected input type:', type)
 
     def _log_error(self, msg):
         self.logger.error(msg)
@@ -178,117 +189,155 @@ class Processor:
 
         return len(self.errors) + num_input_errors, len(self.warnings) + num_input_warnings
 
-    def validate_soakdb_data(self):
+    def validate_data(self):
         """
         Read info from the SoakDB database and verify that the necessary entries are present
         :return: The generated metadata
         """
-        valid_ids = {}
+        crystals = {}
         input_dirs = []
         meta = {
             'run_on': str(datetime.datetime.now()),
             'input_dirs': input_dirs,
             'output_dir': str(self.output_path),
-            'crystals': valid_ids}
+            'crystals': crystals}
 
         for input in self.inputs:
             input_dirs.append(str(input.get_input_dir_path()))
-            dbfile = input.get_soakdb_file_path()
-            self.logger.info('Opening DB file:', dbfile)
-            df = dbreader.filter_dbmeta(dbfile)
-            count = 0
-            processed = 0
-            for index, row in df.iterrows():
-                count += 1
-                xtal_name = row['CrystalName']
-                xtal_dir = generate_xtal_dir(input.input_dir_path, xtal_name)
-                # print('xtal_dir:', xtal_dir)
-                if not xtal_name:
-                    self._log_error('Crystal name not defined, cannot process row {}'.format(xtal_name))
-                else:
-                    self.logger.info('Processing crystal {} {}'.format(count, xtal_name))
-                    missing_files = 0
-                    expanded_files = []
-                    colname = 'RefinementPDB_latest'
-                    file = row[colname]
-                    # RefinementPDB_latest file names are specified as absolute file names, but need to be handled as
-                    # relative to the base_path
-                    if file:
-                        # print('handling', colname, file)
-                        inputpath = utils.make_path_relative(Path(file))
-                        full_inputpath = self.base_path / inputpath
-                        # print('generated', full_inputpath)
-                        ok = full_inputpath.exists()
-                        if ok:
-                            expanded_files.append(inputpath)
-                        else:
-                            expanded_files.append(None)
-                            missing_files += 1
-                            self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
-                    else:
-                        expanded_files.append(None)
-                        self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
-
-                    colname = 'RefinementMTZ_latest'
-                    file = row[colname]
-                    # RefinementMTZ_latest file names are specified as absolute file names, but need to be handled as
-                    # relative to the base_path
-                    if file:
-                        # print('handling', colname, file)
-                        inputpath = utils.make_path_relative(Path(file))
-                        full_inputpath = self.base_path / inputpath
-                        # print('generated', full_inputpath)
-                        ok = full_inputpath.exists()
-                        if ok:
-                            expanded_files.append(inputpath)
-                        else:
-                            expanded_files.append(None)
-                            missing_files += 1
-                            self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
-                    else:
-                        expanded_files.append(None)
-                        self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
-
-                    colname = 'RefinementCIF'
-                    file = row[colname]
-                    # RefinementCIF file names are relative to the xtal_dir
-                    if file:
-                        # print('handling', colname, file)
-                        inputpath = xtal_dir / file
-                        full_inputpath = self.base_path / inputpath
-                        # print('generated', full_inputpath)
-                        ok = full_inputpath.exists()
-                        if ok:
-                            expanded_files.append(inputpath)
-                        else:
-                            expanded_files.append(None)
-                            missing_files += 1
-                            self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
-                    else:
-                        expanded_files.append(None)
-                        self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
-
-                    if missing_files > 0:
-                        self._log_warning('{} files for {} missing. Will not process'.format(missing_files, xtal_name))
-                    else:
-                        processed += 1
-                        if xtal_name in valid_ids.keys():
-                            self._log_warning("Crystal {} already exists, it's data will be overriden".format(xtal_name))
-
-                        data = {}
-                        valid_ids[xtal_name] = data
-                        last_updated_date = row['LastUpdatedDate']
-                        if last_updated_date:
-                            dt_str = last_updated_date.strftime(utils._DATETIME_FORMAT)
-                            data['last_updated'] = dt_str
-                        data['crystallographic_files'] = {
-                            'xtal_pdb': expanded_files[0],
-                            'xtal_mtz': expanded_files[1],
-                            'ligand_cif': expanded_files[2]}
-
-            self.logger.info('Validator handled {} rows from database, {} were valid'.format(count, processed))
+            self._validate_input(input, crystals)
 
         return meta
+
+    def _validate_input(self, input, crystals):
+        if input.type == Constants.CONFIG_TYPE_MODEL_BUILDING:
+            self._validate_soakdb_input(input, crystals)
+        elif input.type == Constants.CONFIG_TYPE_MANUAL:
+            self._validate_manual_input(input, crystals)
+        else:
+            raise ValueError('unexpected input type:', input.type)
+
+    def _validate_soakdb_input(self, input, crystals):
+        dbfile = input.get_soakdb_file_path()
+        self.logger.info('Opening DB file:', dbfile)
+        df = dbreader.filter_dbmeta(dbfile)
+        count = 0
+        processed = 0
+        for index, row in df.iterrows():
+            count += 1
+            xtal_name = row['CrystalName']
+            xtal_dir = generate_xtal_dir(input.input_dir_path, xtal_name)
+            # print('xtal_dir:', xtal_dir)
+            if not xtal_name:
+                self._log_error('Crystal name not defined, cannot process row {}'.format(xtal_name))
+            else:
+
+                # self.logger.info('Processing crystal {} {}'.format(count, xtal_name))
+                missing_files = 0
+                expanded_files = []
+                colname = 'RefinementPDB_latest'
+                file = row[colname]
+                # RefinementPDB_latest file names are specified as absolute file names, but need to be handled as
+                # relative to the base_path
+                if file:
+                    # print('handling', colname, file)
+                    inputpath = utils.make_path_relative(Path(file))
+                    full_inputpath = self.base_path / inputpath
+                    # print('generated', full_inputpath)
+                    ok = full_inputpath.exists()
+                    if ok:
+                        expanded_files.append(inputpath)
+                    else:
+                        expanded_files.append(None)
+                        missing_files += 1
+                        self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
+                else:
+                    expanded_files.append(None)
+                    self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
+
+                colname = 'RefinementMTZ_latest'
+                file = row[colname]
+                # RefinementMTZ_latest file names are specified as absolute file names, but need to be handled as
+                # relative to the base_path
+                if file:
+                    # print('handling', colname, file)
+                    inputpath = utils.make_path_relative(Path(file))
+                    full_inputpath = self.base_path / inputpath
+                    # print('generated', full_inputpath)
+                    ok = full_inputpath.exists()
+                    if ok:
+                        expanded_files.append(inputpath)
+                    else:
+                        expanded_files.append(None)
+                        missing_files += 1
+                        self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
+                else:
+                    expanded_files.append(None)
+                    self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
+
+                colname = 'RefinementCIF'
+                file = row[colname]
+                # RefinementCIF file names are relative to the xtal_dir
+                if file:
+                    print('handling', colname, file)
+                    p = Path(file)
+                    if p.is_absolute():
+                        inputpath = p.relative_to('/')
+                    else:
+                        inputpath = xtal_dir / file
+                    full_inputpath = self.base_path / inputpath
+                    # print('generated', full_inputpath)
+                    ok = full_inputpath.exists()
+                    if ok:
+                        expanded_files.append(inputpath)
+                    else:
+                        expanded_files.append(None)
+                        missing_files += 1
+                        self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
+                else:
+                    expanded_files.append(None)
+                    self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
+
+                if not expanded_files[0]:
+                    self._log_warning('{} files for {} missing. Will not process'.format(missing_files, xtal_name))
+                else:
+                    processed += 1
+                    if xtal_name in crystals.keys():
+                        self._log_warning("Crystal {} already exists, it's data will be overriden".format(xtal_name))
+
+                    data = {Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MODEL_BUILDING}
+                    self.logger.info('adding crystal (model_building)', xtal_name)
+                    crystals[xtal_name] = data
+                    last_updated_date = row['LastUpdatedDate']
+                    if last_updated_date:
+                        dt_str = last_updated_date.strftime(utils._DATETIME_FORMAT)
+                        data[Constants.META_LAST_UPDATED] = dt_str
+                    f_data = {Constants.META_XTAL_PDB: expanded_files[0]}
+                    if expanded_files[1]:
+                        f_data[Constants.META_XTAL_MTZ] = expanded_files[1]
+                    if expanded_files[2]:
+                        f_data[Constants.META_XTAL_CIF] = expanded_files[2]
+                    data[Constants.META_XTAL_FILES] = f_data
+
+        self.logger.info('Validator handled {} rows from database, {} were valid'.format(count, processed))
+
+    def _validate_manual_input(self, input, crystals):
+        for child in (self.base_path / input.input_dir_path).iterdir():
+            pdb = None
+            mtz = None
+            if child.is_dir():
+                for file in child.iterdir():
+                    if file.suffix == '.pdb':
+                        pdb = file
+                    if file.suffix == '.mtz':
+                        mtz = file
+                if pdb:
+                    self.logger.info('adding crystal (manual)', child.name)
+                    data = { Constants.META_XTAL_PDB: pdb.relative_to(self.base_path) }
+                    if mtz:
+                        data[Constants.META_XTAL_MTZ] = mtz.relative_to(self.base_path)
+                    crystals[child.name] = {
+                        Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MANUAL,
+                        Constants.META_XTAL_FILES: data }
 
     def read_versions(self):
         # find out which version dirs exist
