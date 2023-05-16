@@ -177,6 +177,11 @@ class Aligner():
             self.logger.error(f"Did not find any datasets in metadata. Exiting.")
             raise Exception
 
+        self.logger.info(f"Ligand binding events in datasets:")
+        for _dataset_id, _dataset in zip(dataset_ids, datasets):
+            _num_binding_events = len(_dataset.ligand_binding_events.ligand_binding_events)
+            self.logger.info(f"\t{_dataset_id.dtag} : Num Ligand binding events: {len(_num_binding_events)}")
+
 
         system_data = SystemData(
             datasources=[],
