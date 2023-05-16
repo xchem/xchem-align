@@ -128,24 +128,14 @@ class Aligner():
         # the datasource json
         # visits = meta[lna_constants.META_INPUT]
         crystals = meta[Constants.META_XTALS]
+
+        # Assert that
+        if len(crystals) == 0:
+            self.logger.error(f"Did not find any crystals in metadata. Exiting.")
+            raise Exception
+
         base = meta['output_dir']
 
-        # datasources = [
-        #     Datasource(
-        #         path=visit[lna_constants.META_DATA_DIR],
-        #         datasource_type=visit[lna_constants.META_DATA_DIR_TYPE],
-        #     )
-        #     for visit
-        #     in visits
-        # ]
-        # panddas = [
-        #     PanDDA(
-        #         path=visit[lna_constants.META_PANDDAS][lna_constants.META_PANDDAS_PATH],
-        #         event_table_path=visit[lna_constants.META_PANDDAS][lna_constants.META_PANDDAS_EVENT_TABLE_PATH],
-        #     )
-        #     for visit
-        #     in visits
-        # ]
         dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
         datasets = [
             Dataset(
@@ -179,9 +169,16 @@ class Aligner():
             for dtag, crystal
             in crystals.items()
         ]
+        if len(dataset_ids) != len(datasets):
+            self.logger.error(f"Number of dataset ids found in metadata not equal to number of datasets. Exiting.")
+            raise Exception
+
+        if (len(datasets) == 0) or (len(datasets) == 0):
+            self.logger.error(f"Did not find any datasets in metadata. Exiting.")
+            raise Exception
+
+
         system_data = SystemData(
-            # datasources=datasources,
-            # panddas=panddas,
             datasources=[],
             panddas=[],
             dataset_ids=dataset_ids,
@@ -198,6 +195,9 @@ class Aligner():
         # Assign each dataset to the clsoest xtalform and fail if this
         # is not possible
         assigned_xtalforms = _get_assigned_xtalforms(system_data, xtalforms)
+        self.logger.info(f"Assigned xtalforms are:")
+        for _dataset_id, _assigned_xtalform in assigned_xtalforms:
+            self.logger.info(f"\t{_dataset_id.dtag} : {_assigned_xtalform}")
 
         # Build the alignment graph
         ligand_neighbourhoods: LigandNeighbourhoods = get_ligand_neighbourhoods(
@@ -205,9 +205,20 @@ class Aligner():
             xtalforms,
             assigned_xtalforms,
         )
+        self.logger.info(f"Found {len(ligand_neighbourhoods.ligand_ids)} ligand neighbourhoods.")
+        self.logger.info(f"Ligand neighbourhoods are:")
+        for _ligand_id, _ligand_neighbourhood in zip(ligand_neighbourhoods.ligand_ids, ligand_neighbourhoods.ligand_neighbourhoods):
+            _dtag, _chain, _residue = _ligand_id.dtag, _ligand_id.chain, _ligand_id.residue
+            _num_atoms, _num_art_atoms = len(_ligand_neighbourhood.atoms), len(_ligand_neighbourhood.artefact_atoms)
+            self.logger.info(f"\t{_dtag} {_chain} {_residue} : Num atoms: {_num_atoms} : Num artefact atoms: {_num_art_atoms}")
 
         # Get alignability
         alignability_matrix, transforms = get_alignability(ligand_neighbourhoods, system_data)
+        _x, _y = alignability_matrix.shape
+        _z = len(ligand_neighbourhoods.ligand_ids)
+        if (_x != _y) or (_x != _z) or (_y != _z):
+            self.logger.error(f"Allignability matrix should be of shape: {_z} x {_z}, however is {_x} x {_y}")
+            raise Exception
 
         # Generate the graph
         g = get_graph(alignability_matrix, ligand_neighbourhoods)
@@ -225,6 +236,9 @@ class Aligner():
 
         # Merge the connected components with shared residues into sites
         _sites = get_sites_from_conformer_sites(conformer_sites, ligand_neighbourhoods)
+        if len(_sites) ==0:
+            self.logger.error(f"Number of sites is 0: this should be impossible. Exiting.")
+            raise Exception
 
         canonical_sites: CanonicalSites = CanonicalSites(
             site_ids=[s.id for s in _sites],
@@ -253,6 +267,7 @@ class Aligner():
             conformer_site_transform_ids=[key for key in subsite_transforms.keys()],
             conformer_site_transforms=[tr for tr in subsite_transforms.values()],
         )
+
         # Fully specify the output now that the sites are known
         output = read_output(Path(meta[lna_constants.ALIGNED_DIR]))
         dataset_output_dict = {}
