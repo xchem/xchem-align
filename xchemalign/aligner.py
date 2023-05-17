@@ -137,6 +137,7 @@ class Aligner():
         # the datasource json
         # visits = meta[lna_constants.META_INPUT]
         crystals = meta[Constants.META_XTALS]
+        output_path = Path(meta[Constants.META_OUTPUT_DIR])
 
         # Assert that
         if len(crystals) == 0:
@@ -147,9 +148,9 @@ class Aligner():
         datasets = [
             Dataset(
                 dtag=dtag,
-                pdb=crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE],
+                pdb=str(output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]),
                 xmap='',
-                mtz=crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE),
+                mtz=str(output_path / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)),
                 ligand_binding_events=LigandBindingEvents(
                     ligand_ids=[
                         LigandID(
@@ -166,7 +167,7 @@ class Aligner():
                             dtag=dtag,
                             chain=binding_event.get(Constants.META_PROT_CHAIN),
                             residue=binding_event.get(Constants.META_PROT_RES),
-                            xmap=binding_event.get(Constants.META_FILE),
+                            xmap=str(output_path / binding_event.get(Constants.META_FILE)),
                         )
                         for binding_event
                         in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
@@ -403,10 +404,10 @@ class Aligner():
                         aligned_event_map_path = ligand_output.aligned_event_maps[site_id]
                         aligned_xmap_path = ligand_output.aligned_xmaps[site_id]
                         aligned_ligand_output[site_id] = {
-                            'aligned_structure': aligned_structure_path,
-                            'aligned_artefacts': aligned_artefacts_path,
-                            'aligned_event_maps': aligned_event_map_path,
-                            'aligned_xmaps': aligned_xmap_path
+                            Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
+                            Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
+                            Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
+                            Constants.META_AIGNED_X_MAP: aligned_xmap_path
                         }
 
         return meta

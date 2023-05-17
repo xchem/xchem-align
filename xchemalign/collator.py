@@ -65,8 +65,8 @@ class Collator(processor.Processor):
         # find out which version dirs exist
         version = 1
         while True:
-            v_dir = self.output_path / (Constants.VERSION_DIR_PREFIX + str(version))
-            if v_dir.is_dir():
+            v_dir = Constants.VERSION_DIR_PREFIX + str(version)
+            if (self.output_path / v_dir).is_dir():
                 version += 1
             else:
                 break
@@ -77,7 +77,7 @@ class Collator(processor.Processor):
         # the working version dir is one less than the current value
         version -= 1
         self.logger.info('Version is {}'.format(version))
-        v_dir = self.output_path / (Constants.VERSION_DIR_PREFIX + str(version))
+        v_dir = Constants.VERSION_DIR_PREFIX + str(version)
 
         # read the metadata from the earlier versions
         if version > 1:
@@ -92,7 +92,7 @@ class Collator(processor.Processor):
                     self.logger.error('Metadata file {} not found'.format(meta_file))
                     return None
 
-        self.version_dir = v_dir
+        self.version_dir = Path(v_dir)
 
         num_old_metas = len(self.meta_history)
         if num_old_metas:
@@ -101,19 +101,20 @@ class Collator(processor.Processor):
         return v_dir
 
     def _copy_files(self, meta):
-        cryst_dir = self.version_dir / Constants.META_XTAL_FILES
-        self.logger.info('Using cryst_dir of', cryst_dir)
-        if cryst_dir.exists():
+        cryst_path = self.version_dir / Constants.META_XTAL_FILES
+        ext_cryst_path = self.output_path / cryst_path
+        self.logger.info('Using cryst_dir of', ext_cryst_path)
+        if ext_cryst_path.exists():
             self.logger.info('removing old cryst_dir')
-            shutil.rmtree(cryst_dir)
+            shutil.rmtree(ext_cryst_path)
         self.logger.info('creating cryst_dir')
-        os.makedirs(cryst_dir)
+        os.makedirs(ext_cryst_path)
 
         num_event_maps = 0
 
         for xtal_name, data in meta[Constants.META_XTALS].items():
-            dir = cryst_dir / xtal_name
-            os.makedirs(dir)
+            dir = cryst_path / xtal_name
+            os.makedirs(self.output_path / dir)
 
             xtal_files = data[Constants.META_XTAL_FILES]
 
@@ -121,13 +122,14 @@ class Collator(processor.Processor):
             pdb = xtal_files[Constants.META_XTAL_PDB]
             if pdb:
                 pdb_input = self.base_path / pdb
-                pdb_output = os.path.join(dir, xtal_name + '.pdb')
-                f = shutil.copy2(pdb_input, pdb_output, follow_symlinks=True)
+                pdb_name = xtal_name + '.pdb'
+                pdb_output = dir / pdb_name
+                f = shutil.copy2(pdb_input, self.output_path / pdb_output, follow_symlinks=True)
                 if not f:
-                    self.logger.error('Failed to copy PDB file {} to {}'.format(pdb_input, pdb_output))
+                    self.logger.error('Failed to copy PDB file {} to {}'.format(pdb_input, self.output_path / pdb_output))
                     return None
-                digest = utils.gen_sha256(pdb_output)
-                xtal_files[Constants.META_XTAL_PDB] = {Constants.META_FILE: pdb_output, Constants.META_SHA256: digest}
+                digest = utils.gen_sha256(self.output_path / pdb_output)
+                xtal_files[Constants.META_XTAL_PDB] = {Constants.META_FILE: str(pdb_output), Constants.META_SHA256: digest}
             else:
                 self.logger.error('PDB entry missing for {}'.format(xtal_name))
                 return meta
@@ -136,13 +138,14 @@ class Collator(processor.Processor):
             mtz = xtal_files.get(Constants.META_XTAL_MTZ)
             if mtz:
                 mtz_input = self.base_path / mtz
-                mtz_output = os.path.join(dir, xtal_name + '.mtz')
-                f = shutil.copy2(mtz_input, mtz_output, follow_symlinks=True)
+                mtz_name = xtal_name + '.mtz'
+                mtz_output = dir / mtz_name
+                f = shutil.copy2(mtz_input, self.output_path / mtz_output, follow_symlinks=True)
                 if not f:
-                    self.logger.error('Failed to copy MTZ file {} to {}'.format(mtz_input, mtz_output))
+                    self.logger.error('Failed to copy MTZ file {} to {}'.format(mtz_input, self.output_path / mtz_output))
                     return None
-                digest = utils.gen_sha256(mtz_output)
-                xtal_files[Constants.META_XTAL_MTZ] = {Constants.META_FILE: mtz_output, Constants.META_SHA256: digest}
+                digest = utils.gen_sha256(self.output_path / mtz_output)
+                xtal_files[Constants.META_XTAL_MTZ] = {Constants.META_FILE: str(mtz_output), Constants.META_SHA256: digest}
             else:
                 self.logger.warn('MTZ entry missing for {}'.format(xtal_name))
 
@@ -150,13 +153,14 @@ class Collator(processor.Processor):
             cif = xtal_files.get(Constants.META_XTAL_CIF)
             if cif:
                 cif_input = self.base_path / cif
-                cif_output = os.path.join(dir, xtal_name + '.cif')
-                f = shutil.copy2(cif_input, cif_output, follow_symlinks=True)
+                cif_name = xtal_name + '.cif'
+                cif_output = dir / cif_name
+                f = shutil.copy2(cif_input, self.output_path / cif_output, follow_symlinks=True)
                 if not f:
-                    self.logger.error('Failed to copy CIF file {} to {}'.format(cif_input, cif_output))
+                    self.logger.error('Failed to copy CIF file {} to {}'.format(cif_input, self.output_path / cif_output))
                     return None
-                digest = utils.gen_sha256(cif_output)
-                xtal_files[Constants.META_XTAL_CIF] = {Constants.META_FILE: cif_output, Constants.META_SHA256: digest}
+                digest = utils.gen_sha256(self.output_path / cif_output)
+                xtal_files[Constants.META_XTAL_CIF] = {Constants.META_FILE: str(cif_output), Constants.META_SHA256: digest}
 
                 # # convert ligand PDB to SDF
                 # # The ligand CIF file does not seem to be readable using OpenBabel so we resort to using the PDB
@@ -189,21 +193,25 @@ class Collator(processor.Processor):
                     best_event_map_paths = self.get_dataset_event_maps(xtal_name, pdb_input, event_tables)
                     if best_event_map_paths:
                         p_paths = []
-                        for k, ccp4_file_path in best_event_map_paths.items():
+                        for k, tup in best_event_map_paths.items():
+                            ccp4_file_path = tup[0]
                             # print('handling', xtal_name, ccp4_file_path)
-                            ccp4_output = cryst_dir / xtal_name / ccp4_file_path.name
-                            # self.logger.info('copying CCP4 file {} to {}'.format(ccp4_file_path, ccp4_output))
-                            f = shutil.copy2(ccp4_file_path, ccp4_output, follow_symlinks=True)
+                            ccp4_output = cryst_path / xtal_name / '{}_{}_{}.ccp4'.format(k[0], k[1], k[2])
+                            self.logger.info('copying CCP4 file {} to {}'.format(ccp4_file_path, self.output_path / ccp4_output))
+                            f = shutil.copy2(ccp4_file_path, self.output_path / ccp4_output, follow_symlinks=True)
                             if f:
-                                digest = utils.gen_sha256(ccp4_output)
-                                p_paths.append({Constants.META_PROT_MODEL: int(k[0]),
-                                                Constants.META_PROT_CHAIN: k[1],
-                                                Constants.META_PROT_RES: k[2],
-                                                Constants.META_FILE: str(ccp4_output),
-                                                Constants.META_SHA256: digest})
+                                digest = utils.gen_sha256(self.output_path / ccp4_output)
+                                p_paths.append({
+                                    Constants.META_FILE: str(ccp4_output),
+                                    Constants.META_SHA256: digest,
+                                    Constants.META_PROT_MODEL: int(k[0]),
+                                    Constants.META_PROT_CHAIN: k[1],
+                                    Constants.META_PROT_RES: k[2],
+                                    Constants.META_PROT_INDEX: tup[1],
+                                    Constants.META_PROT_BDC: tup[2]})
                                 num_event_maps += 1
                             else:
-                                self.logger.error('Failed to copy CCP4 file {} to {}'.format(ccp4_file_path, ccp4_output))
+                                self.logger.error('Failed to copy CCP4 file {} to {}'.format(ccp4_file_path, self.output_path / ccp4_output))
 
                         if p_paths:
                             meta[Constants.META_XTALS][xtal_name][Constants.META_XTAL_FILES][Constants.META_BINDING_EVENT] = p_paths
@@ -277,20 +285,20 @@ class Collator(processor.Processor):
         return all_xtals, new_or_updated_xtals
 
     def _write_metadata(self, meta, all_xtals, new_xtals):
-        f = os.path.join(self.version_dir, Constants.METADATA_FILENAME)
+        f = self.output_path / self.version_dir / Constants.METADATA_FILENAME
         with open(f, 'w') as stream:
             yaml.dump(meta, stream, sort_keys=False)
-        f = os.path.join(self.version_dir, 'all_xtals.yaml')
+        f = self.output_path / self.version_dir / 'all_xtals.yaml'
         with open(f, 'w') as stream:
             yaml.dump(all_xtals, stream, sort_keys=False)
-            f = os.path.join(self.version_dir, 'new_xtals.yaml')
+            f = self.output_path / self.version_dir / 'new_xtals.yaml'
         with open(f, 'w') as stream:
             yaml.dump(new_xtals, stream, sort_keys=False)
 
     def _copy_config(self):
-        f = shutil.copy2(self.config_file, self.version_dir)
+        f = shutil.copy2(self.config_file, self.output_path / self.version_dir)
         if not f:
-            print('Failed to copy config file to {}'.format(self.version_dir))
+            print('Failed to copy config file to {}'.format((self.output_path / self.version_dir)))
             return False
         return True
 
@@ -319,6 +327,7 @@ class Collator(processor.Processor):
             event_tables: dict[Path, pd.DataFrame],
     ) -> Path:
         distances = {}
+        data = {}
         for pandda_path, event_table in event_tables.items():
             # print('Processing', xtal_name, pandda_path)
             dataset_events = event_table[event_table[Constants.EVENT_TABLE_DTAG] == xtal_name]
@@ -336,12 +345,14 @@ class Collator(processor.Processor):
                     )
                     if event_map_path.exists() and event_map_path.is_file():
                         distances[event_map_path] = distance
+                        data[event_map_path] = (event_idx, bdc)
                         continue
 
         if distances:
-            return min(distances, key=lambda _key: distances[_key])
+            k = min(distances, key=lambda _key: distances[_key])
+            return k, data[k]
         else:
-            return None
+            return None, None
 
     def get_dataset_event_maps(self, xtal_name: str, pdb_file: Path, event_tables: dict[Path, pd.DataFrame]
                                ) -> dict[tuple[str, str, str], Path]:
@@ -358,10 +369,10 @@ class Collator(processor.Processor):
         closest_event_maps = {}
         for ligand_key, ligand_coord in ligand_coords.items():
             # print('coord:', ligand_coord)
-            closest_event_map = self.get_closest_event_map(xtal_name, ligand_coord, event_tables)
+            closest_event_map, data = self.get_closest_event_map(xtal_name, ligand_coord, event_tables)
             if closest_event_map:
                 # print('closest:', closest_event_map)
-                closest_event_maps[ligand_key] = closest_event_map
+                closest_event_maps[ligand_key] = (closest_event_map, data[0], data[1])
 
         return closest_event_maps
 

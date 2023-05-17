@@ -37,6 +37,7 @@ class Constants:
     CONFIG_TYPE = 'type'
     CONFIG_TYPE_MODEL_BUILDING = 'model_building'
     CONFIG_TYPE_MANUAL = 'manual'
+    META_OUTPUT_DIR = 'output_dir'
     META_LAST_UPDATED = 'last_updated'
     META_XTALS = 'crystals'
     META_FILE = 'file'
@@ -50,6 +51,12 @@ class Constants:
     META_PROT_MODEL = 'model'
     META_PROT_CHAIN = 'chain'
     META_PROT_RES = 'res'
+    META_PROT_INDEX = 'index'
+    META_PROT_BDC = 'bdc'
+    META_AIGNED_STRUCTURE = 'structure'
+    META_AIGNED_ARTEFACTS = 'artefacts'
+    META_AIGNED_EVENT_MAP = 'event_map'
+    META_AIGNED_X_MAP = 'x_map'
 
 class Logger:
     """

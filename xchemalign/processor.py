@@ -109,7 +109,6 @@ class Processor:
 
         self.base_path = utils.find_path(config, 'base_dir')
         self.output_path = utils.find_path(config, 'output_dir')
-        self.copy_path = utils.find_path(config, 'copy_dir')
 
         self.target_name =  utils.find_property(config, 'target_name')
         self.config = config
