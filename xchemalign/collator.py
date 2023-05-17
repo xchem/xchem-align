@@ -101,7 +101,7 @@ class Collator(processor.Processor):
         return v_dir
 
     def _copy_files(self, meta):
-        cryst_dir = self.version_dir / 'crystallographic'
+        cryst_dir = self.version_dir / Constants.META_XTAL_FILES
         self.logger.info('Using cryst_dir of', cryst_dir)
         if cryst_dir.exists():
             self.logger.info('removing old cryst_dir')
@@ -308,7 +308,7 @@ class Collator(processor.Processor):
 
                         arr = np.array(poss)
                         mean = np.mean(arr, axis=0)
-                        ligand_coords[(model.name, chain.name, residue.name)] = mean
+                        ligand_coords[(model.name, chain.name, residue.seqid.num)] = mean
 
         return ligand_coords
 

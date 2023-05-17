@@ -42,6 +42,7 @@ class Constants:
     META_FILE = 'file'
     META_SHA256 = 'sha256'
     META_XTAL_FILES = 'crystallographic_files'
+    META_ALIGNED_FILES = 'aligned_files'
     META_XTAL_PDB = 'xtal_pdb'
     META_XTAL_MTZ = 'xtal_mtz'
     META_XTAL_CIF = 'ligand_cif'

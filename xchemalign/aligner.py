@@ -10,10 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
+import argparse, yaml
 from pathlib import Path
 
-from . import utils, processor
+from . import utils
 from .utils import Constants
 
 # Local alignment imports
@@ -77,6 +77,7 @@ class Aligner():
 
     def __init__(self, version_dir, metadata_file, xtalforms_file, logger=None):
         self.version_dir = Path(version_dir)
+        self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES
         self.metadata_file = metadata_file
         self.xtalforms_file = xtalforms_file
         if logger:
@@ -114,9 +115,17 @@ class Aligner():
     def run(self):
         self.logger.info('Running aligner...')
 
-        meta = utils.read_config_file(str(self.version_dir / self.metadata_file))
+        meta_path = self.version_dir / self.metadata_file
+        meta = utils.read_config_file(str(meta_path))
 
-        self._perform_alignments(meta)
+        if not self.aligned_dir.is_dir():
+            self.aligned_dir.mkdir()
+            self.logger.info('created aligned directory', self.aligned_dir)
+
+        new_meta = self._perform_alignments(meta)
+        # TODO - should aligned metadata be written to its own file?
+        with open(meta_path, 'w') as stream:
+            yaml.dump(new_meta, stream, sort_keys=False)
 
     def _perform_alignments(self, meta):
         self.logger.info('Performing alignments')
@@ -134,8 +143,6 @@ class Aligner():
             self.logger.error(f"Did not find any crystals in metadata. Exiting.")
             raise Exception
 
-        base = meta['output_dir']
-
         dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
         datasets = [
             Dataset(
@@ -151,7 +158,7 @@ class Aligner():
                             residue=binding_event.get(Constants.META_PROT_RES),
                         )
                         for binding_event
-                        in crystal.get(Constants.META_BINDING_EVENT, {})
+                        in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
                     ],
                     ligand_binding_events=[
                         LigandBindingEvent(
@@ -159,10 +166,10 @@ class Aligner():
                             dtag=dtag,
                             chain=binding_event.get(Constants.META_PROT_CHAIN),
                             residue=binding_event.get(Constants.META_PROT_RES),
-                            xmap=base + '/' + binding_event.get(Constants.META_FILE),
+                            xmap=binding_event.get(Constants.META_FILE),
                         )
                         for binding_event
-                        in crystal.get(Constants.META_BINDING_EVENT, {})
+                        in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
                     ]
                 ),
             )
@@ -180,8 +187,7 @@ class Aligner():
         self.logger.info(f"Ligand binding events in datasets:")
         for _dataset_id, _dataset in zip(dataset_ids, datasets):
             _num_binding_events = len(_dataset.ligand_binding_events.ligand_binding_events)
-            self.logger.info(f"\t{_dataset_id.dtag} : Num Ligand binding events: {len(_num_binding_events)}")
-
+            self.logger.info(f"\t{_dataset_id.dtag} : Num Ligand binding events: {_num_binding_events}")
 
         system_data = SystemData(
             datasources=[],
@@ -202,7 +208,7 @@ class Aligner():
         assigned_xtalforms = _get_assigned_xtalforms(system_data, xtalforms)
         self.logger.info(f"Assigned xtalforms are:")
         for _dataset_id, _assigned_xtalform in assigned_xtalforms:
-            self.logger.info(f"\t{_dataset_id.dtag} : {_assigned_xtalform}")
+            self.logger.info(f"\t{_dataset_id} : {_assigned_xtalform}")
 
         # Build the alignment graph
         ligand_neighbourhoods: LigandNeighbourhoods = get_ligand_neighbourhoods(
@@ -222,7 +228,7 @@ class Aligner():
         _x, _y = alignability_matrix.shape
         _z = len(ligand_neighbourhoods.ligand_ids)
         if (_x != _y) or (_x != _z) or (_y != _z):
-            self.logger.error(f"Allignability matrix should be of shape: {_z} x {_z}, however is {_x} x {_y}")
+            self.logger.error(f"Alignability matrix should be of shape: {_z} x {_z}, however is {_x} x {_y}")
             raise Exception
 
         # Generate the graph
@@ -241,7 +247,7 @@ class Aligner():
 
         # Merge the connected components with shared residues into sites
         _sites = get_sites_from_conformer_sites(conformer_sites, ligand_neighbourhoods)
-        if len(_sites) ==0:
+        if len(_sites) == 0:
             self.logger.error(f"Number of sites is 0: this should be impossible. Exiting.")
             raise Exception
 
@@ -274,7 +280,18 @@ class Aligner():
         )
 
         # Fully specify the output now that the sites are known
-        output = read_output(Path(meta[lna_constants.ALIGNED_DIR]))
+        output = Output(source_dir=str(self.version_dir),
+        system_data='',
+        xtalforms='',
+        assigned_xtalforms='',
+        neighbourhoods='',
+        graph='',
+        transforms='',
+        sites='',
+        site_transforms='',
+        aligned_dir=Constants.META_ALIGNED_FILES,
+        dataset_output={})
+
         dataset_output_dict = {}
         for ligand_id in ligand_neighbourhoods.ligand_ids:
             dtag, chain, residue = (
@@ -375,8 +392,7 @@ class Aligner():
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata
-            aligned_output = crystal[lna_constants.META_ALIGNED] = {}
-
+            aligned_output = crystal[Constants.META_ALIGNED_FILES] = {}
             dataset_output = dataset_output_dict[dtag]
             for chain_name, chain_output in dataset_output.aligned_chain_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
@@ -387,10 +403,10 @@ class Aligner():
                         aligned_event_map_path = ligand_output.aligned_event_maps[site_id]
                         aligned_xmap_path = ligand_output.aligned_xmaps[site_id]
                         aligned_ligand_output[site_id] = {
-                            lna_constants.META_ALIGNED_STRUCTURE: aligned_structure_path,
-                            lna_constants.META_ALIGNED_ARTEFACTS: aligned_artefacts_path,
-                            lna_constants.META_ALIGNED_EVENT_MAP: aligned_event_map_path,
-                            lna_constants.META_ALIGNED_XMAP: aligned_xmap_path
+                            'aligned_structure': aligned_structure_path,
+                            'aligned_artefacts': aligned_artefacts_path,
+                            'aligned_event_maps': aligned_event_map_path,
+                            'aligned_xmaps': aligned_xmap_path
                         }
 
         return meta
