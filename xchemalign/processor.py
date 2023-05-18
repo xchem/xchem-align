@@ -107,10 +107,10 @@ class Processor:
 
         config = utils.read_config_file(config_file)
 
-        self.base_path = utils.find_path(config, 'base_dir')
-        self.output_path = utils.find_path(config, 'output_dir')
+        self.base_path = utils.find_path(config, Constants.CONFIG_BASE_DIR)
+        self.output_path = utils.find_path(config, Constants.CONFIG_OUTPUT_DIR)
 
-        self.target_name =  utils.find_property(config, 'target_name')
+        self.target_name =  utils.find_property(config, Constants.CONFIG_TARGET_NAME)
         self.config = config
         self.version_dir = None
         self.meta_history = []
@@ -120,14 +120,14 @@ class Processor:
             self.logger = utils.Logger()
 
         self.inputs = []
-        inputs = utils.find_property(config, 'inputs')
+        inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
         self.logger.info('found {} inputs'.format(len(inputs)))
         if inputs:
             for input in inputs:
-                input_path = utils.find_path(input, 'dir')
+                input_path = utils.find_path(input, Constants.CONFIG_DIR)
                 type = utils.find_property(input, Constants.CONFIG_TYPE)
                 if type == Constants.CONFIG_TYPE_MODEL_BUILDING:
-                    soakdb_path = utils.find_path(input, 'soakdb', default=Constants.DEFAULT_SOAKDB_PATH)
+                    soakdb_path = utils.find_path(input, Constants.CONFIG_SOAKDB, default=Constants.DEFAULT_SOAKDB_PATH)
                     panddas_csvs = utils.find_property(input, Constants.META_BINDING_EVENT)
                     if panddas_csvs:
                         panddas_paths = [Path(p) for p in panddas_csvs]
@@ -196,10 +196,10 @@ class Processor:
         crystals = {}
         input_dirs = []
         meta = {
-            'run_on': str(datetime.datetime.now()),
-            'input_dirs': input_dirs,
-            'output_dir': str(self.output_path),
-            'crystals': crystals}
+            Constants.META_RUN_ON: str(datetime.datetime.now()),
+            Constants.META_INPUT_DIRS: input_dirs,
+            Constants.CONFIG_OUTPUT_DIR: str(self.output_path),
+            Constants.META_XTALS: crystals}
 
         for input in self.inputs:
             input_dirs.append(str(input.get_input_dir_path()))
@@ -221,9 +221,13 @@ class Processor:
         df = dbreader.filter_dbmeta(dbfile)
         count = 0
         processed = 0
+        num_pdb_files = 0
+        num_mtz_files = 0
+        num_cif_files = 0
+
         for index, row in df.iterrows():
             count += 1
-            xtal_name = row['CrystalName']
+            xtal_name = row[Constants.SOAKDB_XTAL_NAME]
             xtal_dir = generate_xtal_dir(input.input_dir_path, xtal_name)
             # print('xtal_dir:', xtal_dir)
             if not xtal_name:
@@ -233,80 +237,80 @@ class Processor:
                 # self.logger.info('Processing crystal {} {}'.format(count, xtal_name))
                 missing_files = 0
                 expanded_files = []
-                colname = 'RefinementPDB_latest'
+                colname = Constants.SOAKDB_COL_PDB
                 file = row[colname]
                 # RefinementPDB_latest file names are specified as absolute file names, but need to be handled as
                 # relative to the base_path
-                if file:
+                if not file:
+                    expanded_files.append(None)
+                    self._log_warning('PDB entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
+                else:
                     # print('handling', colname, file)
                     inputpath = utils.make_path_relative(Path(file))
                     full_inputpath = self.base_path / inputpath
                     # print('generated', full_inputpath)
                     ok = full_inputpath.exists()
                     if ok:
+                        num_pdb_files += 1
                         expanded_files.append(inputpath)
                     else:
                         expanded_files.append(None)
                         missing_files += 1
-                        self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
-                else:
-                    expanded_files.append(None)
-                    self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
+                        self._log_warning('PDB file for {} not found: {}'.format(xtal_name, full_inputpath))
 
-                colname = 'RefinementMTZ_latest'
-                file = row[colname]
-                # RefinementMTZ_latest file names are specified as absolute file names, but need to be handled as
-                # relative to the base_path
-                if file:
-                    # print('handling', colname, file)
-                    inputpath = utils.make_path_relative(Path(file))
-                    full_inputpath = self.base_path / inputpath
-                    # print('generated', full_inputpath)
-                    ok = full_inputpath.exists()
-                    if ok:
-                        expanded_files.append(inputpath)
+                    # if we have a PDB file then continue to look for the others
+                    colname = Constants.SOAKDB_COL_MTZ
+                    file = row[colname]
+                    # RefinementMTZ_latest file names are specified as absolute file names, but need to be handled as
+                    # relative to the base_path
+                    if file:
+                        inputpath = utils.make_path_relative(Path(file))
+                        full_inputpath = self.base_path / inputpath
+                        # print('generated', full_inputpath)
+                        ok = full_inputpath.exists()
+                        if ok:
+                            num_mtz_files += 1
+                            expanded_files.append(inputpath)
+                        else:
+                            expanded_files.append(None)
+                            missing_files += 1
+                            self._log_warning('MTZ file for {} not found: {}'.format(xtal_name, full_inputpath))
                     else:
                         expanded_files.append(None)
-                        missing_files += 1
-                        self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
-                else:
-                    expanded_files.append(None)
-                    self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
+                        self._log_warning('MTZ entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
 
-                colname = 'RefinementCIF'
-                file = row[colname]
-                # RefinementCIF file names are relative to the xtal_dir
-                if file:
-                    print('handling', colname, file)
-                    p = Path(file)
-                    if p.is_absolute():
-                        inputpath = p.relative_to('/')
-                    else:
-                        inputpath = xtal_dir / file
-                    full_inputpath = self.base_path / inputpath
-                    # print('generated', full_inputpath)
-                    ok = full_inputpath.exists()
-                    if ok:
-                        expanded_files.append(inputpath)
+                    colname = Constants.SOAKDB_COL_CIF
+                    file = row[colname]
+                    # RefinementCIF file names are relative to the xtal_dir
+                    if file:
+                        p = Path(file)
+                        if p.is_absolute():
+                            inputpath = p.relative_to('/')
+                        else:
+                            inputpath = xtal_dir / file
+                        full_inputpath = self.base_path / inputpath
+                        # print('generated', full_inputpath)
+                        ok = full_inputpath.exists()
+                        if ok:
+                            num_cif_files += 1
+                            expanded_files.append(inputpath)
+                        else:
+                            expanded_files.append(None)
+                            missing_files += 1
+                            self._log_warning('CIF file for {} not found: {}'.format(xtal_name, full_inputpath))
                     else:
                         expanded_files.append(None)
-                        missing_files += 1
-                        self._log_warning('File {} for {} not found: {}'.format(colname, xtal_name, full_inputpath))
-                else:
-                    expanded_files.append(None)
-                    self._log_warning('Entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
+                        self._log_warning('CIF entry {} for {} not defined in SoakDB'.format(colname, xtal_name))
 
-                if not expanded_files[0]:
-                    self._log_warning('{} files for {} missing. Will not process'.format(missing_files, xtal_name))
-                else:
                     processed += 1
                     if xtal_name in crystals.keys():
-                        self._log_warning("Crystal {} already exists, it's data will be overriden".format(xtal_name))
+                        self._log_warning(
+                            "Crystal {} already exists, it's data will be overriden".format(xtal_name))
 
                     data = {Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MODEL_BUILDING}
                     self.logger.info('adding crystal (model_building)', xtal_name)
                     crystals[xtal_name] = data
-                    last_updated_date = row['LastUpdatedDate']
+                    last_updated_date = row[Constants.SOAKDB_COL_LAST_UPDATED]
                     if last_updated_date:
                         dt_str = last_updated_date.strftime(utils._DATETIME_FORMAT)
                         data[Constants.META_LAST_UPDATED] = dt_str
@@ -318,8 +322,14 @@ class Processor:
                     data[Constants.META_XTAL_FILES] = f_data
 
         self.logger.info('Validator handled {} rows from database, {} were valid'.format(count, processed))
+        if num_mtz_files < num_pdb_files:
+            self.logger.warn('{} PDB files were found, but only {} had corresponding MTZ files'.format(num_pdb_files, num_mtz_files))
+        if num_cif_files < num_pdb_files:
+            self.logger.warn('{} PDB files were found, but only {} had corresponding CIF files'.format(num_pdb_files, num_cif_files))
 
     def _validate_manual_input(self, input, crystals):
+        num_pdb_files = 0
+        num_mtz_files = 0
         for child in (self.base_path / input.input_dir_path).iterdir():
             pdb = None
             mtz = None
@@ -331,12 +341,17 @@ class Processor:
                         mtz = file
                 if pdb:
                     self.logger.info('adding crystal (manual)', child.name)
+                    num_pdb_files += 1
                     data = { Constants.META_XTAL_PDB: pdb.relative_to(self.base_path) }
                     if mtz:
                         data[Constants.META_XTAL_MTZ] = mtz.relative_to(self.base_path)
+                        num_mtz_files += 1
                     crystals[child.name] = {
                         Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MANUAL,
                         Constants.META_XTAL_FILES: data }
+
+        if num_mtz_files < num_pdb_files:
+            self.logger.warn('{} PDB files were found, but only {} had corresponding MTZ files'.format(num_pdb_files, num_mtz_files))
 
     def read_versions(self):
         # find out which version dirs exist

@@ -30,14 +30,22 @@ class Constants:
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4",
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4"
     ]
+    XTALFORMS_FILENAME = 'xtalforms.yaml'
     METADATA_FILENAME = 'metadata.yaml'
     VERSION_DIR_PREFIX = 'upload_'
     DEFAULT_SOAKDB_PATH = 'processing/database/soakDBDataFile.sqlite'
     DEFAULT_MODEL_BUILDING_DIR = 'processing/analysis/model_building'
+    CONFIG_INPUTS = 'inputs'
     CONFIG_TYPE = 'type'
+    CONFIG_DIR = 'dir'
+    CONFIG_SOAKDB = 'soakdb'
     CONFIG_TYPE_MODEL_BUILDING = 'model_building'
     CONFIG_TYPE_MANUAL = 'manual'
-    META_OUTPUT_DIR = 'output_dir'
+    CONFIG_BASE_DIR = 'base_dir'
+    CONFIG_OUTPUT_DIR = 'output_dir'
+    CONFIG_TARGET_NAME = 'target_name'
+    META_RUN_ON = 'run_on'
+    META_INPUT_DIRS = 'input_dirs'
     META_LAST_UPDATED = 'last_updated'
     META_XTALS = 'crystals'
     META_FILE = 'file'
@@ -57,6 +65,19 @@ class Constants:
     META_AIGNED_ARTEFACTS = 'artefacts'
     META_AIGNED_EVENT_MAP = 'event_map'
     META_AIGNED_X_MAP = 'x_map'
+    META_CONFORMER_SITES = 'conformer_sites'
+    META_CONFORMER_SITE_NAME = 'name'
+    META_CONFORMER_SITE_REFERENCE_LIG = 'lig_ref'
+    META_CONFORMER_SITE_RESIDUES = 'residues'
+    META_CONFORMER_SITE_MEMBERS = 'members'
+    META_CANONICAL_SITES = 'canon_sites'
+    META_CANONICAL_SITE_REF_SUBSITE = 'canon_site_ref_site'
+    META_CANONICAL_SITE_CONFORMER_SITES = 'canon_site_conf_sites'
+    SOAKDB_XTAL_NAME = 'CrystalName'
+    SOAKDB_COL_PDB = 'RefinementPDB_latest'
+    SOAKDB_COL_MTZ = 'RefinementMTZ_latest'
+    SOAKDB_COL_CIF = 'RefinementCIF'
+    SOAKDB_COL_LAST_UPDATED = 'LastUpdatedDate'
 
 class Logger:
     """

@@ -12,3 +12,4 @@ dependencies:
   - gemmi=0.6.0
   - pip:
     - im-standardize-molecule==0.1.0
+    - git+https://github.com/ConorFWild/ligand_neighbourhood_alignment.git@main

@@ -143,7 +143,7 @@ class Aligner():
         # the datasource json
         # visits = meta[lna_constants.META_INPUT]
         crystals = meta[Constants.META_XTALS]
-        output_path = Path(meta[Constants.META_OUTPUT_DIR])
+        output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
 
         # Assert that
         if len(crystals) == 0:
@@ -208,10 +208,10 @@ class Aligner():
         # xtalforms = XtalForms.read(Path(meta[lna_constants.XTALFORM_JSON]))
         with open(self.xtalforms_file, "r") as f:
             xtalform_dict = yaml.safe_load(f)
-        xtalform_json_path = output_path / Constants.XTALFORM_JSON
-        with open(xtalform_json_path, "w") as f:
+        xtalform_path = output_path / 'xtalforms.json'
+        with open(xtalform_path, "w") as f:
             json.dump(xtalform_dict, f)
-        xtalforms = XtalForms.read(xtalform_json_path)
+        xtalforms = XtalForms.read(xtalform_path)
 
         # Parse the data sources and PanDDAs, matching ligands up to events
         # system_data = _add_data_to_system_data(system_data)
@@ -304,7 +304,7 @@ class Aligner():
                         transforms='',
                         sites='',
                         site_transforms='',
-                        aligned_dir=Constants.META_ALIGNED_FILES,
+                        aligned_dir=str(Constants.META_ALIGNED_FILES),
                         dataset_output={})
 
         # Create the aligned dir
@@ -369,9 +369,9 @@ class Aligner():
                 )
 
                 chain_output.aligned_ligands[residue].aligned_event_maps[site_id] = (
-                        dataset_output_dir
-                        + "/"
-                        + lna_constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
+                        # dataset_output_dir
+                        # + "/"
+                        lna_constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
                     dtag=dtag, chain=chain, residue=residue, site=site_id
                 )
                 )
@@ -502,9 +502,9 @@ class Aligner():
 def main():
     parser = argparse.ArgumentParser(description='aligner')
 
-    parser.add_argument('-v', '--version-dir', required=True, help="Path to version dir")
-    parser.add_argument('-d', '--metadata', default='metadata.yaml', help="Metadata YAML file")
-    parser.add_argument('-x', '--xtalforms', default='xtalforms.json', help="Crystal forms JSON file")
+    parser.add_argument('-d', '--version-dir', required=True, help="Path to version dir")
+    parser.add_argument('-m', '--metadata', default='metadata.yaml', help="Metadata YAML file")
+    parser.add_argument('-x', '--xtalforms', default='xtalforms.yaml', help="Crystal forms JSON file")
     parser.add_argument('-l', '--log-file', help="File to write logs to")
     parser.add_argument('--log-level', type=int, default=0, help="Logging level")
     parser.add_argument('--validate', action='store_true', help='Only perform validation')
