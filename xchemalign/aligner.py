@@ -67,12 +67,13 @@ from ligand_neighbourhood_alignment.generate_sites_from_components import (
     get_sites_from_conformer_sites,
     get_structures,
     get_subsite_transforms,
+    get_xtalform_sites_from_canonical_sites,
 )
 from ligand_neighbourhood_alignment.get_alignability import get_alignability
 from ligand_neighbourhood_alignment.get_graph import get_graph
 from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import get_ligand_neighbourhoods
 from ligand_neighbourhood_alignment.cli import _add_model_building_dir_to_system_data, _add_manual_dir_to_system_data, \
-    _add_pandda_to_system_data, _add_data_to_system_data, _get_assigned_xtalforms, get_xtalform_sites_from_canonical_sites
+    _add_pandda_to_system_data, _add_data_to_system_data, _get_assigned_xtalforms
 
 def try_make(path):
     if not Path(path).exists():
