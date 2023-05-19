@@ -81,11 +81,13 @@ def try_make(path):
 
 class Aligner():
 
-    def __init__(self, version_dir, metadata_file, xtalforms_file, logger=None):
-        self.version_dir = Path(version_dir)
-        self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES
-        self.metadata_file = metadata_file
-        self.xtalforms_file = xtalforms_file
+    def __init__(self, version_dir, metadata, xtalforms, logger=None):
+        self.version_dir = Path(version_dir)                                # e.g. path/to/upload_1
+        self.base_dir = self.version_dir.parent                             # e.g. path/to
+        self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
+        self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES        # e.g. path/to/upload_1/crystallographic_files
+        self.metadata_file = self.version_dir / metadata                    # e.g. path/to/upload_1/metadata.yaml
+        self.xtalforms_file = self.base_dir.parent / xtalforms              # e.g. path/to/xtalforms.yaml
         if logger:
             self.logger = logger
         else:
@@ -104,33 +106,33 @@ class Aligner():
         elif not self.version_dir.is_dir():
             self._log_error('version dir {} is not a directory'.format(self.version_dir))
         else:
-            p = self.version_dir / self.metadata_file
+            p = self.metadata_file
             if not p.exists():
-                self._log_error('metadata_file {} does not exist'.format(p))
+                self._log_error('metadata file {} does not exist'.format(p))
             if not p.is_file():
-                self._log_error('metadata_file {} is not a file'.format(p))
+                self._log_error('metadata file {} is not a file'.format(p))
 
-        p = Path(self.xtalforms_file)
-        if not p.exists():
-            self._log_error('xtalforms_file {} does not exist'.format(p))
-        elif not p.is_file():
-            self._log_error('xtalforms_file {} is not a file'.format(p))
+            p = Path(self.xtalforms_file)
+            if not p.exists():
+                self._log_error('xtalforms file {} does not exist'.format(p))
+            elif not p.is_file():
+                self._log_error('xtalforms file {} is not a file'.format(p))
 
         return len(self.errors), len(self.warnings)
 
     def run(self):
         self.logger.info('Running aligner...')
 
-        meta_path = self.version_dir / self.metadata_file
-        meta = utils.read_config_file(str(meta_path))
+        meta = utils.read_config_file(str(self.metadata_file))
 
         if not self.aligned_dir.is_dir():
             self.aligned_dir.mkdir()
             self.logger.info('created aligned directory', self.aligned_dir)
 
         new_meta = self._perform_alignments(meta)
-        # TODO - should aligned metadata be written to its own file?
-        with open(meta_path, 'w') as stream:
+
+        # TODO - should aligned metadata_file be written to its own file?
+        with open(self.version_dir / 'meta_aligned.yaml', 'w') as stream:
             yaml.dump(new_meta, stream, sort_keys=False)
 
     def _perform_alignments(self, meta):
@@ -147,10 +149,12 @@ class Aligner():
 
         # Assert that
         if len(crystals) == 0:
-            self.logger.error(f"Did not find any crystals in metadata. Exiting.")
+            self.logger.error(f"Did not find any crystals in metadata file. Exiting.")
             raise Exception
 
         dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
+        # paths to files will be defined like this: upload_1/crystallographic_files/8dz1/8dz1.pdb
+        # this is relative to the output_path variable that is defined from the metadata_file.yaml
         datasets = [
             Dataset(
                 dtag=dtag,
@@ -185,11 +189,11 @@ class Aligner():
             in crystals.items()
         ]
         if len(dataset_ids) != len(datasets):
-            self.logger.error(f"Number of dataset ids found in metadata not equal to number of datasets. Exiting.")
+            self.logger.error(f"Number of dataset ids found in metadata_file not equal to number of datasets. Exiting.")
             raise Exception
 
         if (len(datasets) == 0) or (len(datasets) == 0):
-            self.logger.error(f"Did not find any datasets in metadata. Exiting.")
+            self.logger.error(f"Did not find any datasets in metadata_file. Exiting.")
             raise Exception
 
         self.logger.info(f"Ligand binding events in datasets:")
@@ -208,7 +212,7 @@ class Aligner():
         # xtalforms = XtalForms.read(Path(meta[lna_constants.XTALFORM_JSON]))
         with open(self.xtalforms_file, "r") as f:
             xtalform_dict = yaml.safe_load(f)
-        xtalform_path = output_path / 'xtalforms.json'
+        xtalform_path = self.version_dir / 'xtalforms.json'
         with open(xtalform_path, "w") as f:
             json.dump(xtalform_dict, f)
         xtalforms = XtalForms.read(xtalform_path)
@@ -216,7 +220,7 @@ class Aligner():
         # Parse the data sources and PanDDAs, matching ligands up to events
         # system_data = _add_data_to_system_data(system_data)
 
-        # Assign each dataset to the clsoest xtalform and fail if this
+        # Assign each dataset to the closest xtalform and fail if this
         # is not possible
         assigned_xtalforms = _get_assigned_xtalforms(system_data, xtalforms)
         self.logger.info(f"Assigned xtalforms are:")
@@ -304,7 +308,7 @@ class Aligner():
                         transforms='',
                         sites='',
                         site_transforms='',
-                        aligned_dir=str(Constants.META_ALIGNED_FILES),
+                        aligned_dir=str(self.aligned_dir),
                         dataset_output={})
 
         # Create the aligned dir
@@ -346,31 +350,27 @@ class Aligner():
                     continue
 
                 chain_output.aligned_ligands[residue].aligned_structures[site_id] = (
-                        dataset_output_dir
-                        + "/"
-                        + lna_constants.ALIGNED_STRUCTURE_TEMPLATE.format(
+                        Constants.META_ALIGNED_FILES + '/' + dtag + '/' +
+                        lna_constants.ALIGNED_STRUCTURE_TEMPLATE.format(
                     dtag=dtag, chain=chain, residue=residue, site=site_id
                 )
                 )
 
                 chain_output.aligned_ligands[residue].aligned_artefacts[site_id] = (
-                        dataset_output_dir
-                        + "/"
-                        + lna_constants.ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE.format(
+                        Constants.META_ALIGNED_FILES + '/' + dtag + '/' +
+                        lna_constants.ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE.format(
                     dtag=dtag, chain=chain, residue=residue, site=site_id
                 )
                 )
 
                 chain_output.aligned_ligands[residue].aligned_xmaps[site_id] = (
-                        dataset_output_dir
-                        + "/"
-                        + lna_constants.ALIGNED_XMAP_TEMPLATE.format(dtag=dtag, chain=chain, residue=residue,
+                        Constants.META_ALIGNED_FILES + '/' + dtag + '/' +
+                        lna_constants.ALIGNED_XMAP_TEMPLATE.format(dtag=dtag, chain=chain, residue=residue,
                                                                      site=site_id)
                 )
 
                 chain_output.aligned_ligands[residue].aligned_event_maps[site_id] = (
-                        # dataset_output_dir
-                        # + "/"
+                        Constants.META_ALIGNED_FILES + '/' + dtag + '/' +
                         lna_constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
                     dtag=dtag, chain=chain, residue=residue, site=site_id
                 )
@@ -406,7 +406,7 @@ class Aligner():
             output,
         )
 
-        # Update the metadata with aligned file locations and site information
+        # Update the metadata_file with aligned file locations and site information
         new_meta = {}
 
         # Add the conformer sites
@@ -475,7 +475,7 @@ class Aligner():
             crystal_output = new_meta[dtag] = {}
 
             # Otherwise iterate the output data structure, adding the aligned structure,
-            # artefacts, xmaps and event maps to the metadata
+            # artefacts, xmaps and event maps to the metadata_file
             assigned_xtalform = assigned_xtalforms.get_xtalform_id(dtag)
             crystal_output[Constants.META_ASSIGNED_XTALFORM] = assigned_xtalform
 
@@ -503,8 +503,8 @@ def main():
     parser = argparse.ArgumentParser(description='aligner')
 
     parser.add_argument('-d', '--version-dir', required=True, help="Path to version dir")
-    parser.add_argument('-m', '--metadata', default='metadata.yaml', help="Metadata YAML file")
-    parser.add_argument('-x', '--xtalforms', default='xtalforms.yaml', help="Crystal forms JSON file")
+    parser.add_argument('-m', '--metadata_file', default=Constants.METADATA_FILENAME, help="Metadata YAML file")
+    parser.add_argument('-x', '--xtalforms', default=Constants.XTALFORMS_FILENAME, help="Crystal forms JSON file")
     parser.add_argument('-l', '--log-file', help="File to write logs to")
     parser.add_argument('--log-level', type=int, default=0, help="Logging level")
     parser.add_argument('--validate', action='store_true', help='Only perform validation')
@@ -514,7 +514,7 @@ def main():
 
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
 
-    a = Aligner(args.version_dir, args.metadata, args.xtalforms, logger=logger)
+    a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, logger=logger)
     num_errors, num_warnings = a.validate()
 
     if not args.validate:
