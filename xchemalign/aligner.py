@@ -416,9 +416,9 @@ class Aligner():
         print(xtalform_sites)
 
         # Add the conformer sites
-        new_meta[Constants.META_CONFORMER_SITES] = {}
+        conformer_sites_meta = new_meta[Constants.META_CONFORMER_SITES] = {}
         for conformer_site_id, conformer_site in conformer_sites.conformer_sites.items():
-            new_meta[conformer_site_id] = {
+            conformer_sites_meta[conformer_site_id] = {
                 Constants.META_CONFORMER_SITE_NAME: None,
                 Constants.META_CONFORMER_SITE_REFERENCE_LIG: [
                     conformer_site.reference_ligand_id.dtag,
@@ -439,9 +439,9 @@ class Aligner():
             }
 
         # Add the canonical sites
-        new_meta[Constants.META_CANONICAL_SITES] = {}
+        canonical_sites_meta = new_meta[Constants.META_CANONICAL_SITES] = {}
         for canonical_site_id, canonical_site in zip(canonical_sites.site_ids, canonical_sites.sites):
-            new_meta[canonical_site_id]= {
+            canonical_sites_meta[canonical_site_id]= {
                 Constants.META_CANONICAL_SITE_REF_SUBSITE: canonical_site.reference_subsite_id,
                 Constants.META_CANONICAL_SITE_CONFORMER_SITES: canonical_site.subsite_ids,
                 Constants.META_CANONICAL_SITE_RESIDUES: [
@@ -457,9 +457,9 @@ class Aligner():
             }
 
         # Add the xtalform sites - note the chain is that of the original crystal structure, NOT the assembly
-        new_meta[Constants.META_XTALFORM_SITES] = {}
+        xtalform_sites_meta = new_meta[Constants.META_XTALFORM_SITES] = {}
         for xtalform_site_id, xtalform_site in xtalform_sites.xtalform_sites.items():
-            new_meta[xtalform_site_id] = {
+            xtalform_sites_meta[xtalform_site_id] = {
                 Constants.META_XTALFORM_SITE_XTALFORM_ID: xtalform_site.xtalform_id,
                 Constants.META_XTALFORM_SITE_CANONICAL_SITE_ID: xtalform_site.site_id,
                 Constants.META_XTALFORM_SITE_LIGAND_CHAIN: xtalform_site.crystallographic_chain,
