@@ -246,3 +246,76 @@ Putting these all together...
             "chain": "B"
             "triplet": "x,y,z"
 ```
+
+```yaml
+"xtalforms": 
+  "p21_two_monomers": 
+    "id": 0  
+    "reference": 
+      "dtag": "dx68-x1427"
+    "assemblies": 
+      "monomer_A": 
+        "id": 0  
+        "reference_assembly": 0  # Ignore
+        "generators": 
+          "0": 
+            "id": 0  
+            "reference_chain": "A"  
+            "chain": "A" 
+            "triplet": "x,y,z"  
+      "monomer_B": 
+        "id": 1
+        "reference_assembly": 0  # Ignore
+        "generators": 
+          "B": 
+            "id": 0  
+            "reference_chain": "B"  
+            "chain": "B" 
+            "triplet": "x,y,z"  
+  ```
+
+```yaml
+"xtalforms": 
+  "p21_two_monomers": 
+    "id": 0  
+    "reference": 
+      "dtag": "dx68-x1427"
+    "assemblies": 
+      "Dimer": 
+        "id": 0  
+        "reference_assembly": 0  # Ignore
+        "generators": 
+          "0": 
+            "id": 0  
+            "reference_chain": "A"  
+            "chain": "A" 
+            "triplet": "x,y,z"  
+          "B": 
+            "id": 0  
+            "reference_chain": "B"  
+            "chain": "B" 
+            "triplet": "x,y,z"  
+  ```
+
+```yaml
+"xtalforms": 
+  "p21_two_monomers": 
+    "id": 0  
+    "reference": 
+      "dtag": "dx68-x1427"
+    "assemblies": 
+      "Dimer": 
+        "id": 0  
+        "reference_assembly": 0  # Ignore
+        "generators": 
+          "0": 
+            "id": 0  
+            "reference_chain": "A"  
+            "chain": "A" 
+            "triplet": "x,y,z"  
+          "B": 
+            "id": 0  
+            "reference_chain": "B"  
+            "chain": "A" 
+            "triplet": "-x,y,-z"  
+  ```

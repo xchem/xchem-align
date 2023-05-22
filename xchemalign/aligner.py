@@ -449,7 +449,6 @@ class Aligner():
                     for lid
                     in canonical_site.members
                 ],
-
             }
 
         # Add the xtalform sites - note the chain is that of the original crystal structure, NOT the assembly
