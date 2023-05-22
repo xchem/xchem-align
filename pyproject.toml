@@ -22,7 +22,7 @@ dependencies = [
     'pyyaml == 6.0',
     'gemmi == 0.6.0',
     'im-standardize-molecule == 0.1.0',
-    'git+https://github.com/ConorFWild/ligand_neighbourhood_alignment.git@main'
+    'ligand_neighbourhood_alignment@git+https://github.com/ConorFWild/ligand_neighbourhood_alignment.git@main'
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
