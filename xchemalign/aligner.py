@@ -133,7 +133,7 @@ class Aligner():
 
         # TODO - should aligned metadata_file be written to its own file?
         with open(self.version_dir / 'meta_aligned.yaml', 'w') as stream:
-            yaml.dump(new_meta, stream, sort_keys=False)
+            yaml.dump(new_meta, stream, sort_keys=False, default_flow_style=None)
 
     def _perform_alignments(self, meta):
         self.logger.info('Performing alignments')
