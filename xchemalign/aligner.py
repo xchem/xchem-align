@@ -426,22 +426,19 @@ class Aligner():
                     Constants.META_CHAIN: conformer_site.reference_ligand_id.chain,
                     Constants.META_RESIDUE: conformer_site.reference_ligand_id.residue,
                 },
-                Constants.META_CONFORMER_SITE_RESIDUES: [
-                    {
-                        Constants.META_CHAIN: res.chain,
-                        Constants.META_RESIDUE: res.residue}
-                    for res
-                    in conformer_site.residues
-                ],
-                Constants.META_CONFORMER_SITE_MEMBERS: [
-                    {Constants.META_DTAG: lid.dtag,
-                     Constants.META_CHAIN: lid.chain,
-                     Constants.META_RESIDUE: lid.residue
+                Constants.META_CONFORMER_SITE_RESIDUES: {
+
+                        Constants.META_CHAIN: [res.chain for res in conformer_site.residues],
+                        Constants.META_RESIDUE: [res.residue for res in conformer_site.residues]
+
+                    },
+                Constants.META_CONFORMER_SITE_MEMBERS: {
+                        Constants.META_DTAG: [lid.dtag for lid in conformer_site.members],
+                     Constants.META_CHAIN: [lid.chain for lid in conformer_site.members],
+                     Constants.META_RESIDUE: [lid.residue for lid in conformer_site.members]
                      }
 
-                    for lid
-                    in conformer_site.members
-                ],
+
 
             }
 
@@ -451,20 +448,17 @@ class Aligner():
             canonical_sites_meta[canonical_site_id]= {
                 Constants.META_CANONICAL_SITE_REF_SUBSITE: canonical_site.reference_subsite_id,
                 Constants.META_CANONICAL_SITE_CONFORMER_SITES: canonical_site.subsite_ids,
-                Constants.META_CANONICAL_SITE_RESIDUES: [
-                    {
-                        Constants.META_CHAIN: res.chain,
-                        Constants.META_RESIDUE: res.residue}
-                    for res
-                    in canonical_site.residues
-                ],
-                Constants.META_CANONICAL_SITE_MEMBERS: [
-                    {Constants.META_DTAG: lid.dtag,
-                     Constants.META_CHAIN: lid.chain,
-                     Constants.META_RESIDUE: lid.residue
-                     }                    for lid
-                    in canonical_site.members
-                ],
+                Constants.META_CANONICAL_SITE_RESIDUES: {
+
+                        Constants.META_CHAIN: [res.chain for res in canonical_site.residues],
+                        Constants.META_RESIDUE: [res.residue for res in canonical_site.residues]
+
+                    },
+                Constants.META_CANONICAL_SITE_MEMBERS: {
+                        Constants.META_DTAG: [lid.dtag for lid in canonical_site.members],
+                     Constants.META_CHAIN: [lid.chain for lid in canonical_site.members],
+                     Constants.META_RESIDUE: [lid.residue for lid in canonical_site.members]
+                     }
             }
 
         # Add the xtalform sites - note the chain is that of the original crystal structure, NOT the assembly
@@ -474,14 +468,11 @@ class Aligner():
                 Constants.META_XTALFORM_SITE_XTALFORM_ID: xtalform_site.xtalform_id,
                 Constants.META_XTALFORM_SITE_CANONICAL_SITE_ID: xtalform_site.site_id,
                 Constants.META_XTALFORM_SITE_LIGAND_CHAIN: xtalform_site.crystallographic_chain,
-                Constants.META_XTALFORM_SITE_MEMBERS: [
-                    {Constants.META_DTAG: lid.dtag,
-                     Constants.META_CHAIN: lid.chain,
-                     Constants.META_RESIDUE: lid.residue
+                Constants.META_XTALFORM_SITE_MEMBERS: {
+                        Constants.META_DTAG: [lid.dtag for lid in xtalform_site.members],
+                     Constants.META_CHAIN: [lid.chain for lid in xtalform_site.members],
+                     Constants.META_RESIDUE: [lid.residue for lid in xtalform_site.members]
                      }
-                    for lid
-                    in xtalform_site.members
-                ]
             }
 
         # Add the output aligned files
