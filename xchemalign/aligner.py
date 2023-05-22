@@ -409,10 +409,15 @@ class Aligner():
         # Update the metadata_file with aligned file locations and site information
         new_meta = {}
 
+        print(conformer_sites)
+        print("##############################")
+        print(canonical_sites)
+        print("##############################")
+        print(xtalform_sites)
+
         # Add the conformer sites
         new_meta[Constants.META_CONFORMER_SITES] = {}
         for conformer_site_id, conformer_site in conformer_sites.conformer_sites.items():
-            print(conformer_site.reference_ligand_id)
             new_meta[conformer_site_id] = {
                 Constants.META_CONFORMER_SITE_NAME: None,
                 Constants.META_CONFORMER_SITE_REFERENCE_LIG: [
