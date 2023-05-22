@@ -438,8 +438,6 @@ class Aligner():
                      Constants.META_RESIDUE: [lid.residue for lid in conformer_site.members]
                      }
 
-
-
             }
 
         # Add the canonical sites
