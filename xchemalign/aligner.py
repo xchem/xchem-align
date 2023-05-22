@@ -433,7 +433,11 @@ class Aligner():
                     in conformer_site.residues
                 ],
                 Constants.META_CONFORMER_SITE_MEMBERS: [
-                    [lid.dtag, lid.chain, lid.residue]
+                    {Constants.META_DTAG: lid.dtag,
+                     Constants.META_CHAIN: lid.chain,
+                     Constants.META_RESIDUE: lid.residue
+                     }
+
                     for lid
                     in conformer_site.members
                 ],
@@ -454,8 +458,10 @@ class Aligner():
                     in canonical_site.residues
                 ],
                 Constants.META_CANONICAL_SITE_MEMBERS: [
-                    [lid.dtag, lid.chain, lid.residue]
-                    for lid
+                    {Constants.META_DTAG: lid.dtag,
+                     Constants.META_CHAIN: lid.chain,
+                     Constants.META_RESIDUE: lid.residue
+                     }                    for lid
                     in canonical_site.members
                 ],
             }
@@ -468,7 +474,10 @@ class Aligner():
                 Constants.META_XTALFORM_SITE_CANONICAL_SITE_ID: xtalform_site.site_id,
                 Constants.META_XTALFORM_SITE_LIGAND_CHAIN: xtalform_site.crystallographic_chain,
                 Constants.META_XTALFORM_SITE_MEMBERS: [
-                    [lid.dtag, lid.chain, lid.residue]
+                    {Constants.META_DTAG: lid.dtag,
+                     Constants.META_CHAIN: lid.chain,
+                     Constants.META_RESIDUE: lid.residue
+                     }
                     for lid
                     in xtalform_site.members
                 ]

@@ -83,6 +83,7 @@ class Constants:
     META_ASSIGNED_XTALFORM = 'assigned_xtalform'
     META_CHAIN = "chain"
     META_RESIDUE = "residue"
+    META_DTAG = "dtag"
     SOAKDB_XTAL_NAME = 'CrystalName'
     SOAKDB_COL_PDB = 'RefinementPDB_latest'
     SOAKDB_COL_MTZ = 'RefinementMTZ_latest'
