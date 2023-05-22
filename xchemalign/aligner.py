@@ -427,8 +427,8 @@ class Aligner():
                 ],
                 Constants.META_CONFORMER_SITE_RESIDUES: [
                     {
-                        "chain": res.chain,
-                     "residue": res.residue}
+                        Constants.META_CHAIN: res.chain,
+                        Constants.META_RESIDUE: res.residue}
                     for res
                     in conformer_site.residues
                 ],
@@ -448,8 +448,8 @@ class Aligner():
                 Constants.META_CANONICAL_SITE_CONFORMER_SITES: canonical_site.subsite_ids,
                 Constants.META_CANONICAL_SITE_RESIDUES: [
                     {
-                        "chain": res.chain,
-                        "residue": res.residue}
+                        Constants.META_CHAIN: res.chain,
+                        Constants.META_RESIDUE: res.residue}
                     for res
                     in canonical_site.residues
                 ],
