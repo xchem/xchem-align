@@ -411,7 +411,8 @@ class Aligner():
 
         # Add the conformer sites
         new_meta[Constants.META_CONFORMER_SITES] = {}
-        for conformer_site_id, conformer_site in conformer_sites:
+        for conformer_site_id, conformer_site in conformer_sites.conformer_sites.items():
+            print(conformer_site.reference_ligand_id)
             new_meta[conformer_site_id] = {
                 Constants.META_CONFORMER_SITE_NAME: None,
                 Constants.META_CONFORMER_SITE_REFERENCE_LIG: [
@@ -434,7 +435,7 @@ class Aligner():
 
         # Add the canonical sites
         new_meta[Constants.META_CANONICAL_SITES] = {}
-        for canonical_site_id, canonical_site in canonical_sites:
+        for canonical_site_id, canonical_site in zip(canonical_sites.site_ids, canonical_sites.sites):
             new_meta[canonical_site_id]= {
                 Constants.META_CANONICAL_SITE_REF_SUBSITE: canonical_site.reference_subsite_id,
                 Constants.META_CANONICAL_SITE_CONFORMER_SITES: canonical_site.subsite_ids,
