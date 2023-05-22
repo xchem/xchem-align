@@ -420,11 +420,12 @@ class Aligner():
         for conformer_site_id, conformer_site in conformer_sites.conformer_sites.items():
             conformer_sites_meta[conformer_site_id] = {
                 Constants.META_CONFORMER_SITE_NAME: None,
-                Constants.META_CONFORMER_SITE_REFERENCE_LIG: [
-                    conformer_site.reference_ligand_id.dtag,
-                    conformer_site.reference_ligand_id.chain,
-                    conformer_site.reference_ligand_id.residue,
-                ],
+                Constants.META_CONFORMER_SITE_REFERENCE_LIG: {
+
+                    Constants.META_DTAG: conformer_site.reference_ligand_id.dtag,
+                    Constants.META_CHAIN: conformer_site.reference_ligand_id.chain,
+                    Constants.META_RESIDUE: conformer_site.reference_ligand_id.residue,
+                },
                 Constants.META_CONFORMER_SITE_RESIDUES: [
                     {
                         Constants.META_CHAIN: res.chain,
