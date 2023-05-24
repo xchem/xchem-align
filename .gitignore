@@ -2,6 +2,6 @@
 data
 *.log
 **/__pycache__
-config.yaml
+./config.yaml
 test-data/outputs/xtalforms.json
 test-data/outputs/upload_1/*

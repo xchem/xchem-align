@@ -132,7 +132,7 @@ class Aligner():
         new_meta = self._perform_alignments(meta)
 
         # TODO - should aligned metadata_file be written to its own file?
-        with open(self.version_dir / 'meta_aligned.yaml', 'w') as stream:
+        with open(self.version_dir / Constants.METADATA_ALIGN_FILENAME, 'w') as stream:
             yaml.dump(new_meta, stream, sort_keys=False, default_flow_style=None)
 
     def _perform_alignments(self, meta):
@@ -511,7 +511,7 @@ def main():
     parser = argparse.ArgumentParser(description='aligner')
 
     parser.add_argument('-d', '--version-dir', required=True, help="Path to version dir")
-    parser.add_argument('-m', '--metadata_file', default=Constants.METADATA_FILENAME, help="Metadata YAML file")
+    parser.add_argument('-m', '--metadata_file', default=Constants.METADATA_XTAL_FILENAME, help="Metadata YAML file")
     parser.add_argument('-x', '--xtalforms', default=Constants.XTALFORMS_FILENAME, help="Crystal forms JSON file")
     parser.add_argument('-l', '--log-file', help="File to write logs to")
     parser.add_argument('--log-level', type=int, default=0, help="Logging level")

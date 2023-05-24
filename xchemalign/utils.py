@@ -31,7 +31,8 @@ class Constants:
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4"
     ]
     XTALFORMS_FILENAME = 'xtalforms.yaml'
-    METADATA_FILENAME = 'metadata.yaml'
+    METADATA_XTAL_FILENAME = 'meta_collator.yaml'
+    METADATA_ALIGN_FILENAME = 'meta_aligner.yaml'
     VERSION_DIR_PREFIX = 'upload_'
     DEFAULT_SOAKDB_PATH = 'processing/database/soakDBDataFile.sqlite'
     DEFAULT_MODEL_BUILDING_DIR = 'processing/analysis/model_building'
@@ -47,6 +48,12 @@ class Constants:
     META_RUN_ON = 'run_on'
     META_INPUT_DIRS = 'input_dirs'
     META_LAST_UPDATED = 'last_updated'
+    META_STATUS = 'status'
+    META_STATUS_SUPERSEDES = 'supersedes'
+    META_STATUS_UNCHANGED = 'unchanged'
+    META_STATUS_NEW = 'new'
+    META_STATUS_DEPRECATED = 'deprecated'
+    META_REASON = 'reason'
     META_XTALS = 'crystals'
     META_FILE = 'file'
     META_SHA256 = 'sha256'

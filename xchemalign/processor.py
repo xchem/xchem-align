@@ -390,7 +390,7 @@ class Processor:
 
     def read_metadata(self, version_dir):
         self.logger.info('Reading metadata for version {}'.format(version_dir))
-        meta_file = version_dir / Constants.METADATA_FILENAME
+        meta_file = version_dir / Constants.METADATA_XTAL_FILENAME
 
         meta = utils.read_config_file(meta_file)
         return meta

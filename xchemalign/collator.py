@@ -83,7 +83,7 @@ class Collator(processor.Processor):
         if version > 1:
             for v in range(1, version):
                 self.logger.info('Reading metadata for version {}'.format(v))
-                meta_file = self.output_path / (Constants.VERSION_DIR_PREFIX + str(v)) / Constants.METADATA_FILENAME
+                meta_file = self.output_path / (Constants.VERSION_DIR_PREFIX + str(v)) / Constants.METADATA_XTAL_FILENAME
                 if meta_file.is_file():
                     with open(meta_file, 'r') as stream:
                         meta = yaml.safe_load(stream)
@@ -226,12 +226,8 @@ class Collator(processor.Processor):
         all_xtals = {}
         new_or_updated_xtals = {}
 
-        # handle any user defined deprecations
-        if 'overrides' in self.config and 'deprecations' in self.config['overrides']:
-            deprecations = self.config['overrides']['deprecations']
-        else:
-            deprecations = {}
-        self.logger.info('{} deprecations were defined'.format(len(deprecations)))
+        # get any user defined overrides
+        overrides = self.config.get('overrides', {})
 
         count = 0
         for metad in self.meta_history:
@@ -252,29 +248,32 @@ class Collator(processor.Processor):
             total += 1
             if xtal_name in all_xtals:
                 old_xtal_data = all_xtals[xtal_name]
-                old_date = old_xtal_data['last_updated']
-                new_date = xtal_data['last_updated']
-                if not old_date or not new_date:
-                    self.logger.warn('Dates not defined for {}, must assume xtal is updated {} {}'.format(xtal_name, ))
-                    xtal_data['status'] = 'supersedes'
+                status = self._get_xtal_status(xtal_name, old_xtal_data, xtal_data)
+                xtal_data[Constants.META_STATUS] = status
+                if status != Constants.META_STATUS_UNCHANGED:
                     new_or_updated_xtals[xtal_name] = xtal_data
-                elif utils.to_datetime(new_date) > utils.to_datetime(old_date):
-                    self.logger.info('Xtal {} is updated'.format(xtal_name))
-                    xtal_data['status'] = 'supersedes'
-                    new_or_updated_xtals[xtal_name] = xtal_data
-                else:
-                    # self.logger.info('Xtal {} is unchanged'.format(xtal_name))
-                    xtal_data['status'] = 'unchanged'
             else:
-                xtal_data['status'] = 'new'
+                xtal_data[Constants.META_STATUS] = Constants.META_STATUS_NEW
                 new_or_updated_xtals[xtal_name] = xtal_data
             all_xtals[xtal_name] = xtal_data
 
             # look for any deprecations
-            if xtal_name in deprecations:
-                xtal_data['status'] = 'deprecated'
-                xtal_data['reason'] = deprecations[xtal_name]
-                self.logger.info('Deprecating xtal {}'.format(xtal_name))
+            xtals_overrides = overrides.get(Constants.META_XTALS, {})
+            xtal_override = overrides.get(Constants.META_XTALS, {}).get(xtal_name)
+            if xtal_override:
+                status_override = xtal_override.get(Constants.META_STATUS)
+                if status_override:
+                    status = status_override.get(Constants.META_STATUS)
+                    if status:
+                        xtal_data[Constants.META_STATUS] = status
+                        reason = status_override.get(Constants.META_REASON)
+                        self.logger.info('status for xtal {} is overridden to be {}'.format(xtal_name, status))
+                        if reason:
+                            xtal_data[Constants.META_REASON] = reason
+                        else:
+                            self.logger.warn('status is overridden, but no reason was given')
+                    else:
+                        self.logger.warn('status is declared to be overridden, but no new status was given')
 
         self.logger.info('Metadata {} has {} items'.format(count, total))
         self.logger.info('Munging resulted in {} total xtals, {} are new or updated'.format(
@@ -284,8 +283,51 @@ class Collator(processor.Processor):
         self.new_or_updated_xtals = new_or_updated_xtals
         return all_xtals, new_or_updated_xtals
 
+    def _get_xtal_status(self, xtal_name, old_data, new_data):
+        """
+        Compare status using the SHA256 digest of the PDB file.
+        This should be reliable, but will be subject to saying the entry is updated even if there is a trivial
+        change.
+
+        :param xtal_name:
+        :param old_data:
+        :param new_data:
+        :return:
+        """
+        old_pdb_data = old_data[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB]
+        new_pdb_data = new_data[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB]
+        old_sha256 = old_pdb_data[Constants.META_SHA256]
+        new_sha256 = new_pdb_data[Constants.META_SHA256]
+        if old_sha256 == new_sha256:
+            return Constants.META_STATUS_UNCHANGED
+        else:
+            return Constants.META_STATUS_SUPERSEDES
+
+    def _get_xtal_status_old(self, xtal_name, old_data, new_data):
+        """
+        Compare status using the last_updated property.
+        Even if this can be relied on, it is not present for manual entries.
+
+        :param xtal_name:
+        :param old_data:
+        :param new_data:
+        :return:
+        """
+        old_date = old_data.get(Constants.META_LAST_UPDATED)
+        if old_date:
+            new_date = new_data.get(Constants.META_LAST_UPDATED)
+        if not old_date or not new_date:
+            self.logger.warn('Dates not defined for {}, must assume xtal is updated'.format(xtal_name))
+            return Constants.META_STATUS_SUPERSEDES
+        elif utils.to_datetime(new_date) > utils.to_datetime(old_date):
+            self.logger.info('Xtal {} is updated'.format(xtal_name))
+            return Constants.META_STATUS_SUPERSEDES
+        else:
+            # self.logger.info('Xtal {} is unchanged'.format(xtal_name))
+            return Constants.META_STATUS_UNCHANGED
+
     def _write_metadata(self, meta, all_xtals, new_xtals):
-        f = self.output_path / self.version_dir / Constants.METADATA_FILENAME
+        f = self.output_path / self.version_dir / Constants.METADATA_XTAL_FILENAME
         with open(f, 'w') as stream:
             yaml.dump(meta, stream, sort_keys=False)
         f = self.output_path / self.version_dir / 'all_xtals.yaml'
