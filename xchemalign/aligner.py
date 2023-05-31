@@ -18,6 +18,8 @@ from pathlib import Path
 from . import utils
 from .utils import Constants
 
+import gemmi
+
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
@@ -408,6 +410,47 @@ class Aligner():
 
         # Update the metadata_file with aligned file locations and site information
         new_meta = {}
+
+        # Add the xtalform information
+        meta_xtalforms = {}
+        meta_assemblies = {}
+        for xtalform_id, xtalform in xtalforms.xtalforms.items():
+            xtalform_reference = xtalform.reference
+            reference_structure = gemmi.read_structure(system_data.get_dataset(xtalform_reference).pdb)
+            reference_spacegroup = reference_structure.spacegroup_hm
+            reference_unit_cell = reference_structure.cell
+
+            meta_xtalforms[xtalform_id] = {
+                Constants.META_XTALFORM_REFERENCE: xtalform_reference.dtag,
+                Constants.META_XTALFORM_SPACEGROUP: reference_spacegroup,
+                Constants.META_XTALFORM_CELL: {
+                    "a":reference_unit_cell.a,
+                    "b": reference_unit_cell.b,
+                    "c": reference_unit_cell.c,
+                    "alpha": reference_unit_cell.alpha,
+                    "beta": reference_unit_cell.beta,
+                    "gamma": reference_unit_cell.gamma,
+                },
+            }
+            for assembly_id, assembly in xtalform.assemblies.items():
+
+                assembly_ref_chains = []
+                for generator_id, generator in assembly.generators.items():
+                    ref_chain, chain, triplet = generator.reference_chain, generator.chain, generator.triplet
+                    assembly_ref_chains.append(ref_chain)
+
+                assembly_ref_chains_tup = tuple(assembly_ref_chains)
+
+                # Create an assembly or add one
+                if assembly_ref_chains_tup not in meta_assemblies:
+                    meta_assemblies[assembly_ref_chains_tup] = {
+                        Constants.META_ASSEMBLIES_XTALFORMS: [xtalform_id,]
+                    }
+                else:
+                    meta_assemblies[assembly_ref_chains_tup][Constants.META_ASSEMBLIES_XTALFORMS].append(xtalform_id)
+
+        new_meta[Constants.META_XTALFORMS] = meta_xtalforms
+        new_meta[Constants.META_ASSEMBLIES] = meta_assemblies
 
         print(conformer_sites)
         print("##############################")
