@@ -38,7 +38,8 @@ def expand_file_path(filepath: Path, default='.'):
 
 class Input:
 
-    def __init__(self, base_path: Path, input_dir_path: Path, type: str, soakdb_file_path, panddas_event_file_paths: list[Path]):
+    def __init__(self, base_path: Path, input_dir_path: Path, type: str, soakdb_file_path,
+                 panddas_event_file_paths: list[Path]):
         self.base_path = base_path
         self.input_dir_path = input_dir_path
         self.type = type
@@ -110,7 +111,7 @@ class Processor:
         self.base_path = utils.find_path(config, Constants.CONFIG_BASE_DIR)
         self.output_path = utils.find_path(config, Constants.CONFIG_OUTPUT_DIR)
 
-        self.target_name =  utils.find_property(config, Constants.CONFIG_TARGET_NAME)
+        self.target_name = utils.find_property(config, Constants.CONFIG_TARGET_NAME)
         self.config = config
         self.version_dir = None
         self.meta_history = []
@@ -314,18 +315,31 @@ class Processor:
                     if last_updated_date:
                         dt_str = last_updated_date.strftime(utils._DATETIME_FORMAT)
                         data[Constants.META_LAST_UPDATED] = dt_str
-                    f_data = {Constants.META_XTAL_PDB: expanded_files[0]}
+                    digest = utils.gen_sha256(self.base_path / expanded_files[0])
+                    f_data = {Constants.META_XTAL_PDB: {
+                        Constants.META_FILE: str(expanded_files[0]),
+                        Constants.META_SHA256: digest}}
                     if expanded_files[1]:
-                        f_data[Constants.META_XTAL_MTZ] = expanded_files[1]
+                        digest = utils.gen_sha256(self.base_path / expanded_files[1])
+                        f_data[Constants.META_XTAL_MTZ] = {
+                            Constants.META_FILE: str(expanded_files[1]),
+                            Constants.META_SHA256: digest
+                        }
                     if expanded_files[2]:
-                        f_data[Constants.META_XTAL_CIF] = expanded_files[2]
+                        digest = utils.gen_sha256(self.base_path / expanded_files[2])
+                        f_data[Constants.META_XTAL_CIF] = {
+                            Constants.META_FILE: str(expanded_files[2]),
+                            Constants.META_SHA256: digest
+                        }
                     data[Constants.META_XTAL_FILES] = f_data
 
         self.logger.info('Validator handled {} rows from database, {} were valid'.format(count, processed))
         if num_mtz_files < num_pdb_files:
-            self.logger.warn('{} PDB files were found, but only {} had corresponding MTZ files'.format(num_pdb_files, num_mtz_files))
+            self.logger.warn(
+                '{} PDB files were found, but only {} had corresponding MTZ files'.format(num_pdb_files, num_mtz_files))
         if num_cif_files < num_pdb_files:
-            self.logger.warn('{} PDB files were found, but only {} had corresponding CIF files'.format(num_pdb_files, num_cif_files))
+            self.logger.warn(
+                '{} PDB files were found, but only {} had corresponding CIF files'.format(num_pdb_files, num_cif_files))
 
     def _validate_manual_input(self, input, crystals):
         num_pdb_files = 0
@@ -342,16 +356,23 @@ class Processor:
                 if pdb:
                     self.logger.info('adding crystal (manual)', child.name)
                     num_pdb_files += 1
-                    data = { Constants.META_XTAL_PDB: pdb.relative_to(self.base_path) }
+                    digest = utils.gen_sha256(pdb)
+                    data = {Constants.META_XTAL_PDB: {
+                        Constants.META_FILE: pdb.relative_to(self.base_path),
+                        Constants.META_SHA256: digest}}
                     if mtz:
-                        data[Constants.META_XTAL_MTZ] = mtz.relative_to(self.base_path)
+                        digest = utils.gen_sha256(mtz)
+                        data[Constants.META_XTAL_MTZ] = {
+                            Constants.META_FILE: mtz.relative_to(self.base_path),
+                            Constants.META_SHA256: digest}
                         num_mtz_files += 1
                     crystals[child.name] = {
                         Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MANUAL,
-                        Constants.META_XTAL_FILES: data }
+                        Constants.META_XTAL_FILES: data}
 
         if num_mtz_files < num_pdb_files:
-            self.logger.warn('{} PDB files were found, but only {} had corresponding MTZ files'.format(num_pdb_files, num_mtz_files))
+            self.logger.warn(
+                '{} PDB files were found, but only {} had corresponding MTZ files'.format(num_pdb_files, num_mtz_files))
 
     def read_versions(self):
         # find out which version dirs exist
