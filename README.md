@@ -69,7 +69,6 @@ You must create a `config.yaml` file containing the configuration data. It can l
 target_name: Mpro
 base_dir: data/inputs
 output_dir: data/outputs/Mpro
-copy_dir: data/inputs/copied
 inputs:
 - dir: dls/labxchem/data/2020/lb18145-153
   soakbd: processing/database/soakDBDataFile.sqlite
@@ -176,15 +175,15 @@ The output lists the files and a sha256 digest for each one to allow to determin
 
 ### 3. Aligner
 
-This tool is in preparation and will generate alignments of the individual protein chains based on sites that
-can be determined automatically or manually. Its output will be aligned PDB files and are placed in the current
-version directory (`upload_n`) in the `aligned` directory.
+This tool is in preparation and generates alignments of the individual protein chains based on sites that
+can be determined automatically or manually. Its output is aligned PDB files and are placed in the current
+version directory (`upload_n`) in the `aligned_files` directory.
 
 The expectation is that you will run *aligner* multiple times, tweaking the configuration (e.g. the site definitions)
 until you are happy with the results. Then you would run the following tools to generate the release data for
 Fragalysis. When you have new data to process you would create a new release (create a new `upload_*` directory)
 and start again. Data in your previous `upload_*` directories would not be modified, but will still be used in
-generating data (e.g. alignments) for your new release. 
+generating data (e.g. alignments) for your new release.
 
 ### 4. Extractor
 

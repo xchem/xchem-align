@@ -23,7 +23,8 @@ class PDBXtal:
         self.biomol = biomol
         self.non_ligs = json.load(open(os.path.join(os.path.dirname(__file__), "non_ligs.json"), "r"))
         self.apo_file = None
-        print('filebase:', self.filebase)
+        self.apo_solv_file = None
+        self.apo_desolv_file = None
 
     def validate(self):
         errors = 0
@@ -66,7 +67,7 @@ class PDBXtal:
             with open(f, 'w') as w:
                 w.write(full_file)
 
-    def make_apo_file(self, keep_headers=False):
+    def create_apo_file(self, keep_headers=False):
         """
         Keeps anything other than unique ligands
 
@@ -90,11 +91,10 @@ class PDBXtal:
                 else:
                     lines += line
 
-        self.apo_file = os.path.join(self.output_dir, str(self.filebase + "_apo.pdb"))
-        print('reading:', self.apo_file)
-        pdb = open(self.apo_file, "w")
-        pdb.write(str(lines))
-        pdb.close()
+        self.apo_file = self.output_dir / (self.filebase + "_apo.pdb")
+        f = open(self.apo_file, "w")
+        f.write(str(lines))
+        f.close()
 
         if self.biomol is not None:
             print('Attaching biomol headers')
@@ -113,10 +113,12 @@ class PDBXtal:
             print( "Apo file has not been created. Use pdb_apo().make_apo_file()")
             exit(1)
 
-        prot_file_name = os.path.join(self.output_dir, str(self.filebase + "_apo-desolv.pdb"))
+        prot_file_name = self.output_dir / (self.filebase + "_apo-desolv.pdb")
         prot_file = open(prot_file_name, "w")
-        solv_file_name = os.path.join(self.output_dir, str(self.filebase + "_apo-solv.pdb"))
+        self.apo_desolv_file = prot_file_name
+        solv_file_name = self.output_dir / (self.filebase + "_apo-solv.pdb")
         solv_file = open(solv_file_name, "w")
+        self.apo_solv_file = solv_file_name
 
         for line in open(self.apo_file).readlines():
             if line.startswith("HETATM"):
