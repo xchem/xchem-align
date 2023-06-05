@@ -10,59 +10,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse, yaml
+import argparse
 import json
 import os
 from pathlib import Path
 
-from . import utils
-from .utils import Constants
-
 import gemmi
+import yaml
 
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
 from ligand_neighbourhood_alignment.data import (
-    Assemblies,
-    AssignedXtalForms,
     CanonicalSites,
     ChainOutput,
     ConformerSites,
     Dataset,
     DatasetID,
     DatasetOutput,
-    Datasource,
     LigandBindingEvent,
     LigandBindingEvents,
     LigandID,
     LigandNeighbourhoods,
     LigandOutput,
-    Options,
     Output,
-    PanDDA,
     SiteTransforms,
     SystemData,
-    Transforms,
     XtalForms,
-    read_assigned_xtalforms,
-    read_canonical_sites,
-    read_graph,
-    read_neighbourhoods,
-    read_output,
-    read_site_transforms,
-    read_structures,
-    read_system_data,
-    read_transforms,
-    read_xtalforms,
-    save_assigned_xtalforms,
-    save_canonical_sites,
-    save_data,
-    save_output,
 )
 from ligand_neighbourhood_alignment.generate_aligned_structures import _align_structures_from_sites
 from ligand_neighbourhood_alignment.generate_sites_from_components import (
-    _generate_sites_from_components,
     get_components,
     get_conformer_sites_from_components,
     get_site_transforms,
@@ -74,8 +51,10 @@ from ligand_neighbourhood_alignment.generate_sites_from_components import (
 from ligand_neighbourhood_alignment.get_alignability import get_alignability
 from ligand_neighbourhood_alignment.get_graph import get_graph
 from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import get_ligand_neighbourhoods
-from ligand_neighbourhood_alignment.cli import _add_model_building_dir_to_system_data, _add_manual_dir_to_system_data, \
-    _add_pandda_to_system_data, _add_data_to_system_data, _get_assigned_xtalforms
+from ligand_neighbourhood_alignment.cli import _get_assigned_xtalforms
+
+from . import utils
+from .utils import Constants
 
 def try_make(path):
     if not Path(path).exists():
