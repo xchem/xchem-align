@@ -41,6 +41,7 @@ dev = [
     "pipdeptree",
     "pre-commit",
     "pydata-sphinx-theme>=0.12",
+    "pylint",
     "pytest-cov",
     "sphinx-autobuild",
     "sphinx-copybutton",
@@ -67,6 +68,19 @@ write_to = "xchemalign/_version.py"
 ignore_missing_imports = true
 install_types = true
 non_interactive = true
+
+[tool.pylint.'MESSAGES CONTROL']
+disable = '''consider-using-f-string,
+    import-error,
+    line-too-long,
+    missing-class-docstring,
+    missing-function-docstring,
+    missing-module-docstring,
+    R,
+    C,
+    W,
+    too-many-lines,
+'''
 
 [tool.isort]
 float_to_top = true
