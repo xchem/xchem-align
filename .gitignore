@@ -1,4 +1,5 @@
 .idea
+venv/
 data
 *.log
 **/__pycache__

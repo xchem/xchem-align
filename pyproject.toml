@@ -64,7 +64,9 @@ dev = [
 write_to = "xchemalign/_version.py"
 
 [tool.mypy]
-ignore_missing_imports = true # Ignore missing stubs in imported modules
+ignore_missing_imports = true
+install_types = true
+non_interactive = true
 
 [tool.isort]
 float_to_top = true
