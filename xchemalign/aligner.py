@@ -273,6 +273,7 @@ class Aligner():
         # Get the site transforms
         site_transforms = get_site_transforms(canonical_sites, structures)
         site_transforms = SiteTransforms(
+            # pylint: disable=consider-iterating-dictionary
             canonical_site_transform_ids=[key for key in site_transforms.keys()],
             canonical_site_transforms=[tr for tr in site_transforms.values()],
             conformer_site_transform_ids=[key for key in subsite_transforms.keys()],
