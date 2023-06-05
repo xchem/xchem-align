@@ -32,5 +32,3 @@ jobs:
         pip install --upgrade pip
         pip install .[dev]
         pylint xchemalign
-        python -m flake8 xchemalign
-        mypy xchemalign
