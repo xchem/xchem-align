@@ -1,5 +1,10 @@
 # XChem Align
 
+![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/xchem/xchem-align?include_prereleases)
+
+[![lint](https://github.com/xchem/xchem-align/actions/workflows/lint.yaml/badge.svg)](https://github.com/xchem/xchem-align/actions/workflows/lint.yaml)
+[![test](https://github.com/xchem/xchem-align/actions/workflows/test.yaml/badge.svg)](https://github.com/xchem/xchem-align/actions/workflows/test.yaml)
+
 Tools to generate data suitable for loading into Fragalysis.
 
 This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
@@ -17,7 +22,7 @@ conda activate xchem-align
 
 ### 1. Copier
 
-This copies the necessary data from the Diamond file system to create an independent set of files that 
+This copies the necessary data from the Diamond file system to create an independent set of files that
 can be worked with locally. The data for a single crystal is HUGE and it is not realistic to copy the
 complete set of files.
 If you can run directly against the Diamond files system you do not necessarily need to use this tool.
@@ -52,13 +57,13 @@ The files copied are:
 
 This prepares the input data that is needed and puts it in a standard location. It also creates a
 `metadata.yaml` file listing those files and other necessary data. As such, this provides a consistent
-staring point for the remaining steps. If your data is not coming from Diamond then you will need to 
-provide your own mechanism to generate this consistent input, and then you can utilise the following 
+staring point for the remaining steps. If your data is not coming from Diamond then you will need to
+provide your own mechanism to generate this consistent input, and then you can utilise the following
 steps.
 
 Collator provides a mechanism for generating well-defined *releases* of data for your target. This is
 done by creating directories in the output directory named `upload_1`, `upload_2` etc. To start a new release
-just create the next `upload_*` directory and that will be used. The data previously generated in earlier 
+just create the next `upload_*` directory and that will be used. The data previously generated in earlier
 releases is not modified, but can be used in the subsequent steps.
 
 Thus, to create your first release you must create your output directory and in it a directory named `upload_1`.
@@ -85,7 +90,7 @@ overrides:
 ```
 
 `base_dir` is required and is used to specify a path prefix should your input directories not reside at their
-specified absolute file path (e.g. if you have used the *copier* tool). If running directly against the files at Diamond 
+specified absolute file path (e.g. if you have used the *copier* tool). If running directly against the files at Diamond
 then the base path should be `/`.
 
 The `output_dir` must exist and contain the required `upload_*` directories (initially just a `upload_1` directory).
@@ -184,7 +189,7 @@ The expectation is that you will run *aligner* multiple times, tweaking the conf
 until you are happy with the results. Then you would run the following tools to generate the release data for
 Fragalysis. When you have new data to process you would create a new release (create a new `upload_*` directory)
 and start again. Data in your previous `upload_*` directories would not be modified, but will still be used in
-generating data (e.g. alignments) for your new release. 
+generating data (e.g. alignments) for your new release.
 
 ### 4. Extractor
 
@@ -195,3 +200,30 @@ of the protein, and the ligands in various format.
 
 This tool is in preparation and will prepare a zip file for the release containing just the necessary files (e.g.
 those that are new or updated) ready for loading into Fragalysis.
+
+## Building and contributing
+
+Project dependencies are defined in the `pyproject.toml` file. From a
+clean virtual environment you can install the run-time and development
+dependencies like this:
+
+    pip install --upgrade pip
+    pip install .[dev]
+
+The project also relies on CI that is run in GitLab using the actions defined
+in the files you'll find in the `.githib/workflows` directory.
+
+We also require the use of the Git [pre-commit] framework.
+To get started review the pre-commit utility and then install
+the pre-commit hooks: -
+
+    pre-commit install
+
+Now the project's rules will run on every commit, and you can check the
+current health of your clone with: -
+
+    pre-commit run --all-files
+
+---
+
+[pre-commit]: https://pre-commit.com

@@ -3,6 +3,7 @@ venv/
 data
 *.log
 **/__pycache__
+.mypy_cache/
 ./config.yaml
 xchemalign/xchem_align.egg-info/
 xchemalign/_version.py
