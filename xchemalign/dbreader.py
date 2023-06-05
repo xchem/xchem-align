@@ -22,7 +22,7 @@ def read_dbmeta(dbfile):
     """
     # Create your connection.
     cnx = sqlite3.connect(dbfile)
-    df = pd.read_sql_query('''SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
+    df = pd.read_sql_query('''SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus, 
                             RefinementCIF, RefinementCIFStatus, RefinementPDB_latest, RefinementMTZ_latest,
                             RefinementDate, RefinementOutcome, RefinementDate, LastUpdated
                             FROM mainTable WHERE RefinementOutcome IS NOT NULL''', cnx)
