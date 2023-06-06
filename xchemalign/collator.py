@@ -10,17 +10,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse, os, shutil
+import argparse
+import os
+from pathlib import Path
+import shutil
+
+import gemmi
+import numpy as np
+import pandas as pd
 import yaml
 
 from . import utils, processor
-
 from .utils import Constants
 
-import pandas as pd
-from pathlib import Path
-import numpy as np
-import gemmi
 
 
 class Collator(processor.Processor):

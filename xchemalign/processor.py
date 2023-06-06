@@ -11,8 +11,9 @@
 # limitations under the License.
 
 
+import datetime
 from pathlib import Path
-import re, datetime
+import re
 
 from . import utils, dbreader
 from .utils import Constants

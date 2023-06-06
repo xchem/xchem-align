@@ -10,10 +10,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, atexit, hashlib
-from pathlib import Path
+import atexit
 import datetime
-import yaml, json
+import hashlib
+import os
+from pathlib import Path
+import sys
+import json
+
+import yaml
 
 _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 

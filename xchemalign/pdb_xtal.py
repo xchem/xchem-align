@@ -10,7 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse, os, json
+import argparse
+import json
+import os
 from pathlib import Path
 
 
