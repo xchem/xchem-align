@@ -7,5 +7,4 @@ data
 ./config.yaml
 xchemalign/xchem_align.egg-info/
 xchemalign/_version.py
-test-data/outputs/xtalforms.json
-test-data/outputs/upload_1/*
+test-data/outputs/
