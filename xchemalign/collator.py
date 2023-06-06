@@ -10,18 +10,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
-import os
-from pathlib import Path
-import shutil
-
-import gemmi
-import numpy as np
-import pandas as pd
+import argparse, os, shutil
 import yaml
 
 from . import utils, processor
+
 from .utils import Constants
+
+import pandas as pd
+from pathlib import Path
+import numpy as np
+import gemmi
 
 
 class Collator(processor.Processor):
@@ -261,17 +260,6 @@ class Collator(processor.Processor):
                                     new_data.append(d)
 
                             data_to_add[Constants.META_BINDING_EVENT] = new_data
-
-                # # find the best event maps, then copy them to the standard location and update the metadata
-                # if panddas_inputs and panddas_data:
-                #     if len(panddas_inputs) == len(panddas_data):
-                #         for src, data in zip(panddas_inputs, panddas_data):
-                #             dst = self.output_path / data[Constants.META_FILE]
-                #             f = shutil.copy2(src, dst, follow_symlinks=True)
-                #             if f:
-                #                 pass
-                #             else:
-                #                 self.logger.error('Failed to copy CCP4 file {} to {}'.format(src, dst))
 
             new_xtal_data = {}
             for k, v in historical_xtal_data.items():

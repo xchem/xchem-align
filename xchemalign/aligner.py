@@ -10,36 +10,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
+import argparse, yaml
 import json
 import os
 from pathlib import Path
 
+from . import utils
+from .utils import Constants
+from .pdb_xtal import PDBXtal
+
 import gemmi
-import yaml
 
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
 from ligand_neighbourhood_alignment.data import (
+    Assemblies,
+    AssignedXtalForms,
     CanonicalSites,
     ChainOutput,
     ConformerSites,
     Dataset,
     DatasetID,
     DatasetOutput,
+    Datasource,
     LigandBindingEvent,
     LigandBindingEvents,
     LigandID,
     LigandNeighbourhoods,
     LigandOutput,
+    Options,
     Output,
+    PanDDA,
     SiteTransforms,
     SystemData,
+    Transforms,
     XtalForms,
+    read_assigned_xtalforms,
+    read_canonical_sites,
+    read_graph,
+    read_neighbourhoods,
+    read_output,
+    read_site_transforms,
+    read_structures,
+    read_system_data,
+    read_transforms,
+    read_xtalforms,
+    save_assigned_xtalforms,
+    save_canonical_sites,
+    save_data,
+    save_output,
 )
 from ligand_neighbourhood_alignment.generate_aligned_structures import _align_structures_from_sites
 from ligand_neighbourhood_alignment.generate_sites_from_components import (
+    _generate_sites_from_components,
     get_components,
     get_conformer_sites_from_components,
     get_site_transforms,
@@ -51,14 +75,14 @@ from ligand_neighbourhood_alignment.generate_sites_from_components import (
 from ligand_neighbourhood_alignment.get_alignability import get_alignability
 from ligand_neighbourhood_alignment.get_graph import get_graph
 from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import get_ligand_neighbourhoods
-from ligand_neighbourhood_alignment.cli import _get_assigned_xtalforms
+from ligand_neighbourhood_alignment.cli import _add_model_building_dir_to_system_data, _add_manual_dir_to_system_data, \
+    _add_pandda_to_system_data, _add_data_to_system_data, _get_assigned_xtalforms
 
-from . import utils
-from .utils import Constants
 
 def try_make(path):
     if not Path(path).exists():
         os.mkdir(path)
+
 
 class Aligner():
 
@@ -68,7 +92,10 @@ class Aligner():
         self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
         self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES        # e.g. path/to/upload_1/crystallographic_files
         self.metadata_file = self.version_dir / metadata                    # e.g. path/to/upload_1/metadata.yaml
-        self.xtalforms_file = self.base_dir.parent / xtalforms              # e.g. path/to/xtalforms.yaml
+        if xtalforms:
+            self.xtalforms_file = xtalforms
+        else:
+            self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/xtalforms.yaml
         if logger:
             self.logger = logger
         else:
@@ -527,7 +554,49 @@ class Aligner():
                             Constants.META_AIGNED_X_MAP: aligned_xmap_path
                         }
 
+        num_extract_errors = self._extract_components(new_meta)
+        if num_extract_errors:
+            self.logger.error('there were problems extracting components. See above for details')
+
         return new_meta
+
+    def _extract_components(self, meta):
+        """
+        Extract out the required forms of the molecules.
+        1. *_apo.pdb - the aligned structure without the ligand
+        2. *_apo_solv.pdb - the aligned solvent molecules only
+        3. *_apo_desolv.pdb - the aligned structure protein chain only
+
+        :param meta:
+        :return:
+        """
+
+        num_errors = 0
+        ignore_keys = ['conformer_sites', 'canon_sites', 'xtalform_sites']
+        for k1, v1 in meta.items():  # k = xtal
+            if k1 not in ignore_keys:
+                for k2, v2 in v1['aligned_files'].items():  # chain
+                    for k3, v3 in v2.items():               # ligand
+                        for k4, v4 in v3.items():           # occurance?
+                            pdb = v4['structure']
+                            self.logger.info('extracting components', k1, k2, k3, k4, pdb)
+                            pth = self.version_dir / pdb
+                            if not pth.is_file():
+                                self.logger.error("can't find file", pth)
+                                num_errors += 1
+                            else:
+                                pdbxtal = PDBXtal(pth, pth.parent)
+                                num_errors = pdbxtal.validate()
+                                if num_errors:
+                                    self.logger.error('validation errors for extraction')
+                                    num_errors += 1
+                                else:
+                                    pdbxtal.create_apo_file()
+                                    pdbxtal.create_apo_solv_desolv()
+                                    v4['pdb_apo'] = str(pdbxtal.apo_file.relative_to(self.version_dir))
+                                    v4['pdb_apo_solv'] = str(pdbxtal.apo_solv_file.relative_to(self.version_dir))
+                                    v4['pdb_apo_desolv'] = str(pdbxtal.apo_desolv_file.relative_to(self.version_dir))
+        return num_errors
 
 
 def main():
@@ -535,7 +604,7 @@ def main():
 
     parser.add_argument('-d', '--version-dir', required=True, help="Path to version dir")
     parser.add_argument('-m', '--metadata_file', default=Constants.METADATA_XTAL_FILENAME, help="Metadata YAML file")
-    parser.add_argument('-x', '--xtalforms', default=Constants.XTALFORMS_FILENAME, help="Crystal forms JSON file")
+    parser.add_argument('-x', '--xtalforms', help="Crystal forms YAML file")
     parser.add_argument('-l', '--log-file', help="File to write logs to")
     parser.add_argument('--log-level', type=int, default=0, help="Logging level")
     parser.add_argument('--validate', action='store_true', help='Only perform validation')

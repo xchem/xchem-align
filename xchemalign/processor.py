@@ -10,9 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-import re
+
 from pathlib import Path
+import re, datetime
 
 from . import utils, dbreader
 from .utils import Constants
