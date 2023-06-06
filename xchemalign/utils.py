@@ -91,6 +91,12 @@ class Constants:
     META_CHAIN = "chain"
     META_RESIDUE = "residue"
     META_DTAG = "dtag"
+    META_XTALFORM_REFERENCE = "xtalform_ref"
+    META_XTALFORM_SPACEGROUP = "xtalform_space_group"
+    META_XTALFORM_CELL = "xtalform_cell"
+    META_ASSEMBLIES_XTALFORMS = "assemblies_xtalforms"
+    META_XTALFORMS = "xtalforms"
+    META_ASSEMBLIES = 'assemblies'
     SOAKDB_XTAL_NAME = 'CrystalName'
     SOAKDB_COL_PDB = 'RefinementPDB_latest'
     SOAKDB_COL_MTZ = 'RefinementMTZ_latest'

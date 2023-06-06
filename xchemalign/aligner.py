@@ -573,7 +573,7 @@ class Aligner():
         num_errors = 0
         ignore_keys = ['conformer_sites', 'canon_sites', 'xtalform_sites']
         for k1, v1 in meta.items():  # k = xtal
-            if k1 not in ignore_keys:
+            if k1 not in ignore_keys and 'aligned_files' in v1:
                 for k2, v2 in v1['aligned_files'].items():  # chain
                     for k3, v3 in v2.items():               # ligand
                         for k4, v4 in v3.items():           # occurance?

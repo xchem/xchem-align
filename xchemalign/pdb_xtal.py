@@ -130,133 +130,6 @@ class PDBXtal:
 
         return prot_file_name, solv_file_name
 
-    def create_pdb_for_ligand(self, ligand, count, reduce, smiles_file, covalent=False):
-        """
-        A pdb file is produced for an individual ligand, containing atomic and connection information
-        :param ligand: Name of the Ligand
-        :param count: The index of the ligand
-        :param reduce: Bool, if the file needs to be named using the chain name of the PDB
-        :param smiles_file: File path of smiles_file (if any)
-        :param covalent: Bool, indicate whether or not covalent attach should be sought.
-        :return: .pdb file for ligand.
-        """
-        output_file_name = os.path.join(self.output_dir, self.filebase + '_ligand.pdb')
-
-        individual_ligand = []
-        individual_ligand_conect = []
-        # adding atom information for each specific ligand to a list
-        for atom in self.final_hets:
-            if str(atom[16:20].strip() + atom[20:26]) == str(ligand):
-                individual_ligand.append(atom)
-
-        con_num = 0
-        for atom in individual_ligand:
-            atom_number = atom.split()[1]
-            for conection in self.conects:
-                if (atom_number in conection and conection not in individual_ligand_conect):
-                    individual_ligand_conect.append(conection)
-                    con_num += 1
-
-        # checking that the number of conect files and number of atoms are almost the same
-        # (taking into account ligands that are covalently bound to the protein
-
-        # assert 0 <= con_num - len(individual_ligand) <= 1
-        # making into one list that is compatible with conversion to mol object
-        ligand_het_con = individual_ligand + individual_ligand_conect
-        # make a pdb file for the ligand molecule
-
-        if os.path.isdir(lig_out_dir):
-            # This is stupid but will correctly spec the files... is there a better solution??
-            shutil.rmtree(lig_out_dir)
-
-        if not os.path.isdir(lig_out_dir):
-            os.makedirs(lig_out_dir)
-
-        ligands_connections = open(
-            os.path.join(lig_out_dir, (file_base + ".pdb")), "w+"
-        )
-        for line in ligand_het_con:
-            ligands_connections.write(str(line))
-        ligands_connections.close()
-        # making pdb file into mol object
-        mol = self.create_pdb_mol(
-            file_base=file_base, lig_out_dir=lig_out_dir, smiles_file=smiles_file, handle_cov=covalent)
-        # Move Map files into lig_out_dir
-
-        if not mol:
-            print(
-                f'WARNING: {file_base} did not produce a mol object from its pdb lig file!')
-        else:
-            try:
-                Chem.AddHs(mol)
-
-                self.mol_lst.append(mol)
-                self.mol_dict["directory"].append(lig_out_dir)
-                self.mol_dict["mol"].append(mol)
-                self.mol_dict["file_base"].append(file_base)
-
-            except AssertionError:
-                print(file_base, 'is unable to produce a ligand file')
-                pass
-
-    def create_mol_file(self, mol_obj, smiles_file=None):
-        """
-        a .mol file is produced for an individual ligand
-
-        :param mol_obj: The RDKit Mol file object
-        :param smiles_file: The filepath of a text file that contains the smiles string of the mol file (if exists).
-        :return: A mol file!
-        """
-
-        out_file = os.path.join(directory, str(file_base + ".mol"))
-
-        if not mol_obj:
-            print(f'WARNING: mol object is empty: {file_base}')
-
-        if smiles_file:
-            with open(smiles_file, 'r') as sf:
-                smiles_list = sf.readlines()
-            mol_dicts = {}
-            sim_dicts = {}
-            original_fp = Chem.RDKFingerprint(mol_obj)
-            for smiles in smiles_list:
-                try:
-                    template = AllChem.MolFromSmiles(smiles.rstrip())
-                    new_mol = AllChem.AssignBondOrdersFromTemplate(template, mol_obj)
-                    new_fp = Chem.RDKFingerprint(new_mol)
-                    mol_dicts[smiles] = new_mol
-                    sim_dicts[smiles] = DataStructs.FingerprintSimilarity(original_fp, new_fp)
-                except Exception as e:
-                    print(e)
-                    print('failed to fit template ' + smiles_file)
-                    print(f'template smiles: {smiles}')
-            # If none of the templates fit...
-            # Just write the smiles and use the mol_obj
-            # If there is 1, just use it
-            # If there are multiple that fit, find the one with the highest similarity
-            if len(mol_dicts) < 1:
-                mol_obj = mol_obj
-            else:
-                mol_obj = mol_dicts[max(sim_dicts, key=sim_dicts.get)]
-                smiles = max(sim_dicts, key=sim_dicts.get)
-        else:
-            print(f'Warning: No smiles file: {file_base}')
-            smiles = Chem.MolToSmiles(mol_obj)
-
-        # Write output mol file...
-        Chem.rdmolfiles.MolToMolFile(mol_obj, out_file)
-
-        # Write new smiles_txt
-        smiles_out_file = os.path.join(directory, str(file_base + "_smiles.txt"))
-        with open(smiles_out_file, 'w+') as smiles_txt:
-            smiles_txt.write(smiles)
-        # Create output png too
-        out_png = os.path.join(directory, str(file_base + ".png"))
-        draw_mol = Chem.Mol(mol_obj)
-        AllChem.Compute2DCoords(draw_mol)
-        Draw.MolToFile(draw_mol, out_png, imageType='png')
-        return mol_obj
-
 
 def main():
 
@@ -276,7 +149,7 @@ def main():
         print('There were validation errors. Please fix and re-run')
         exit(1)
 
-    p.make_apo_file(keep_headers=args.keep_headers)
+    p.create_apo_file(keep_headers=args.keep_headers)
     p.create_apo_solv_desolv()
     print('Done')
 
