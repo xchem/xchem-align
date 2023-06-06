@@ -22,28 +22,34 @@ def read_dbmeta(dbfile):
     """
     # Create your connection.
     cnx = sqlite3.connect(dbfile)
-    df = pd.read_sql_query('''SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
+    df = pd.read_sql_query(
+        """SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
                             RefinementCIF, RefinementCIFStatus, RefinementPDB_latest, RefinementMTZ_latest,
                             RefinementDate, RefinementOutcome, RefinementDate, LastUpdated
-                            FROM mainTable WHERE RefinementOutcome IS NOT NULL''', cnx)
+                            FROM mainTable WHERE RefinementOutcome IS NOT NULL""",
+        cnx,
+    )
 
-    df['LastUpdatedDate'] = pd.to_datetime(df['LastUpdated'], infer_datetime_format=True)
+    df["LastUpdatedDate"] = pd.to_datetime(df["LastUpdated"], infer_datetime_format=True)
     return df
 
 
 def filter_dbmeta(dbfile):
     df1 = read_dbmeta(dbfile)
-    df2 = df1[(df1.RefinementOutcome.str.startswith('4') |
-               df1.RefinementOutcome.str.startswith('5') |
-               df1.RefinementOutcome.str.startswith('6'))]
+    df2 = df1[
+        (
+            df1.RefinementOutcome.str.startswith("4")
+            | df1.RefinementOutcome.str.startswith("5")
+            | df1.RefinementOutcome.str.startswith("6")
+        )
+    ]
     return df2
 
 
 def main():
+    df = filter_dbmeta("data/dls/labxchem/data/2020/lb18145-153/processing/database/soakDBDataFile.sqlite")
 
-    df = filter_dbmeta('data/dls/labxchem/data/2020/lb18145-153/processing/database/soakDBDataFile.sqlite')
-
-    s = pd.to_datetime(df['LastUpdated'], infer_datetime_format=True)
+    s = pd.to_datetime(df["LastUpdated"], infer_datetime_format=True)
     print(s)
     # for d in s:
     #     print(d)

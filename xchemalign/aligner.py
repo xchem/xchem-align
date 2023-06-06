@@ -63,14 +63,13 @@ def try_make(path):
         os.mkdir(path)
 
 
-class Aligner():
-
+class Aligner:
     def __init__(self, version_dir, metadata, xtalforms, logger=None):
-        self.version_dir = Path(version_dir)                                # e.g. path/to/upload_1
-        self.base_dir = self.version_dir.parent                             # e.g. path/to
+        self.version_dir = Path(version_dir)  # e.g. path/to/upload_1
+        self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
-        self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES        # e.g. path/to/upload_1/crystallographic_files
-        self.metadata_file = self.version_dir / metadata                    # e.g. path/to/upload_1/metadata.yaml
+        self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES  # e.g. path/to/upload_1/crystallographic_files
+        self.metadata_file = self.version_dir / metadata  # e.g. path/to/upload_1/metadata.yaml
         if xtalforms:
             self.xtalforms_file = xtalforms
         else:
@@ -87,43 +86,42 @@ class Aligner():
         self.errors.append(msg)
 
     def validate(self):
-
         if not self.version_dir.exists():
-            self._log_error('version dir {} does not exist'.format(self.version_dir))
+            self._log_error("version dir {} does not exist".format(self.version_dir))
         elif not self.version_dir.is_dir():
-            self._log_error('version dir {} is not a directory'.format(self.version_dir))
+            self._log_error("version dir {} is not a directory".format(self.version_dir))
         else:
             p = self.metadata_file
             if not p.exists():
-                self._log_error('metadata file {} does not exist'.format(p))
+                self._log_error("metadata file {} does not exist".format(p))
             if not p.is_file():
-                self._log_error('metadata file {} is not a file'.format(p))
+                self._log_error("metadata file {} is not a file".format(p))
 
             p = Path(self.xtalforms_file)
             if not p.exists():
-                self._log_error('xtalforms file {} does not exist'.format(p))
+                self._log_error("xtalforms file {} does not exist".format(p))
             elif not p.is_file():
-                self._log_error('xtalforms file {} is not a file'.format(p))
+                self._log_error("xtalforms file {} is not a file".format(p))
 
         return len(self.errors), len(self.warnings)
 
     def run(self):
-        self.logger.info('Running aligner...')
+        self.logger.info("Running aligner...")
 
         meta = utils.read_config_file(str(self.metadata_file))
 
         if not self.aligned_dir.is_dir():
             self.aligned_dir.mkdir()
-            self.logger.info('created aligned directory', self.aligned_dir)
+            self.logger.info("created aligned directory", self.aligned_dir)
 
         new_meta = self._perform_alignments(meta)
 
         # TODO - should aligned metadata_file be written to its own file?
-        with open(self.version_dir / Constants.METADATA_ALIGN_FILENAME, 'w') as stream:
+        with open(self.version_dir / Constants.METADATA_ALIGN_FILENAME, "w") as stream:
             yaml.dump(new_meta, stream, sort_keys=False, default_flow_style=None)
 
     def _perform_alignments(self, meta):
-        self.logger.info('Performing alignments')
+        self.logger.info("Performing alignments")
 
         # Initialize the output directory and create empty
         # jsons in it
@@ -145,10 +143,14 @@ class Aligner():
         datasets = [
             Dataset(
                 dtag=dtag,
-                pdb=str(output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]),
-                xmap='',
-                mtz=str(output_path / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(
-                    Constants.META_FILE)),
+                pdb=str(
+                    output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]
+                ),
+                xmap="",
+                mtz=str(
+                    output_path
+                    / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
+                ),
                 ligand_binding_events=LigandBindingEvents(
                     ligand_ids=[
                         LigandID(
@@ -156,8 +158,7 @@ class Aligner():
                             chain=binding_event.get(Constants.META_PROT_CHAIN),
                             residue=binding_event.get(Constants.META_PROT_RES),
                         )
-                        for binding_event
-                        in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
+                        for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
                     ],
                     ligand_binding_events=[
                         LigandBindingEvent(
@@ -167,16 +168,16 @@ class Aligner():
                             residue=binding_event.get(Constants.META_PROT_RES),
                             xmap=str(output_path / binding_event.get(Constants.META_FILE)),
                         )
-                        for binding_event
-                        in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
-                    ]
+                        for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
+                    ],
                 ),
             )
-            for dtag, crystal
-            in crystals.items()
+            for dtag, crystal in crystals.items()
         ]
         if len(dataset_ids) != len(datasets):
-            self.logger.error(f"Number of dataset ids found in metadata_file not equal to number of datasets. Exiting.")
+            self.logger.error(
+                f"Number of dataset ids found in metadata_file not equal to number of datasets. Exiting."
+            )
             raise Exception
 
         if (len(datasets) == 0) or (len(datasets) == 0):
@@ -188,18 +189,13 @@ class Aligner():
             _num_binding_events = len(_dataset.ligand_binding_events.ligand_binding_events)
             self.logger.info(f"\t{_dataset_id.dtag} : Num Ligand binding events: {_num_binding_events}")
 
-        system_data = SystemData(
-            datasources=[],
-            panddas=[],
-            dataset_ids=dataset_ids,
-            datasets=datasets
-        )
+        system_data = SystemData(datasources=[], panddas=[], dataset_ids=dataset_ids, datasets=datasets)
 
         # Convert the xtalform yaml into a json and read into an Xtalforms object
         # xtalforms = XtalForms.read(Path(meta[lna_constants.XTALFORM_JSON]))
         with open(self.xtalforms_file, "r") as f:
             xtalform_dict = yaml.safe_load(f)
-        xtalform_path = self.version_dir / 'xtalforms.json'
+        xtalform_path = self.version_dir / "xtalforms.json"
         with open(xtalform_path, "w") as f:
             json.dump(xtalform_dict, f)
         xtalforms = XtalForms.read(xtalform_path)
@@ -222,12 +218,14 @@ class Aligner():
         )
         self.logger.info(f"Found {len(ligand_neighbourhoods.ligand_ids)} ligand neighbourhoods.")
         self.logger.info(f"Ligand neighbourhoods are:")
-        for _ligand_id, _ligand_neighbourhood in zip(ligand_neighbourhoods.ligand_ids,
-                                                     ligand_neighbourhoods.ligand_neighbourhoods):
+        for _ligand_id, _ligand_neighbourhood in zip(
+            ligand_neighbourhoods.ligand_ids, ligand_neighbourhoods.ligand_neighbourhoods
+        ):
             _dtag, _chain, _residue = _ligand_id.dtag, _ligand_id.chain, _ligand_id.residue
             _num_atoms, _num_art_atoms = len(_ligand_neighbourhood.atoms), len(_ligand_neighbourhood.artefact_atoms)
             self.logger.info(
-                f"\t{_dtag} {_chain} {_residue} : Num atoms: {_num_atoms} : Num artefact atoms: {_num_art_atoms}")
+                f"\t{_dtag} {_chain} {_residue} : Num atoms: {_num_atoms} : Num artefact atoms: {_num_art_atoms}"
+            )
 
         # Get alignability
         alignability_matrix, transforms = get_alignability(ligand_neighbourhoods, system_data)
@@ -287,17 +285,19 @@ class Aligner():
         )
 
         # Fully specify the output now that the sites are known
-        output = Output(source_dir=str(self.version_dir),
-                        system_data='',
-                        xtalforms='',
-                        assigned_xtalforms='',
-                        neighbourhoods='',
-                        graph='',
-                        transforms='',
-                        sites='',
-                        site_transforms='',
-                        aligned_dir=str(self.aligned_dir),
-                        dataset_output={})
+        output = Output(
+            source_dir=str(self.version_dir),
+            system_data="",
+            xtalforms="",
+            assigned_xtalforms="",
+            neighbourhoods="",
+            graph="",
+            transforms="",
+            sites="",
+            site_transforms="",
+            aligned_dir=str(self.aligned_dir),
+            dataset_output={},
+        )
 
         # Create the aligned dir
         try_make(output.aligned_dir)
@@ -338,30 +338,41 @@ class Aligner():
                     continue
 
                 chain_output.aligned_ligands[residue].aligned_structures[site_id] = (
-                        Constants.META_ALIGNED_FILES + '/' + dtag + '/' +
-                        lna_constants.ALIGNED_STRUCTURE_TEMPLATE.format(
-                    dtag=dtag, chain=chain, residue=residue, site=site_id
-                )
+                    Constants.META_ALIGNED_FILES
+                    + "/"
+                    + dtag
+                    + "/"
+                    + lna_constants.ALIGNED_STRUCTURE_TEMPLATE.format(
+                        dtag=dtag, chain=chain, residue=residue, site=site_id
+                    )
                 )
 
                 chain_output.aligned_ligands[residue].aligned_artefacts[site_id] = (
-                        Constants.META_ALIGNED_FILES + '/' + dtag + '/' +
-                        lna_constants.ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE.format(
-                    dtag=dtag, chain=chain, residue=residue, site=site_id
-                )
+                    Constants.META_ALIGNED_FILES
+                    + "/"
+                    + dtag
+                    + "/"
+                    + lna_constants.ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE.format(
+                        dtag=dtag, chain=chain, residue=residue, site=site_id
+                    )
                 )
 
                 chain_output.aligned_ligands[residue].aligned_xmaps[site_id] = (
-                        Constants.META_ALIGNED_FILES + '/' + dtag + '/' +
-                        lna_constants.ALIGNED_XMAP_TEMPLATE.format(dtag=dtag, chain=chain, residue=residue,
-                                                                     site=site_id)
+                    Constants.META_ALIGNED_FILES
+                    + "/"
+                    + dtag
+                    + "/"
+                    + lna_constants.ALIGNED_XMAP_TEMPLATE.format(dtag=dtag, chain=chain, residue=residue, site=site_id)
                 )
 
                 chain_output.aligned_ligands[residue].aligned_event_maps[site_id] = (
-                        Constants.META_ALIGNED_FILES + '/' + dtag + '/' +
-                        lna_constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
-                    dtag=dtag, chain=chain, residue=residue, site=site_id
-                )
+                    Constants.META_ALIGNED_FILES
+                    + "/"
+                    + dtag
+                    + "/"
+                    + lna_constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
+                        dtag=dtag, chain=chain, residue=residue, site=site_id
+                    )
                 )
 
         # Save the output file
@@ -410,7 +421,7 @@ class Aligner():
                 Constants.META_XTALFORM_REFERENCE: xtalform_reference.dtag,
                 Constants.META_XTALFORM_SPACEGROUP: reference_spacegroup,
                 Constants.META_XTALFORM_CELL: {
-                    "a":reference_unit_cell.a,
+                    "a": reference_unit_cell.a,
                     "b": reference_unit_cell.b,
                     "c": reference_unit_cell.c,
                     "alpha": reference_unit_cell.alpha,
@@ -419,7 +430,6 @@ class Aligner():
                 },
             }
             for assembly_id, assembly in xtalform.assemblies.items():
-
                 assembly_ref_chains = []
                 for generator_id, generator in assembly.generators.items():
                     ref_chain, chain, triplet = generator.reference_chain, generator.chain, generator.triplet
@@ -430,7 +440,9 @@ class Aligner():
                 # Create an assembly or add one
                 if assembly_ref_chains_tup not in meta_assemblies:
                     meta_assemblies[assembly_ref_chains_tup] = {
-                        Constants.META_ASSEMBLIES_XTALFORMS: [xtalform_id,]
+                        Constants.META_ASSEMBLIES_XTALFORMS: [
+                            xtalform_id,
+                        ]
                     }
                 else:
                     meta_assemblies[assembly_ref_chains_tup][Constants.META_ASSEMBLIES_XTALFORMS].append(xtalform_id)
@@ -450,42 +462,36 @@ class Aligner():
             conformer_sites_meta[conformer_site_id] = {
                 Constants.META_CONFORMER_SITE_NAME: None,
                 Constants.META_CONFORMER_SITE_REFERENCE_LIG: {
-
                     Constants.META_DTAG: conformer_site.reference_ligand_id.dtag,
                     Constants.META_CHAIN: conformer_site.reference_ligand_id.chain,
                     Constants.META_RESIDUE: conformer_site.reference_ligand_id.residue,
                 },
                 Constants.META_CONFORMER_SITE_RESIDUES: {
-
-                        Constants.META_CHAIN: [res.chain for res in conformer_site.residues],
-                        Constants.META_RESIDUE: [res.residue for res in conformer_site.residues]
-
-                    },
+                    Constants.META_CHAIN: [res.chain for res in conformer_site.residues],
+                    Constants.META_RESIDUE: [res.residue for res in conformer_site.residues],
+                },
                 Constants.META_CONFORMER_SITE_MEMBERS: {
-                        Constants.META_DTAG: [lid.dtag for lid in conformer_site.members],
-                     Constants.META_CHAIN: [lid.chain for lid in conformer_site.members],
-                     Constants.META_RESIDUE: [lid.residue for lid in conformer_site.members]
-                     }
-
+                    Constants.META_DTAG: [lid.dtag for lid in conformer_site.members],
+                    Constants.META_CHAIN: [lid.chain for lid in conformer_site.members],
+                    Constants.META_RESIDUE: [lid.residue for lid in conformer_site.members],
+                },
             }
 
         # Add the canonical sites
         canonical_sites_meta = new_meta[Constants.META_CANONICAL_SITES] = {}
         for canonical_site_id, canonical_site in zip(canonical_sites.site_ids, canonical_sites.sites):
-            canonical_sites_meta[canonical_site_id]= {
+            canonical_sites_meta[canonical_site_id] = {
                 Constants.META_CANONICAL_SITE_REF_SUBSITE: canonical_site.reference_subsite_id,
                 Constants.META_CANONICAL_SITE_CONFORMER_SITES: canonical_site.subsite_ids,
                 Constants.META_CANONICAL_SITE_RESIDUES: {
-
-                        Constants.META_CHAIN: [res.chain for res in canonical_site.residues],
-                        Constants.META_RESIDUE: [res.residue for res in canonical_site.residues]
-
-                    },
+                    Constants.META_CHAIN: [res.chain for res in canonical_site.residues],
+                    Constants.META_RESIDUE: [res.residue for res in canonical_site.residues],
+                },
                 Constants.META_CANONICAL_SITE_MEMBERS: {
-                        Constants.META_DTAG: [lid.dtag for lid in canonical_site.members],
-                     Constants.META_CHAIN: [lid.chain for lid in canonical_site.members],
-                     Constants.META_RESIDUE: [lid.residue for lid in canonical_site.members]
-                     }
+                    Constants.META_DTAG: [lid.dtag for lid in canonical_site.members],
+                    Constants.META_CHAIN: [lid.chain for lid in canonical_site.members],
+                    Constants.META_RESIDUE: [lid.residue for lid in canonical_site.members],
+                },
             }
 
         # Add the xtalform sites - note the chain is that of the original crystal structure, NOT the assembly
@@ -496,15 +502,14 @@ class Aligner():
                 Constants.META_XTALFORM_SITE_CANONICAL_SITE_ID: xtalform_site.site_id,
                 Constants.META_XTALFORM_SITE_LIGAND_CHAIN: xtalform_site.crystallographic_chain,
                 Constants.META_XTALFORM_SITE_MEMBERS: {
-                        Constants.META_DTAG: [lid.dtag for lid in xtalform_site.members],
-                     Constants.META_CHAIN: [lid.chain for lid in xtalform_site.members],
-                     Constants.META_RESIDUE: [lid.residue for lid in xtalform_site.members]
-                     }
+                    Constants.META_DTAG: [lid.dtag for lid in xtalform_site.members],
+                    Constants.META_CHAIN: [lid.chain for lid in xtalform_site.members],
+                    Constants.META_RESIDUE: [lid.residue for lid in xtalform_site.members],
+                },
             }
 
         # Add the output aligned files
         for dtag, crystal in crystals.items():
-
             # Skip if no output for this dataset
             if dtag not in dataset_output_dict:
                 continue
@@ -530,12 +535,12 @@ class Aligner():
                             Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
                             Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
                             Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
-                            Constants.META_AIGNED_X_MAP: aligned_xmap_path
+                            Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                         }
 
         num_extract_errors = self._extract_components(new_meta)
         if num_extract_errors:
-            self.logger.error('there were problems extracting components. See above for details')
+            self.logger.error("there were problems extracting components. See above for details")
 
         return new_meta
 
@@ -551,14 +556,14 @@ class Aligner():
         """
 
         num_errors = 0
-        ignore_keys = ['conformer_sites', 'canon_sites', 'xtalform_sites']
+        ignore_keys = ["conformer_sites", "canon_sites", "xtalform_sites"]
         for k1, v1 in meta.items():  # k = xtal
-            if k1 not in ignore_keys and 'aligned_files' in v1:
-                for k2, v2 in v1['aligned_files'].items():  # chain
-                    for k3, v3 in v2.items():               # ligand
-                        for k4, v4 in v3.items():           # occurance?
-                            pdb = v4['structure']
-                            self.logger.info('extracting components', k1, k2, k3, k4, pdb)
+            if k1 not in ignore_keys and "aligned_files" in v1:
+                for k2, v2 in v1["aligned_files"].items():  # chain
+                    for k3, v3 in v2.items():  # ligand
+                        for k4, v4 in v3.items():  # occurance?
+                            pdb = v4["structure"]
+                            self.logger.info("extracting components", k1, k2, k3, k4, pdb)
                             pth = self.version_dir / pdb
                             if not pth.is_file():
                                 self.logger.error("can't find file", pth)
@@ -567,26 +572,26 @@ class Aligner():
                                 pdbxtal = PDBXtal(pth, pth.parent)
                                 num_errors = pdbxtal.validate()
                                 if num_errors:
-                                    self.logger.error('validation errors for extraction')
+                                    self.logger.error("validation errors for extraction")
                                     num_errors += 1
                                 else:
                                     pdbxtal.create_apo_file()
                                     pdbxtal.create_apo_solv_desolv()
-                                    v4['pdb_apo'] = str(pdbxtal.apo_file.relative_to(self.version_dir))
-                                    v4['pdb_apo_solv'] = str(pdbxtal.apo_solv_file.relative_to(self.version_dir))
-                                    v4['pdb_apo_desolv'] = str(pdbxtal.apo_desolv_file.relative_to(self.version_dir))
+                                    v4["pdb_apo"] = str(pdbxtal.apo_file.relative_to(self.version_dir))
+                                    v4["pdb_apo_solv"] = str(pdbxtal.apo_solv_file.relative_to(self.version_dir))
+                                    v4["pdb_apo_desolv"] = str(pdbxtal.apo_desolv_file.relative_to(self.version_dir))
         return num_errors
 
 
 def main():
-    parser = argparse.ArgumentParser(description='aligner')
+    parser = argparse.ArgumentParser(description="aligner")
 
-    parser.add_argument('-d', '--version-dir', required=True, help="Path to version dir")
-    parser.add_argument('-m', '--metadata_file', default=Constants.METADATA_XTAL_FILENAME, help="Metadata YAML file")
-    parser.add_argument('-x', '--xtalforms', help="Crystal forms YAML file")
-    parser.add_argument('-l', '--log-file', help="File to write logs to")
-    parser.add_argument('--log-level', type=int, default=0, help="Logging level")
-    parser.add_argument('--validate', action='store_true', help='Only perform validation')
+    parser.add_argument("-d", "--version-dir", required=True, help="Path to version dir")
+    parser.add_argument("-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME, help="Metadata YAML file")
+    parser.add_argument("-x", "--xtalforms", help="Crystal forms YAML file")
+    parser.add_argument("-l", "--log-file", help="File to write logs to")
+    parser.add_argument("--log-level", type=int, default=0, help="Logging level")
+    parser.add_argument("--validate", action="store_true", help="Only perform validation")
 
     args = parser.parse_args()
     print("aligner: ", args)
@@ -598,7 +603,7 @@ def main():
 
     if not args.validate:
         if num_errors:
-            print('There are errors, cannot continue')
+            print("There are errors, cannot continue")
             exit(1)
         else:
             a.run()

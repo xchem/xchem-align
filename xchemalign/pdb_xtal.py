@@ -17,7 +17,6 @@ from pathlib import Path
 
 
 class PDBXtal:
-
     def __init__(self, pdbfile, output_dir, biomol=None):
         self.pdbfile = pdbfile
         self.filebase = Path(pdbfile).stem
@@ -31,13 +30,13 @@ class PDBXtal:
     def validate(self):
         errors = 0
         if not self.pdbfile:
-            print('PDB file not defined:')
+            print("PDB file not defined:")
             errors += 1
         if not os.path.isfile(self.pdbfile):
-            print('PDB file not found:', self.pdbfile)
+            print("PDB file not found:", self.pdbfile)
             errors += 1
         if self.biomol and not os.path.isfile(self.biomol):
-            print('Biomol file not found:', self.biomol)
+            print("Biomol file not found:", self.biomol)
             errors += 1
 
         return errors
@@ -47,7 +46,7 @@ class PDBXtal:
         Add contents of biomol/additional text file to the _apo.pdb file.
         This results in re-writing the _apo.pdb file.
         """
-        biomol_remark = open(self.biomol).read().rstrip() + '\n'
+        biomol_remark = open(self.biomol).read().rstrip() + "\n"
 
         f = self.apo_file
         with open(f) as handle:
@@ -55,18 +54,18 @@ class PDBXtal:
             header_front, header_end = [], []
             pdb = []
             for line in handle:
-                if line.startswith('ATOM'):
+                if line.startswith("ATOM"):
                     switch = 1
-                if line.startswith('HETATM'):
+                if line.startswith("HETATM"):
                     switch = 2
                 if switch == 0:
                     header_front.append(line)
-                elif (switch == 2) and not line.startswith('HETATM'):
+                elif (switch == 2) and not line.startswith("HETATM"):
                     header_end.append(line)
                 else:
                     pdb.append(line)
-            full_file = ''.join(header_front) + biomol_remark + ''.join(pdb) + ''.join(header_end)
-            with open(f, 'w') as w:
+            full_file = "".join(header_front) + biomol_remark + "".join(pdb) + "".join(header_end)
+            with open(f, "w") as w:
                 w.write(full_file)
 
     def create_apo_file(self, keep_headers=False):
@@ -78,16 +77,16 @@ class PDBXtal:
         """
         lines = ""
         if keep_headers:
-            include = ['CONECT', 'SEQRES', 'TITLE', 'ANISOU']
+            include = ["CONECT", "SEQRES", "TITLE", "ANISOU"]
         else:
-            include = ['CONECT', 'REMARK', 'CRYST', 'SEQRES', 'HEADER', 'TITLE', 'ANISOU']
+            include = ["CONECT", "REMARK", "CRYST", "SEQRES", "HEADER", "TITLE", "ANISOU"]
 
-        with open(self.pdbfile, 'r') as pdb:
+        with open(self.pdbfile, "r") as pdb:
             for line in pdb:
                 if (
-                        line.startswith("HETATM")
-                        and line.split()[3] not in self.non_ligs
-                        or any([line.startswith(x) for x in include])
+                    line.startswith("HETATM")
+                    and line.split()[3] not in self.non_ligs
+                    or any([line.startswith(x) for x in include])
                 ):
                     continue
                 else:
@@ -99,7 +98,7 @@ class PDBXtal:
         f.close()
 
         if self.biomol is not None:
-            print('Attaching biomol headers')
+            print("Attaching biomol headers")
             self.add_biomol_remark()
 
     def create_apo_solv_desolv(self):
@@ -112,7 +111,7 @@ class PDBXtal:
         """
 
         if not self.apo_file:
-            print( "Apo file has not been created. Use pdb_apo().make_apo_file()")
+            print("Apo file has not been created. Use pdb_apo().make_apo_file()")
             exit(1)
 
         prot_file_name = self.output_dir / (self.filebase + "_apo-desolv.pdb")
@@ -134,13 +133,12 @@ class PDBXtal:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="pdb_xtal")
 
-    parser = argparse.ArgumentParser(description='pdb_xtal')
-
-    parser.add_argument('-p', '--pdb', required=True, help='PDB file')
-    parser.add_argument('-o', '--output-dir', required=True, help='Output directory')
-    parser.add_argument('-k', "--keep-headers", action='store_true', help='Keep headers')
-    parser.add_argument('-b', '--biomol_txt', help='Biomol Input txt file')
+    parser.add_argument("-p", "--pdb", required=True, help="PDB file")
+    parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
+    parser.add_argument("-k", "--keep-headers", action="store_true", help="Keep headers")
+    parser.add_argument("-b", "--biomol_txt", help="Biomol Input txt file")
 
     args = parser.parse_args()
     print("pdb_xtal: ", args)
@@ -148,12 +146,12 @@ def main():
     p = PDBXtal(args.pdb, args.output_dir, biomol=args.biomol_txt)
     errors = p.validate()
     if errors:
-        print('There were validation errors. Please fix and re-run')
+        print("There were validation errors. Please fix and re-run")
         exit(1)
 
     p.create_apo_file(keep_headers=args.keep_headers)
     p.create_apo_solv_desolv()
-    print('Done')
+    print("Done")
 
 
 if __name__ == "__main__":
