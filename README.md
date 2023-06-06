@@ -21,6 +21,9 @@ conda env create -f environment.yaml
 conda activate xchem-align
 ```
 
+>   Changes to package requirements in the `environment.yaml` **MUST** be repeated
+    in the `pyproject.toml` file, which is used for CI (and development).
+
 ### 1. Copier
 
 This copies the necessary data from the Diamond file system to create an independent set of files that
@@ -202,7 +205,7 @@ of the protein, and the ligands in various format.
 This tool is in preparation and will prepare a zip file for the release containing just the necessary files (e.g.
 those that are new or updated) ready for loading into Fragalysis.
 
-## Building and contributing
+## Contributing
 
 Project dependencies are defined in the `pyproject.toml` file. From a
 clean virtual environment you can install the run-time and development
@@ -211,8 +214,8 @@ dependencies like this:
     pip install --upgrade pip
     pip install .[dev]
 
-The project also relies on CI that is run in GitLab using the actions defined
-in the files you'll find in the `.githib/workflows` directory.
+The project also relies on CI that is run in GitHub using the actions defined
+in the files you'll find in the `.github/workflows` directory.
 
 We also require the use of the Git [pre-commit] framework.
 To get started review the pre-commit utility and then install

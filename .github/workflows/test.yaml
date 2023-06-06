@@ -38,3 +38,10 @@ jobs:
         python -m xchemalign.copier -h
         python -m xchemalign.collator -h
         python -m xchemalign.aligner -h
+    - name: Test test-data config
+      run: |
+        pip install --upgrade pip
+        pip install .
+        mkdir -p test-data/outputs/upload_1
+        python -m xchemalign.collator -c test-data/config.yaml
+        python -m xchemalign.aligner -d test-data/outputs/upload_1 -x test-data/xtalforms.yaml
