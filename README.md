@@ -10,11 +10,18 @@ Tools to generate data suitable for loading into Fragalysis.
 
 This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
-## Building and Contributing
+## Getting started (contributing)
 
+Prerequisites: -
+
+* Python 3.10 or later
+  
 Project dependencies are defined in the `pyproject.toml` file. From a
 clean **Python 3.10** virtual environment you can install the run-time and development
 dependencies like this:
+
+    python -m venv venv
+    source venv/bin/activate
 
     pip install --upgrade pip
     pip install .[dev]
@@ -37,11 +44,14 @@ current health of your clone with: -
 
 The following tools are being created, or planned. They typically are run in the order described.
 
-To run the tools you should follow the **Building and Contributing** notes above
-or create a run-time environment based on **Python 3.10** using the `pyproject.toml`
-file in a clone of this repository: -
+To run the tools you should follow the **Getting started (contributing)** notes above
+or create a suitable run-time environment based on **Python 3.10** using the `pyproject.toml`
+file: -
 
-  pip install .
+    python -m venv venv
+    source venv/bin/activate
+
+    pip install .
 
 ### 1. Copier
 

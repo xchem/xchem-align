@@ -2,6 +2,7 @@
 venv/
 data
 *.log
+**/*.pyc
 **/__pycache__
 .mypy_cache/
 ./config.yaml
