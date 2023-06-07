@@ -14,7 +14,7 @@ This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
 * **Python 3.10** or later
 
-## Getting started (contributing)
+## Getting started (development)
 
 Project dependencies are defined in the `pyproject.toml` file. From a
 clean virtual environment you can install the run-time and development
@@ -40,17 +40,20 @@ current health of your clone with: -
 
     pre-commit run --all-files
 
-## The tools
+## Getting started (run-time)
 
-The following tools are being created, or planned. They typically are run in the order described.
-
-To run the tools you should follow the **Getting started (contributing)** notes above
-or create a suitable *run-time* environment: -
+To run the XChem Align tools you can use a development environment
+as described above or create a suitable *run-time* environment, that does
+not install the development packages: -
 
     python -m venv venv
     source venv/bin/activate
 
     pip install .
+
+## The tools
+
+The following tools are being created, or planned. They typically are run in the order described.
 
 ### 1. Copier
 
