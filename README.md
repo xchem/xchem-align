@@ -22,8 +22,8 @@ dependencies like this:
 
     python -m venv venv
     source venv/bin/activate
-
     pip install --upgrade pip
+
     pip install .[dev]
 
 The project also relies on CI that is run in GitHub using the actions defined
@@ -48,6 +48,7 @@ not install the packages used for development: -
 
     python -m venv venv
     source venv/bin/activate
+    pip install --upgrade pip
 
     pip install .
 
