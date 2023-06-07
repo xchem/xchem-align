@@ -10,19 +10,38 @@ Tools to generate data suitable for loading into Fragalysis.
 
 This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
-## Available tools
+## Building and Contributing
+
+Project dependencies are defined in the `pyproject.toml` file. From a
+clean **Python 3.10** virtual environment you can install the run-time and development
+dependencies like this:
+
+    pip install --upgrade pip
+    pip install .[dev]
+
+The project also relies on CI that is run in GitHub using the actions defined
+in the files you'll find in the `.github/workflows` directory.
+
+We also require the use of the Git [pre-commit] framework.
+To get started review the pre-commit utility and then install
+the pre-commit hooks with the command: -
+
+    pre-commit install
+
+Now the project's rules will run on every commit, and you can check the
+current health of your clone with: -
+
+    pre-commit run --all-files
+
+## The tools
 
 The following tools are being created, or planned. They typically are run in the order described.
 
-To run them you should create a conda environment using the `environment.yaml` file.
+To run the tools you should follow the **Building and Contributing** notes above
+or create a run-time environment based on **Python 3.10** using the `pyproject.toml`
+file in a clone of this repository: -
 
-```commandline
-conda env create -f environment.yaml
-conda activate xchem-align
-```
-
->   Changes to package requirements in the `environment.yaml` **MUST** be repeated
-    in the `pyproject.toml` file, which is used for CI (and development).
+  pip install .
 
 ### 1. Copier
 
@@ -204,29 +223,6 @@ of the protein, and the ligands in various format.
 
 This tool is in preparation and will prepare a zip file for the release containing just the necessary files (e.g.
 those that are new or updated) ready for loading into Fragalysis.
-
-## Contributing
-
-Project dependencies are defined in the `pyproject.toml` file. From a
-clean virtual environment you can install the run-time and development
-dependencies like this:
-
-    pip install --upgrade pip
-    pip install .[dev]
-
-The project also relies on CI that is run in GitHub using the actions defined
-in the files you'll find in the `.github/workflows` directory.
-
-We also require the use of the Git [pre-commit] framework.
-To get started review the pre-commit utility and then install
-the pre-commit hooks: -
-
-    pre-commit install
-
-Now the project's rules will run on every commit, and you can check the
-current health of your clone with: -
-
-    pre-commit run --all-files
 
 ---
 
