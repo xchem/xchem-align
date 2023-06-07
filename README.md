@@ -5,6 +5,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 [![test](https://github.com/xchem/xchem-align/actions/workflows/test.yaml/badge.svg)](https://github.com/xchem/xchem-align/actions/workflows/test.yaml)
+[![mypy](https://github.com/xchem/xchem-align/actions/workflows/mypy.yaml/badge.svg)](https://github.com/xchem/xchem-align/actions/workflows/mypy.yaml)
 
 Tools to generate data suitable for loading into Fragalysis.
 
