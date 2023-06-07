@@ -30,7 +30,7 @@ def standardize_molecule(smi):
     return std_smi, mol
 
 
-def generate_inchi(mol, opts=''):
+def generate_inchi(mol, opts=""):
     inchis = Chem.inchi.MolToInchi(mol, options=opts)
     inchik = Chem.inchi.InchiToInchiKey(inchis)
     return inchis, inchik
@@ -41,8 +41,7 @@ def remove_stereochemistry(mol):
 
 
 def main():
-
-    smi = 'N[C@@H](C)C(=O)O'
+    smi = "N[C@@H](C)C(=O)O"
     std_smi, mol = standardize_molecule(smi)
     inchis1, inchik1 = generate_inchi(mol)
     Chem.rdmolops.RemoveStereochemistry(mol)

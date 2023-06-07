@@ -10,12 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, atexit, hashlib
-from pathlib import Path
+import atexit
 import datetime
-import yaml, json
+import hashlib
+import os
+from pathlib import Path
+import sys
+import json
 
-_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+import yaml
+
+_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
 
 class Constants:
     EVENT_TABLE_DTAG = "dtag"
@@ -28,66 +34,66 @@ class Constants:
     PROCESSED_DATASETS_DIR = "processed_datasets"
     EVENT_MAP_TEMPLATES = [
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4",
-        "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4"
+        "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4",
     ]
-    XTALFORMS_FILENAME = 'xtalforms.yaml'
-    METADATA_XTAL_FILENAME = 'meta_collator.yaml'
-    METADATA_ALIGN_FILENAME = 'meta_aligner.yaml'
-    VERSION_DIR_PREFIX = 'upload_'
-    DEFAULT_SOAKDB_PATH = 'processing/database/soakDBDataFile.sqlite'
-    DEFAULT_MODEL_BUILDING_DIR = 'processing/analysis/model_building'
-    CONFIG_INPUTS = 'inputs'
-    CONFIG_TYPE = 'type'
-    CONFIG_DIR = 'dir'
-    CONFIG_SOAKDB = 'soakdb'
-    CONFIG_TYPE_MODEL_BUILDING = 'model_building'
-    CONFIG_TYPE_MANUAL = 'manual'
-    CONFIG_BASE_DIR = 'base_dir'
-    CONFIG_OUTPUT_DIR = 'output_dir'
-    CONFIG_TARGET_NAME = 'target_name'
-    META_RUN_ON = 'run_on'
-    META_INPUT_DIRS = 'input_dirs'
-    META_LAST_UPDATED = 'last_updated'
-    META_STATUS = 'status'
-    META_STATUS_SUPERSEDES = 'supersedes'
-    META_STATUS_UNCHANGED = 'unchanged'
-    META_STATUS_NEW = 'new'
-    META_STATUS_DEPRECATED = 'deprecated'
-    META_REASON = 'reason'
-    META_XTALS = 'crystals'
-    META_FILE = 'file'
-    META_SHA256 = 'sha256'
-    META_XTAL_FILES = 'crystallographic_files'
-    META_ALIGNED_FILES = 'aligned_files'
-    META_XTAL_PDB = 'xtal_pdb'
-    META_XTAL_MTZ = 'xtal_mtz'
-    META_XTAL_CIF = 'ligand_cif'
-    META_BINDING_EVENT = 'panddas_event_files'
-    META_PROT_MODEL = 'model'
-    META_PROT_CHAIN = 'chain'
-    META_PROT_RES = 'res'
-    META_PROT_INDEX = 'index'
-    META_PROT_BDC = 'bdc'
-    META_AIGNED_STRUCTURE = 'structure'
-    META_AIGNED_ARTEFACTS = 'artefacts'
-    META_AIGNED_EVENT_MAP = 'event_map'
-    META_AIGNED_X_MAP = 'x_map'
-    META_CONFORMER_SITES = 'conformer_sites'
-    META_CONFORMER_SITE_NAME = 'name'
-    META_CONFORMER_SITE_REFERENCE_LIG = 'lig_ref'
-    META_CONFORMER_SITE_RESIDUES = 'residues'
-    META_CONFORMER_SITE_MEMBERS = 'members'
-    META_CANONICAL_SITES = 'canon_sites'
-    META_CANONICAL_SITE_REF_SUBSITE = 'canon_site_ref_site'
-    META_CANONICAL_SITE_CONFORMER_SITES = 'canon_site_conf_sites'
-    META_CANONICAL_SITE_RESIDUES = 'site_residues'
-    META_CANONICAL_SITE_MEMBERS = 'site_members'
-    META_XTALFORM_SITES = 'xtalform_sites'
-    META_XTALFORM_SITE_XTALFORM_ID = 'xtalform_id'
-    META_XTALFORM_SITE_CANONICAL_SITE_ID = 'xtalform_site_id'
-    META_XTALFORM_SITE_LIGAND_CHAIN = 'lig_chain'
-    META_XTALFORM_SITE_MEMBERS = 'xtalform_members'
-    META_ASSIGNED_XTALFORM = 'assigned_xtalform'
+    XTALFORMS_FILENAME = "xtalforms.yaml"
+    METADATA_XTAL_FILENAME = "meta_collator.yaml"
+    METADATA_ALIGN_FILENAME = "meta_aligner.yaml"
+    VERSION_DIR_PREFIX = "upload_"
+    DEFAULT_SOAKDB_PATH = "processing/database/soakDBDataFile.sqlite"
+    DEFAULT_MODEL_BUILDING_DIR = "processing/analysis/model_building"
+    CONFIG_INPUTS = "inputs"
+    CONFIG_TYPE = "type"
+    CONFIG_DIR = "dir"
+    CONFIG_SOAKDB = "soakdb"
+    CONFIG_TYPE_MODEL_BUILDING = "model_building"
+    CONFIG_TYPE_MANUAL = "manual"
+    CONFIG_BASE_DIR = "base_dir"
+    CONFIG_OUTPUT_DIR = "output_dir"
+    CONFIG_TARGET_NAME = "target_name"
+    META_RUN_ON = "run_on"
+    META_INPUT_DIRS = "input_dirs"
+    META_LAST_UPDATED = "last_updated"
+    META_STATUS = "status"
+    META_STATUS_SUPERSEDES = "supersedes"
+    META_STATUS_UNCHANGED = "unchanged"
+    META_STATUS_NEW = "new"
+    META_STATUS_DEPRECATED = "deprecated"
+    META_REASON = "reason"
+    META_XTALS = "crystals"
+    META_FILE = "file"
+    META_SHA256 = "sha256"
+    META_XTAL_FILES = "crystallographic_files"
+    META_ALIGNED_FILES = "aligned_files"
+    META_XTAL_PDB = "xtal_pdb"
+    META_XTAL_MTZ = "xtal_mtz"
+    META_XTAL_CIF = "ligand_cif"
+    META_BINDING_EVENT = "panddas_event_files"
+    META_PROT_MODEL = "model"
+    META_PROT_CHAIN = "chain"
+    META_PROT_RES = "res"
+    META_PROT_INDEX = "index"
+    META_PROT_BDC = "bdc"
+    META_AIGNED_STRUCTURE = "structure"
+    META_AIGNED_ARTEFACTS = "artefacts"
+    META_AIGNED_EVENT_MAP = "event_map"
+    META_AIGNED_X_MAP = "x_map"
+    META_CONFORMER_SITES = "conformer_sites"
+    META_CONFORMER_SITE_NAME = "name"
+    META_CONFORMER_SITE_REFERENCE_LIG = "lig_ref"
+    META_CONFORMER_SITE_RESIDUES = "residues"
+    META_CONFORMER_SITE_MEMBERS = "members"
+    META_CANONICAL_SITES = "canon_sites"
+    META_CANONICAL_SITE_REF_SUBSITE = "canon_site_ref_site"
+    META_CANONICAL_SITE_CONFORMER_SITES = "canon_site_conf_sites"
+    META_CANONICAL_SITE_RESIDUES = "site_residues"
+    META_CANONICAL_SITE_MEMBERS = "site_members"
+    META_XTALFORM_SITES = "xtalform_sites"
+    META_XTALFORM_SITE_XTALFORM_ID = "xtalform_id"
+    META_XTALFORM_SITE_CANONICAL_SITE_ID = "xtalform_site_id"
+    META_XTALFORM_SITE_LIGAND_CHAIN = "lig_chain"
+    META_XTALFORM_SITE_MEMBERS = "xtalform_members"
+    META_ASSIGNED_XTALFORM = "assigned_xtalform"
     META_CHAIN = "chain"
     META_RESIDUE = "residue"
     META_DTAG = "dtag"
@@ -96,12 +102,13 @@ class Constants:
     META_XTALFORM_CELL = "xtalform_cell"
     META_ASSEMBLIES_XTALFORMS = "assemblies_xtalforms"
     META_XTALFORMS = "xtalforms"
-    META_ASSEMBLIES = 'assemblies'
-    SOAKDB_XTAL_NAME = 'CrystalName'
-    SOAKDB_COL_PDB = 'RefinementPDB_latest'
-    SOAKDB_COL_MTZ = 'RefinementMTZ_latest'
-    SOAKDB_COL_CIF = 'RefinementCIF'
-    SOAKDB_COL_LAST_UPDATED = 'LastUpdatedDate'
+    META_ASSEMBLIES = "assemblies"
+    SOAKDB_XTAL_NAME = "CrystalName"
+    SOAKDB_COL_PDB = "RefinementPDB_latest"
+    SOAKDB_COL_MTZ = "RefinementMTZ_latest"
+    SOAKDB_COL_CIF = "RefinementCIF"
+    SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
+
 
 class Logger:
     """
@@ -122,14 +129,14 @@ class Logger:
         self.warnings = 0
         self.errors = 0
         if logfile:
-            self.logfile = open(logfile, 'w')
+            self.logfile = open(logfile, "w")
             self.closed = False
         else:
             self.logfile = None
             self.closed = True
         atexit.register(self.close)
         x = datetime.datetime.now()
-        self.log('Initialising logging at level {} at {}'.format(level, x), level=0)
+        self.log("Initialising logging at level {} at {}".format(level, x), level=0)
         self.level = level
 
     def close(self):
@@ -164,11 +171,11 @@ class Logger:
 
         if level >= self.level:
             if level == 0:
-                key = 'INFO:'
+                key = "INFO:"
             elif level == 1:
-                key = 'WARN:'
+                key = "WARN:"
             elif level == 2:
-                key = 'ERROR:'
+                key = "ERROR:"
             else:
                 key = None
             if self.console:
@@ -194,21 +201,21 @@ def to_datetime(datetime_str):
 
 
 def read_config_file(filename):
-
     if os.path.isfile(filename):
-        if filename.endswith('.yaml'):
-            with open(filename, 'r') as stream:
+        if filename.endswith(".yaml"):
+            with open(filename, "r") as stream:
                 config = yaml.safe_load(stream)
                 return config
-        elif filename.endswith('.json'):
-            with open(filename, 'r') as stream:
+        elif filename.endswith(".json"):
+            with open(filename, "r") as stream:
                 config = json.load(stream)
                 return config
         else:
-            raise ValueError('Only .json or .yaml files are supported. {} was specified'.format(filename))
+            raise ValueError("Only .json or .yaml files are supported. {} was specified".format(filename))
     else:
-        msg = 'Config file {} not found'.format(filename)
+        msg = "Config file {} not found".format(filename)
         raise ValueError(msg)
+
 
 def find_property(my_dict, key, default=None):
     if key in my_dict:
@@ -227,7 +234,7 @@ def find_path(my_dict, key, default=None):
 
 def make_path_relative(p):
     if p.is_absolute():
-        return p.relative_to('/')
+        return p.relative_to("/")
     else:
         return p
 
@@ -240,12 +247,11 @@ def expand_path(p1, p2, expand=True):
 
 
 def main():
+    log = Logger(logfile="logfile.log", level=1)
 
-    log = Logger(logfile='logfile.log', level=1)
-
-    log.log('a', 'b', 'c', level=0)
-    log.log('foo', 'bar', 'baz')
-    log.log('foo', 99, 'apples', level=2)
+    log.log("a", "b", "c", level=0)
+    log.log("foo", "bar", "baz")
+    log.log("foo", 99, "apples", level=2)
 
 
 if __name__ == "__main__":

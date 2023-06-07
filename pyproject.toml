@@ -7,26 +7,21 @@ name = "xchem-align"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-description = "One line description of your module"
+description = "Tools to generate data suitable for loading into Fragalysis"
 dependencies = [
-    #        python=3.10
-    #  - pip=21.1.1
-#    'openbabel >= 3.1.1',
-    'rdkit >= 2022.09.5',
-    'pandas >= 1.5.3',
-    'pyyaml >= 6.0',
-    'gemmi >= 0.6.0',
+    'rdkit == 2022.09.5',
+    'pandas == 1.5.3',
+    'pyyaml == 6.0',
+    'gemmi == 0.6.0',
     'im-standardize-molecule == 0.1.0',
     'ligand_neighbourhood_alignment@git+https://github.com/ConorFWild/ligand_neighbourhood_alignment'
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.10"
 
 [tool.setuptools.packages.find]
@@ -36,8 +31,6 @@ where = ["xchemalign"]
 dev = [
     "black",
     "mypy",
-    "flake8-isort",
-    "Flake8-pyproject",
     "pipdeptree",
     "pre-commit",
     "pydata-sphinx-theme>=0.12",
@@ -60,7 +53,6 @@ dev = [
 #email = "conor.wild@sky.com"
 #name = "jfi22496"
 
-
 [tool.setuptools_scm]
 write_to = "xchemalign/_version.py"
 
@@ -68,32 +60,26 @@ write_to = "xchemalign/_version.py"
 ignore_missing_imports = true
 install_types = true
 non_interactive = true
+check_untyped_defs = true
 
 [tool.pylint.'MESSAGES CONTROL']
-disable = '''consider-using-f-string,
+disable = """
+    c-extension-no-member,
+    consider-using-f-string,
     import-error,
+    invalid-name,
     line-too-long,
     missing-class-docstring,
     missing-function-docstring,
     missing-module-docstring,
     R,
-    C,
     W,
     too-many-lines,
-'''
+"""
 
 [tool.isort]
 float_to_top = true
 profile = "black"
-
-[tool.flake8]
-extend-ignore = [
-    "E203", # See https://github.com/PyCQA/pycodestyle/issues/373
-    "F811", # support typing.overload decorator
-    "F722", # allow Annotated[typ, some_func("some string")]
-]
-max-line-length = 119 # Respect black's line length (default 88),
-exclude = [".tox", "venv"]
 
 [tool.black]
 line-length = 119
@@ -127,8 +113,8 @@ skipsdist=True
 # Don't create a virtualenv for the command, requires tox-direct plugin
 direct = True
 passenv = *
-allowlist_externals = 
-    pytest 
+allowlist_externals =
+    pytest
     pre-commit
     mypy
     sphinx-build

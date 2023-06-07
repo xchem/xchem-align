@@ -1,0 +1,42 @@
+---
+minimum_pre_commit_version: 3.3.2
+exclude: ^test-data/
+
+repos:
+
+# pre-commit hooks
+# ----------
+
+# Standard pre-commit rules
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: check-case-conflict
+  - id: check-docstring-first
+  - id: check-executables-have-shebangs
+  - id: check-shebang-scripts-are-executable
+  - id: detect-private-key
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+    args:
+    - --markdown-linebreak-ext=md
+# Black (uncompromising) Python code formatter
+- repo: https://github.com/psf/black
+  rev: 23.3.0
+  hooks:
+  - id: black
+    args:
+    - --skip-string-normalization
+# MyPy
+#- repo: https://github.com/pre-commit/mirrors-mypy
+#  rev: v1.3.0
+#  hooks:
+#  - id: mypy
+#    files: ^xchemalign
+# Pylint
+- repo: https://github.com/pycqa/pylint
+  rev: v2.17.4
+  hooks:
+  - id: pylint
+    args:
+    - xchemalign
