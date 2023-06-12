@@ -1,23 +1,65 @@
 # XChem Align
 
+![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/xchem/xchem-align?include_prereleases)
+
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+[![test](https://github.com/xchem/xchem-align/actions/workflows/test.yaml/badge.svg)](https://github.com/xchem/xchem-align/actions/workflows/test.yaml)
+[![mypy](https://github.com/xchem/xchem-align/actions/workflows/mypy.yaml/badge.svg)](https://github.com/xchem/xchem-align/actions/workflows/mypy.yaml)
+
 Tools to generate data suitable for loading into Fragalysis.
 
 This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
-## Available tools
+## Prerequisites
+
+* **Python 3.10** or later
+
+## Getting started (to contribute)
+
+Project dependencies are defined in the `pyproject.toml` file. From a
+clean virtual environment you can install the run-time and development
+dependencies like this:
+
+    python -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
+
+    pip install .[dev]
+
+The project also relies on CI that is run in GitHub using the actions defined
+in the files you'll find in the `.github/workflows` directory.
+
+We also require the use of the Git [pre-commit] framework.
+To get started review the pre-commit utility and then install
+the pre-commit hooks with the command: -
+
+    pre-commit install
+
+Now the project's rules will run on every commit, and you can check the
+current health of your clone with: -
+
+    pre-commit run --all-files
+
+## Getting started (to use)
+
+To run the XChem Align tools you can use a development environment
+as described above or create a suitable user (run-time) environment, that does
+not install the packages used for development: -
+
+    python -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
+
+    pip install .
+
+## The tools
 
 The following tools are being created, or planned. They typically are run in the order described.
 
-To run them you should create a conda environment using the `environment.yaml` file.
-
-```commandline
-conda env create -f environment.yaml
-conda activate xchem-align
-```
-
 ### 1. Copier
 
-This copies the necessary data from the Diamond file system to create an independent set of files that 
+This copies the necessary data from the Diamond file system to create an independent set of files that
 can be worked with locally. The data for a single crystal is HUGE and it is not realistic to copy the
 complete set of files.
 If you can run directly against the Diamond files system you do not necessarily need to use this tool.
@@ -52,13 +94,13 @@ The files copied are:
 
 This prepares the input data that is needed and puts it in a standard location. It also creates a
 `metadata.yaml` file listing those files and other necessary data. As such, this provides a consistent
-staring point for the remaining steps. If your data is not coming from Diamond then you will need to 
-provide your own mechanism to generate this consistent input, and then you can utilise the following 
+staring point for the remaining steps. If your data is not coming from Diamond then you will need to
+provide your own mechanism to generate this consistent input, and then you can utilise the following
 steps.
 
 Collator provides a mechanism for generating well-defined *releases* of data for your target. This is
 done by creating directories in the output directory named `upload_1`, `upload_2` etc. To start a new release
-just create the next `upload_*` directory and that will be used. The data previously generated in earlier 
+just create the next `upload_*` directory and that will be used. The data previously generated in earlier
 releases is not modified, but can be used in the subsequent steps.
 
 Thus, to create your first release you must create your output directory and in it a directory named `upload_1`.
@@ -69,6 +111,7 @@ You must create a `config.yaml` file containing the configuration data. It can l
 target_name: Mpro
 base_dir: data/inputs
 output_dir: data/outputs/Mpro
+copy_dir: data/inputs/copied
 inputs:
 - dir: dls/labxchem/data/2020/lb18145-153
   soakbd: processing/database/soakDBDataFile.sqlite
@@ -84,7 +127,7 @@ overrides:
 ```
 
 `base_dir` is required and is used to specify a path prefix should your input directories not reside at their
-specified absolute file path (e.g. if you have used the *copier* tool). If running directly against the files at Diamond 
+specified absolute file path (e.g. if you have used the *copier* tool). If running directly against the files at Diamond
 then the base path should be `/`.
 
 The `output_dir` must exist and contain the required `upload_*` directories (initially just a `upload_1` directory).
@@ -175,9 +218,9 @@ The output lists the files and a sha256 digest for each one to allow to determin
 
 ### 3. Aligner
 
-This tool is in preparation and generates alignments of the individual protein chains based on sites that
-can be determined automatically or manually. Its output is aligned PDB files and are placed in the current
-version directory (`upload_n`) in the `aligned_files` directory.
+This tool is in preparation and will generate alignments of the individual protein chains based on sites that
+can be determined automatically or manually. Its output will be aligned PDB files and are placed in the current
+version directory (`upload_n`) in the `aligned` directory.
 
 The expectation is that you will run *aligner* multiple times, tweaking the configuration (e.g. the site definitions)
 until you are happy with the results. Then you would run the following tools to generate the release data for
@@ -194,3 +237,7 @@ of the protein, and the ligands in various format.
 
 This tool is in preparation and will prepare a zip file for the release containing just the necessary files (e.g.
 those that are new or updated) ready for loading into Fragalysis.
+
+---
+
+[pre-commit]: https://pre-commit.com
