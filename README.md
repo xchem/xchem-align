@@ -17,13 +17,19 @@ This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
 ## Getting started (to contribute)
 
-Project dependencies are defined in the `pyproject.toml` file. From a
-clean virtual environment you can install the run-time and development
-dependencies like this:
+Project dependencies are defined in the `pyproject.toml` file.
+
+You will need to use Python 3.10 or later (a requirement of the `pyproject.toml` file).
+If you prefer to use [conda] you can create a Python 3.10 environment using the
+`environment.yaml` in this project, otherwise, if you have Python 3.10 or later,
+you can create an environment using the built-in `venv` module: -
 
     python -m venv venv
     source venv/bin/activate
     pip install --upgrade pip
+
+From your clean virtual environment you can now install the run-time and development
+dependencies like this: -
 
     pip install .[dev]
 
