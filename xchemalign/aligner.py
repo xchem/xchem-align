@@ -410,7 +410,7 @@ class Aligner:
 
         # Add the xtalform information
         meta_xtalforms = {}
-        meta_assemblies = {}
+        assemblies_dict = {}
         for xtalform_id, xtalform in xtalforms.xtalforms.items():
             xtalform_reference = xtalform.reference
             reference_structure = gemmi.read_structure(system_data.get_dataset(xtalform_reference).pdb)
@@ -438,14 +438,17 @@ class Aligner:
                 assembly_ref_chains_tup = tuple(assembly_ref_chains)
 
                 # Create an assembly or add one
-                if assembly_ref_chains_tup not in meta_assemblies:
-                    meta_assemblies[assembly_ref_chains_tup] = {
+                if assembly_ref_chains_tup not in assemblies_dict:
+                    assemblies_dict[assembly_ref_chains_tup] = {
+                        Constants.META_ASSEMBLIES_CHAINS: assembly_ref_chains,
                         Constants.META_ASSEMBLIES_XTALFORMS: [
                             xtalform_id,
                         ]
                     }
                 else:
-                    meta_assemblies[assembly_ref_chains_tup][Constants.META_ASSEMBLIES_XTALFORMS].append(xtalform_id)
+                    assemblies_dict[assembly_ref_chains_tup][Constants.META_ASSEMBLIES_XTALFORMS].append(xtalform_id)
+
+        meta_assemblies = [x for x in assemblies_dict.values()]
 
         new_meta[Constants.META_XTALFORMS] = meta_xtalforms
         new_meta[Constants.META_ASSEMBLIES] = meta_assemblies

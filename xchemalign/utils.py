@@ -103,6 +103,7 @@ class Constants:
     META_ASSEMBLIES_XTALFORMS = "assemblies_xtalforms"
     META_XTALFORMS = "xtalforms"
     META_ASSEMBLIES = "assemblies"
+    META_ASSEMBLIES_CHAINS = "chains"
     SOAKDB_XTAL_NAME = "CrystalName"
     SOAKDB_COL_PDB = "RefinementPDB_latest"
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
