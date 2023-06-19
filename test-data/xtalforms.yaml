@@ -1,20 +1,20 @@
-"xtalforms":
-  "0":
-    "id": 0
-    "reference":
-      "dtag": "Mpro-IBM0045"
-    "assemblies":
-      "0":
-        "id": 0
-        "reference_assembly": 0
-        "generators":
-          "0":
-            "id": 0
-            "reference_chain": "A"
-            "chain": "A"
-            "triplet": "x,y,z"
-          "1":
-            "id": 1
-            "reference_chain": "B"
-            "chain": "A"
-            "triplet": "-x,y,-z"
+xtalforms:
+  0:
+    id: 0
+    reference:
+      dtag: Mpro-IBM0045
+    assemblies:
+      0:
+        id: 0
+        reference_assembly: 0
+        generators:
+          0:
+            id: 0
+            reference_chain: A
+            chain: A
+            triplet: x,y,z
+          1:
+            id: 1
+            reference_chain: B
+            chain: A
+            triplet: -x,y,-z

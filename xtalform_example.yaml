@@ -1,92 +1,92 @@
-"xtalforms":
-  "0":
-    "id": 0
-    "reference":
-      "dtag": "5rgs"
-    "assemblies":
-      "0":
-        "id": 0
-        "reference_assembly": 0
-        "generators":
-          "0":
-            "id": 0
-            "reference_chain": "A"
-            "chain": "A"
-            "triplet": "x,y,z"
+xtalforms:
+  0:
+    id: 0
+    reference:
+      dtag: 5rgs
+    assemblies:
+      0:
+        id: 0
+        reference_assembly: 0
+        generators:
+          0:
+            id: 0
+            reference_chain: A
+            chain: A
+            triplet: x,y,z
 
-          "1":
-            "id": 1,
-            "reference_chain": "B",
-            "chain": "A",
-            "triplet": "-x,y,-z"
-  "1":
-    "id": 1
-    "reference":
-      "dtag": "Mpro-J0162"
-    "assemblies":
-      "0":
-        "id": 0
-        "reference_assembly": 1
-        "generators":
-          "0":
-            "id": 0
-            "reference_chain": "A"
-            "chain": "A"
-            "triplet": "x,y,z"
-          "1":
-            "id": 1
-            "reference_chain": "B"
-            "chain": "B"
-            "triplet": "x,y,z"
-  "2":
-    "id": 2
-    "reference":
-      "dtag": "8dz9"
-    "assemblies":
-      "0":
-        "id": 0
-        "reference_assembly": 1
-        "generators":
-          "0":
-            "id": 0
-            "reference_chain": "A"
-            "chain": "A",
-            "triplet": "x,y,z"
-          "1":
-            "id": 1
-            "reference_chain": "B"
-            "chain": "B"
-            "triplet": "x,y,z"
-      "1":
-        "id": 1
-        "reference_assembly": 1
-        "generators":
-          "0":
-            "id": 0
-            "reference_chain": "A"
-            "chain": "C"
-            "triplet": "x,y,z"
-          "1":
-            "id": 1
-            "reference_chain": "B"
-            "chain": "D"
-            "triplet": "x,y,z"
-  "3":
-    "id": 3
-    "reference":
-      "dtag": "8e1y"
-    "assemblies":
-      "0":
-        "id": 0
-        "reference_assembly": 1
-        "generators":
-          "0":
-            "id": 0
-            "reference_chain": "A"
-            "chain": "A"
-            "triplet": "x,y,z"
-          "1":
-            "id": 1
-            "reference_chain": "B"
-            "chain": "B"
-            "triplet": "x,y,z"
+          1:
+            id: 1,
+            reference_chain: B,
+            chain: A,
+            triplet: -x,y,-z
+  1:
+    id: 1
+    reference:
+      dtag: Mpro-J0162
+    assemblies:
+      0:
+        id: 0
+        reference_assembly: 1
+        generators:
+          0:
+            id: 0
+            reference_chain: A
+            chain: A
+            triplet: x,y,z
+          1:
+            id: 1
+            reference_chain: B
+            chain: B
+            triplet: x,y,z
+  2:
+    id: 2
+    reference:
+      dtag: 8dz9
+    assemblies:
+      0:
+        id: 0
+        reference_assembly: 1
+        generators:
+          0:
+            id: 0
+            reference_chain: A
+            chain: A,
+            triplet: x,y,z
+          1:
+            id: 1
+            reference_chain: B
+            chain: B
+            triplet: x,y,z
+      1:
+        id: 1
+        reference_assembly: 1
+        generators:
+          0:
+            id: 0
+            reference_chain: A
+            chain: C
+            triplet: x,y,z
+          1:
+            id: 1
+            reference_chain: B
+            chain: D
+            triplet: x,y,z
+  3:
+    id: 3
+    reference:
+      dtag: 8e1y
+    assemblies:
+      0:
+        id: 0
+        reference_assembly: 1
+        generators:
+          0:
+            id: 0
+            reference_chain: A
+            chain: A
+            triplet: x,y,z
+          1:
+            id: 1
+            reference_chain: B
+            chain: B
+            triplet: x,y,z
