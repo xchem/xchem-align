@@ -246,4 +246,5 @@ those that are new or updated) ready for loading into Fragalysis.
 
 ---
 
+[conda]: https://docs.conda.io/en/latest/
 [pre-commit]: https://pre-commit.com
