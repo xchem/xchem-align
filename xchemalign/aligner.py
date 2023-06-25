@@ -108,17 +108,38 @@ class Aligner:
     def run(self):
         self.logger.info("Running aligner...")
 
-        meta = utils.read_config_file(str(self.metadata_file))
+        input_meta = utils.read_config_file(str(self.metadata_file))
 
         if not self.aligned_dir.is_dir():
             self.aligned_dir.mkdir()
             self.logger.info("created aligned directory", self.aligned_dir)
 
-        new_meta = self._perform_alignments(meta)
+        new_meta = self._perform_alignments(input_meta)
 
-        # TODO - should aligned metadata_file be written to its own file?
+        self._write_output(input_meta, new_meta)
+
+    def _write_output(self, collator_dict, aligner_dict):
+        # remove this eventually
+        with open(self.version_dir / 'aligner_tmp.yaml', "w") as stream:
+            yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
+
+        collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
+        collator_dict[Constants.META_ASSEMBLIES] = aligner_dict[Constants.META_ASSEMBLIES]
+        collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
+        collator_dict[Constants.META_CANONICAL_SITES] = aligner_dict[Constants.META_CANONICAL_SITES]
+        collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
+
+        xtals = collator_dict[Constants.META_XTALS]
+        for k, v in aligner_dict.items():
+            if Constants.META_ALIGNED_FILES in v:
+                if k in xtals:
+                    xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
+                    xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
+                else:
+                    self.logger.warn('crystal {} not found in input. This is very strange.'.format(k))
+
         with open(self.version_dir / Constants.METADATA_ALIGN_FILENAME, "w") as stream:
-            yaml.dump(new_meta, stream, sort_keys=False, default_flow_style=None)
+            yaml.dump(collator_dict, stream, sort_keys=False, default_flow_style=None)
 
     def _perform_alignments(self, meta):
         self.logger.info("Performing alignments")
@@ -443,7 +464,7 @@ class Aligner:
                         Constants.META_ASSEMBLIES_CHAINS: assembly_ref_chains,
                         Constants.META_ASSEMBLIES_XTALFORMS: [
                             xtalform_id,
-                        ]
+                        ],
                     }
                 else:
                     assemblies_dict[assembly_ref_chains_tup][Constants.META_ASSEMBLIES_XTALFORMS].append(xtalform_id)
@@ -541,13 +562,13 @@ class Aligner:
                             Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                         }
 
-        num_extract_errors = self._extract_components(new_meta)
+        num_extract_errors = self._extract_components(crystals, new_meta)
         if num_extract_errors:
             self.logger.error("there were problems extracting components. See above for details")
 
         return new_meta
 
-    def _extract_components(self, meta):
+    def _extract_components(self, crystals, aligner_meta):
         """
         Extract out the required forms of the molecules.
         1. *_apo.pdb - the aligned structure without the ligand
@@ -558,14 +579,24 @@ class Aligner:
         :return:
         """
 
+        EMPTY_DICT = {}
+
         num_errors = 0
-        ignore_keys = ["conformer_sites", "canon_sites", "xtalform_sites"]
-        for k1, v1 in meta.items():  # k = xtal
-            if k1 not in ignore_keys and "aligned_files" in v1:
-                for k2, v2 in v1["aligned_files"].items():  # chain
+        ignore_keys = [Constants.META_CONFORMER_SITES, Constants.META_CANONICAL_SITES, Constants.META_XTALFORM_SITES]
+        for k1, v1 in aligner_meta.items():  # k = xtal
+            if k1 not in ignore_keys and Constants.META_ALIGNED_FILES in v1:
+                self.logger.info('handling', k1)
+                cif_file = (
+                    crystals.get(k1)
+                    .get(Constants.META_XTAL_FILES, EMPTY_DICT)
+                    .get(Constants.META_XTAL_CIF, EMPTY_DICT)
+                    .get(Constants.META_FILE)
+                )
+
+                for k2, v2 in v1[Constants.META_ALIGNED_FILES].items():  # chain
                     for k3, v3 in v2.items():  # ligand
                         for k4, v4 in v3.items():  # occurance?
-                            pdb = v4["structure"]
+                            pdb = v4[Constants.META_AIGNED_STRUCTURE]
                             self.logger.info("extracting components", k1, k2, k3, k4, pdb)
                             pth = self.version_dir / pdb
                             if not pth.is_file():
@@ -573,16 +604,31 @@ class Aligner:
                                 num_errors += 1
                             else:
                                 pdbxtal = PDBXtal(pth, pth.parent)
-                                num_errors = pdbxtal.validate()
-                                if num_errors:
-                                    self.logger.error("validation errors for extraction")
+                                errs = pdbxtal.validate()
+                                if errs:
+                                    self.logger.error("validation errors - can't extract components")
                                     num_errors += 1
                                 else:
                                     pdbxtal.create_apo_file()
                                     pdbxtal.create_apo_solv_desolv()
-                                    v4["pdb_apo"] = str(pdbxtal.apo_file.relative_to(self.version_dir))
-                                    v4["pdb_apo_solv"] = str(pdbxtal.apo_solv_file.relative_to(self.version_dir))
-                                    v4["pdb_apo_desolv"] = str(pdbxtal.apo_desolv_file.relative_to(self.version_dir))
+
+                                    v4[Constants.META_PDB_APO] = str(pdbxtal.apo_file.relative_to(self.version_dir))
+                                    v4[Constants.META_PDB_APO_SOLV] = str(
+                                        pdbxtal.apo_solv_file.relative_to(self.version_dir)
+                                    )
+                                    v4[Constants.META_PDB_APO_DESOLV] = str(
+                                        pdbxtal.apo_desolv_file.relative_to(self.version_dir)
+                                    )
+                                    if cif_file:
+                                        pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
+                                        v4[Constants.META_LIGAND_MOL] = (
+                                            str(pdbxtal.ligand_base_file.relative_to(self.version_dir)) + '.mol'
+                                        )
+                                        v4[Constants.META_LIGAND_PDB] = (
+                                            str(pdbxtal.ligand_base_file.relative_to(self.version_dir)) + '.pdb'
+                                        )
+                                        v4[Constants.META_LIGAND_SMILES] = pdbxtal.smiles
+
         return num_errors
 
 

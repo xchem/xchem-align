@@ -20,6 +20,8 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from rdkit import Chem
+
 from . import utils, processor
 from .utils import Constants
 
@@ -236,8 +238,14 @@ class Collator(processor.Processor):
                                 Constants.META_FILE: str(fdata[1]),
                                 Constants.META_SHA256: fdata[2],
                             }
+                            try:
+                                mol = utils.gen_mol_from_cif(str(self.output_path / fdata[1]))
+                                smi = Chem.MolToSmiles(mol)
+                                data_to_add[Constants.META_XTAL_CIF][Constants.META_SMILES] = smi
+                            except:
+                                self.logger.warn('failed to generate SMILES for ligand {}'.format(xtal_name))
 
-                    # copy event maps
+                            # copy event maps
                     if event_maps_to_copy:
                         if num_identical_historical_event_maps == len(event_maps_to_copy):
                             historical_data = historical_xtal_data.get(Constants.META_BINDING_EVENT)

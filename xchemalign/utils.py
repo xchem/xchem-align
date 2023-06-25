@@ -20,6 +20,9 @@ import json
 
 import yaml
 
+from rdkit import Chem, Geometry
+from gemmi import cif
+
 _DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
@@ -68,6 +71,7 @@ class Constants:
     META_XTAL_PDB = "xtal_pdb"
     META_XTAL_MTZ = "xtal_mtz"
     META_XTAL_CIF = "ligand_cif"
+    META_SMILES = "smiles"
     META_BINDING_EVENT = "panddas_event_files"
     META_PROT_MODEL = "model"
     META_PROT_CHAIN = "chain"
@@ -104,11 +108,25 @@ class Constants:
     META_XTALFORMS = "xtalforms"
     META_ASSEMBLIES = "assemblies"
     META_ASSEMBLIES_CHAINS = "chains"
+    META_PDB_APO = "pdb_apo"
+    META_PDB_APO_SOLV = "pdb_apo_solv"
+    META_PDB_APO_DESOLV = "pdb_apo_desolv"
+    META_LIGAND_MOL = "ligand_mol"
+    META_LIGAND_PDB = "ligand_pdb"
+    META_LIGAND_SMILES = "ligand_smiles"
     SOAKDB_XTAL_NAME = "CrystalName"
     SOAKDB_COL_PDB = "RefinementPDB_latest"
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
     SOAKDB_COL_CIF = "RefinementCIF"
     SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
+
+
+BOND_TYPES = {
+    'single': Chem.BondType.SINGLE,
+    'aromatic': Chem.BondType.AROMATIC,
+    'double': Chem.BondType.DOUBLE,
+    'triple': Chem.BondType.TRIPLE,
+}
 
 
 class Logger:
@@ -245,6 +263,46 @@ def expand_path(p1, p2, expand=True):
         return p1 / make_path_relative(p2)
     else:
         return p2
+
+
+def gen_mol_from_cif(cif_file):
+    mol = Chem.RWMol()
+    conf = Chem.Conformer()
+
+    doc = cif.read(cif_file)
+    block = doc.find_block('comp_LIG')
+    atom_ids = block.find_loop('_chem_comp_atom.atom_id')
+    atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
+    x = block.find_loop('_chem_comp_atom.x')
+    y = block.find_loop('_chem_comp_atom.y')
+    z = block.find_loop('_chem_comp_atom.z')
+    atoms = {}
+    for s, i, px, py, pz in zip(atom_symbols, atom_ids, x, y, z):
+        if len(s) == 2:
+            s = s[0] + s[1].lower()
+
+        atom = Chem.Atom(s)
+        atom.SetProp('atom_id', i)
+        idx = mol.AddAtom(atom)
+        atom.SetIntProp('idx', idx)
+        atoms[i] = atom
+
+        point = Geometry.Point3D(float(px), float(py), float(pz))
+        conf.SetAtomPosition(idx, point)
+
+    atom1 = block.find_loop('_chem_comp_bond.atom_id_1')
+    atom2 = block.find_loop('_chem_comp_bond.atom_id_2')
+    bond_type = block.find_loop('_chem_comp_bond.type')
+
+    for a1, a2, bt in zip(atom1, atom2, bond_type):
+        mol.AddBond(atoms[a1].GetIntProp('idx'), atoms[a2].GetIntProp('idx'), BOND_TYPES[bt])
+
+    Chem.SanitizeMol(mol)
+    mol.AddConformer(conf)
+    Chem.AssignStereochemistryFrom3D(mol)
+    mol = Chem.RemoveHs(mol)
+
+    return mol
 
 
 def main():

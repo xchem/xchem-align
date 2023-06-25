@@ -15,17 +15,24 @@ import json
 import os
 from pathlib import Path
 
+from rdkit import Chem
+from rdkit import Geometry
+
+from . import utils
+
 
 class PDBXtal:
     def __init__(self, pdbfile, output_dir, biomol=None):
         self.pdbfile = pdbfile
         self.filebase = Path(pdbfile).stem
-        self.output_dir = output_dir
+        self.output_dir = Path(output_dir)
         self.biomol = biomol
         self.non_ligs = json.load(open(os.path.join(os.path.dirname(__file__), "non_ligs.json"), "r"))
         self.apo_file = None
         self.apo_solv_file = None
         self.apo_desolv_file = None
+        self.ligand_base_file = None
+        self.smiles = None
 
     def validate(self):
         errors = 0
@@ -131,6 +138,94 @@ class PDBXtal:
 
         return prot_file_name, solv_file_name
 
+    def _extract_residue_as_list(self, chain, res_id):
+        """
+        Extracts out the lines corresponding a particular chain and residue
+        :param chain: e.g. A
+        :param res_id: e.g. 123
+        :return: The lines of the PDB corresponding to the specified residue
+        """
+
+        s = str(res_id)
+        if len(s) == 1:
+            id = '   ' + s
+        elif len(s) == 2:
+            id = '  ' + s
+        elif len(s) == 3:
+            id = ' ' + s
+        elif len(s) == 4:
+            id = s
+        else:
+            raise ValueError('Unexpected residue ID: ' + res_id)
+
+        ligand_lines = []
+        with open(self.pdbfile, "r") as pdb:
+            for line in pdb:
+                if line.startswith("HETATM") or line.startswith("ATOM"):
+                    if line[21] == chain and line[22:26] == id:
+                        ligand_lines.append(line)
+        return ligand_lines
+
+    def extract_residue(self, chain, res_id):
+        return ''.join(self._extract_residue_as_list(chain, res_id))
+
+    def extract_coordinates(self, chain, res_id):
+        lines = self._extract_residue_as_list(chain, res_id)
+        result = {}
+        for line in lines:
+            if line.startswith("HETATM") or line.startswith("ATOM"):
+                atom_id = line[12:16].strip()
+                x = float(line[30:38].strip())
+                y = float(line[38:46].strip())
+                z = float(line[46:54].strip())
+                result[atom_id] = (x, y, z)
+        return result
+
+    def create_ligands(self, chain: str, res_id, cif_file: str):
+        """
+        Generate a Molfile for the specified ligand
+        :param chain: e.g. A
+        :param res_id: e.g. 123 (int or str)
+        :param cif_file: CIF file with the expected topology
+        :return: The generated RDKit Mol
+        """
+
+        mol = utils.gen_mol_from_cif(cif_file)
+        mol.RemoveAllConformers()
+
+        coords = self.extract_coordinates(chain, res_id)
+        conf = Chem.Conformer()
+        missing = []
+        for atom_id, pos in coords.items():
+            found = False
+            for atom in mol.GetAtoms():
+                if atom.GetProp('atom_id') == atom_id:
+                    # res_info = Chem.AtomPDBResidueInfo(atom_id, chainId=chain, insertionCode=str(res_id),
+                    #                                    isHeteroAtom=True, residueName='LIG')
+                    # atom.SetPDBResidueInfo(res_info)
+                    idx = atom.GetIdx()
+                    point = Geometry.Point3D(pos[0], pos[1], pos[2])
+                    conf.SetAtomPosition(idx, point)
+                    found = True
+                    continue
+            if not found:
+                missing.append(atom_id)
+        if missing:
+            print('atoms not present in cif molecule:', missing)
+
+        mol.AddConformer(conf)
+        Chem.AssignStereochemistryFrom3D(mol)
+
+        self.ligand_base_file = self.output_dir / (self.filebase + "_ligand")
+        mol.SetProp('_Name', str(self.filebase))
+        self.smiles = Chem.MolToSmiles(mol)
+        Chem.MolToMolFile(mol, str(self.ligand_base_file) + '.mol')
+        Chem.MolToPDBFile(mol, str(self.ligand_base_file) + '.pdb')
+        with open(str(self.ligand_base_file) + '.smi', 'wt') as f:
+            f.write(self.smiles)
+
+        return mol
+
 
 def main():
     parser = argparse.ArgumentParser(description="pdb_xtal")
@@ -139,6 +234,9 @@ def main():
     parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
     parser.add_argument("-k", "--keep-headers", action="store_true", help="Keep headers")
     parser.add_argument("-b", "--biomol_txt", help="Biomol Input txt file")
+    parser.add_argument("-c", "--chain", default="A", help="Protein chain")
+    parser.add_argument("-r", "--residue", help="Ligand residue number")
+    parser.add_argument("-f", "--cif", help="CIF file with the ligand topology")
 
     args = parser.parse_args()
     print("pdb_xtal: ", args)
@@ -151,6 +249,9 @@ def main():
 
     p.create_apo_file(keep_headers=args.keep_headers)
     p.create_apo_solv_desolv()
+    if args.residue and args.cif:
+        lig_mol = p.create_ligands(args.chain, args.residue, args.cif)
+        print(lig_mol)
     print("Done")
 
 
