@@ -7,7 +7,7 @@
 [![test](https://github.com/xchem/xchem-align/actions/workflows/test.yaml/badge.svg)](https://github.com/xchem/xchem-align/actions/workflows/test.yaml)
 [![mypy](https://github.com/xchem/xchem-align/actions/workflows/mypy.yaml/badge.svg)](https://github.com/xchem/xchem-align/actions/workflows/mypy.yaml)
 
-Tools to generate data suitable for loading into Fragalysis.
+Tools to generate data suitable for loading into [Fragalysis](https://fragalysis.diamond.ac.uk/).
 
 This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
@@ -63,6 +63,9 @@ not install the packages used for development: -
 
 The following tools are being created, or planned. They typically are run in the order described.
 
+To run these tools you need access to the Diamond file system, or to data from there that has been copied using
+the `copier` tool.
+
 ### 1. Copier
 
 This copies the necessary data from the Diamond file system to create an independent set of files that
@@ -99,7 +102,7 @@ The files copied are:
 ### 2. Collator
 
 This prepares the input data that is needed and puts it in a standard location. It also creates a
-`metadata.yaml` file listing those files and other necessary data. As such, this provides a consistent
+`metadata_collator.yaml` file listing those files and other necessary data. As such, this provides a consistent
 staring point for the remaining steps. If your data is not coming from Diamond then you will need to
 provide your own mechanism to generate this consistent input, and then you can utilise the following
 steps.
@@ -171,10 +174,10 @@ The output directory will now contain data like this:
     │   │   ├── Mpro-x0072.mtz
     │   │   └── Mpro-x0072.pdb
     │   ├── Mpro-x2910
-    │   ├── Mpro-x2910.cif
-    │   ├── Mpro-x2910-event_1_1-BDC_0.36_map.ccp4
-    │   ├── Mpro-x2910.mtz
-    │   └── Mpro-x2910.pdb
+    │   │   ├── Mpro-x2910.cif
+    │   │   ├── Mpro-x2910-event_1_1-BDC_0.36_map.ccp4
+    │   │   ├── Mpro-x2910.mtz
+    │   │   ├── Mpro-x2910.pdb
     │   ├── ...
     └── metadata.yaml
 ```
@@ -182,40 +185,80 @@ The output directory will now contain data like this:
 Note that many crystals have been omitted for brevity. Typically, there will be 10's or even 100's of these.
 
 The files for each crystal are present in a separate directory, and the directories and files have standardised
-names. The `config.yaml` file is copied to the directory and a `metadata.yaml` file is created. This looks like
+names. The `config.yaml` file is copied to the directory and a `metadata_collator.yaml` file is created. This looks like
 this:
 
 ```yaml
 run_on: '2023-03-16 09:38:09.076971'
 input_dirs:
-- /dls/labxchem/data/2020/lb18145-153
-- /dls/labxchem/data/2020/lb18145-158
+- data/inputs/dls/science/groups/i04-1/conor_dev/xchemalign/mpro_pdb
+- data/inputs/dls/labxchem/data/2020/lb27963-4
+- data/inputs/dls/labxchem/data/2020/lb27995-1
+- data/inputs/dls/labxchem/data/2021/lb29612-3
 output_dir: data/outputs/Mpro
 crystals:
-  Mpro-x0072:
-    last_updated: 2021-08-12 10:39
+  ...
+  Mpro-J0013:
+    type: model_building
+    last_updated: '2022-12-09 09:56:00'
     crystallographic_files:
       xtal_pdb:
-        file: data/outputs/Mpro/upload_1/crystallographic/Mpro-x0072/Mpro-x0072.pdb
-        sha256: 18c2141bd45a211d37fbdb3169ce61c9cde28e190f693034986ee568b5f5fe7a
+        file: upload_1/crystallographic_files/Mpro-J0013/Mpro-J0013.pdb
+        sha256: 61e5d6d1e26ec35eb466df466ce93e74ac6e7770229858a83a8301db7291ea63
       xtal_mtz:
-        file: data/outputs/Mpro/upload_1/crystallographic/Mpro-x0072/Mpro-x0072.mtz
-        sha256: 911b0db787fd38a1121e089691d9807c341d83b0c2185cacd87b875a4ee69f35
+        file: upload_1/crystallographic_files/Mpro-J0013/Mpro-J0013.mtz
+        sha256: d907e97b73d969b1cc701ab1f4ace3485552d61f54ca4b02d6b690cc7a95896c
       ligand_cif:
-        file: data/outputs/Mpro/upload_1/crystallographic/Mpro-x0072/Mpro-x0072.cif
-        sha256: 3f292dfd7781772fc7e6ce4be265121a1f9a4a2592fbcaa95da380ee71c51a2e
-  Mpro-x0104:
-    last_updated: 2021-09-21 23:20
+        file: upload_1/crystallographic_files/Mpro-J0013/Mpro-J0013.cif
+        sha256: 109bcf8bfb4664d43b9e64ea685603194b79fb792c88c32b6c488ed57f84ef3c
+        smiles: CC(C)N(Cc1ccccc1)C(=O)Cn1nnc2ccccc21
+      panddas_event_files:
+      - file: upload_1/crystallographic_files/Mpro-J0013/1_A_501.ccp4
+        sha256: 4727c319d23df78ad85722eb94ce522fce20c238128a9c5ad74a25066dfdaca1
+        model: 1
+        chain: A
+        res: 501
+        index: 1
+        bdc: 0.29
+      - file: upload_1/crystallographic_files/Mpro-J0013/1_C_1.ccp4
+        sha256: 7ad23dbac264096939ce814ff427614152b1a9c6c40174f6cd6901074a0b8fac
+        model: 1
+        chain: C
+        res: 1
+        index: 2
+        bdc: 0.28
+    status: new
+  ...
+  Mpro_Nterm-x0029:
+    type: model_building
+    last_updated: '2021-03-29 23:31:00'
     crystallographic_files:
       xtal_pdb:
-        file: data/outputs/Mpro/upload_1/crystallographic/Mpro-x0104/Mpro-x0104.pdb
-        sha256: f011bf57137ffc33a299478b016100e218e7e611cc7f0e77aea126445d725d4a
+        file: upload_1/crystallographic_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029.pdb
+        sha256: 26bbb4e4602798c01eeaaeea197e135a464f9d80f734344c49f671162ba0f6c2
       xtal_mtz:
-        file: data/outputs/Mpro/upload_1/crystallographic/Mpro-x0104/Mpro-x0104.mtz
-        sha256: 28ebb1264f6d3e7a0a7d1c6a06da0970b64ed5df1c1d294728a880e545e2375e
+        file: upload_1/crystallographic_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029.mtz
+        sha256: b21e7cb020ebcde067620ce5057de9c6405a24a00836d168c4ba867f411b8014
       ligand_cif:
-        file: data/outputs/Mpro/upload_1/crystallographic/Mpro-x0104/Mpro-x0104.cif
-        sha256: d82f49029708aeaa5acb246030fedde86f5bc596f4cb38bd1cd8fc46203b8524
+        file: upload_1/crystallographic_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029.cif
+        sha256: e529b25d0a9076b4d94d621b22539f5c1752d0b201f1dfa2c00ae7f8907c5979
+        smiles: O=C1C[C@@H](Oc2cc(Cl)cc(OCCNC(=O)c3cc(=O)[nH]c4ccccc34)c2)N1
+      panddas_event_files:
+      - file: upload_1/crystallographic_files/Mpro_Nterm-x0029/1_A_501.ccp4
+        sha256: 5bac7692c34f4ed3b38f1f78c4d9121d255aaba380cc53efc8e4120b7a6d9b2b
+        model: 1
+        chain: A
+        res: 501
+        index: 1
+        bdc: 0.57
+      - file: upload_1/crystallographic_files/Mpro_Nterm-x0029/1_B_401.ccp4
+        sha256: f9aa4b331c2b4fd3713ac613f1d27128c4122df7a2ece6ecff77e0bcf321c812
+        model: 1
+        chain: B
+        res: 401
+        index: 3
+        bdc: 0.55
+    status: new
   ...
 ```
 
@@ -234,12 +277,79 @@ Fragalysis. When you have new data to process you would create a new release (cr
 and start again. Data in your previous `upload_*` directories would not be modified, but will still be used in
 generating data (e.g. alignments) for your new release.
 
-### 4. Extractor
+In addition to generating the aligned structures, this tool also extracts various components of the aligned molecules
+to standard file formats that can be used for purposes outside Fragalysis (these wiles will also be downloadable from
+Fragalysis). In summary these are:
+- the aligned PDB file
+- the aligned crystallographic artefacts
+- the aligned Panddas event maps
+- the aligned MTZ file
+- the aligned PDB file without the ligand
+- the aligned PDB file without the ligand or solvent (e.g. just the protein)
+- only the solvent molecules
+- the ligand in MDL molfile format
+- the ligand in PDB format
+- the ligand SMILES
 
-This tool is in preparation and will extract out various representation of those aligned data, such as apo forms
-of the protein, and the ligands in various format.
+The metadata generated by the `collator` tool is appended to with information on the aligned structures and written to
+a `metadata_aligner.yaml` file. An example (using the same crystals as above) is:
 
-### 5. Releaser
+```yaml
+...
+Mpro-J0013:
+  type: model_building
+  last_updated: '2022-12-09 09:56:00'
+  crystallographic_files:
+    ... (as above)
+  aligned_files:
+    A:
+      501:
+        0: {structure: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0.pdb, artefacts: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0_artefacts.pdb,
+            event_map: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0_event.ccp4, x_map: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0.ccp4,
+            pdb_apo: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0_apo.pdb, pdb_apo_solv: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0_apo-solv.pdb,
+            pdb_apo_desolv: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0_apo-desolv.pdb,
+            ligand_mol: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0_ligand.mol, ligand_pdb: aligned_files/Mpro-J0013/Mpro-J0013_A_501_0_ligand.pdb,
+            ligand_smiles: CC(C)N(Cc1ccccc1)C(=O)Cn1nnc2ccccc21}
+...
+  Mpro_Nterm-x0029:
+    type: model_building
+    last_updated: '2021-03-29 23:31:00'
+    crystallographic_files:
+      ... (as above)
+    aligned_files:
+      A:
+        501:
+          0: {structure: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0.pdb,
+            artefacts: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0_artefacts.pdb,
+            event_map: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0_event.ccp4,
+            x_map: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0.ccp4, pdb_apo: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0_apo.pdb,
+            pdb_apo_solv: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0_apo-solv.pdb,
+            pdb_apo_desolv: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0_apo-desolv.pdb,
+            ligand_mol: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0_ligand.mol,
+            ligand_pdb: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_A_501_0_ligand.pdb,
+            ligand_smiles: 'O=C1C[C@H](Oc2cc(Cl)cc(OCCNC(=O)c3cc(=O)[nH]c4ccccc34)c2)N1'}
+      B:
+        401:
+          0: {structure: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0.pdb,
+            artefacts: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0_artefacts.pdb,
+            event_map: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0_event.ccp4,
+            x_map: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0.ccp4, pdb_apo: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0_apo.pdb,
+              pdb_apo_solv: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0_apo-solv.pdb,
+            pdb_apo_desolv: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0_apo-desolv.pdb,
+            ligand_mol: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0_ligand.mol,
+            ligand_pdb: aligned_files/Mpro_Nterm-x0029/Mpro_Nterm-x0029_B_401_0_ligand.pdb,
+            ligand_smiles: 'O=C1C[C@H](Oc2cc(Cl)cc(OCCNC(=O)c3cc(=O)[nH]c4ccccc34)c2)N1'}
+  ...
+```
+
+In that data you may notice that the crystal `Mpro_Nterm-x0029` where the asymmetric unit comprises a dimer where the
+monomers are not quite identical results in two sites that get aligned (one for the active site in each chain of the
+dimer).
+
+The `metadata_aligner.yaml` file also contains information about the macromolecular assemblies, the crystalforms that
+were observed, the crystalform sites and the canonical sites, and the conformer sites (TODO - document these).
+
+### 4. Releaser
 
 This tool is in preparation and will prepare a zip file for the release containing just the necessary files (e.g.
 those that are new or updated) ready for loading into Fragalysis.
