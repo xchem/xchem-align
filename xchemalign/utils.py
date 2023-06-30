@@ -94,7 +94,7 @@ class Constants:
     META_CANONICAL_SITE_MEMBERS = "site_members"
     META_XTALFORM_SITES = "xtalform_sites"
     META_XTALFORM_SITE_XTALFORM_ID = "xtalform_id"
-    META_XTALFORM_SITE_CANONICAL_SITE_ID = "xtalform_site_id"
+    META_XTALFORM_SITE_CANONICAL_SITE_ID = "canon_site_id"
     META_XTALFORM_SITE_LIGAND_CHAIN = "lig_chain"
     META_XTALFORM_SITE_MEMBERS = "xtalform_members"
     META_ASSIGNED_XTALFORM = "assigned_xtalform"
