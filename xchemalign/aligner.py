@@ -562,6 +562,56 @@ class Aligner:
                             Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                         }
 
+        new_meta[Constants.META_TRANSFORMS] = {}
+
+        ## Get the observation to conformer site transforms
+        new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES] = []
+        for ligand_ids, transform in zip(transforms.ligand_ids, transforms.transforms):
+            transform_record = {
+                "from": {
+                    Constants.META_DTAG: ligand_ids[1].dtag,
+                    Constants.META_CHAIN: ligand_ids[1].chain,
+                    Constants.META_RESIDUE: ligand_ids[1].residue,
+            },
+                "to": {
+                    Constants.META_DTAG: ligand_ids[0].dtag,
+                    Constants.META_CHAIN: ligand_ids[0].chain,
+                    Constants.META_RESIDUE: ligand_ids[0].residue,
+            },
+                "transform": {
+                    "vec": transform.vec,
+                    "mat": transform.mat
+                }
+            }
+            new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES].append(transform_record)
+
+        ## Get the conformer site to canonical site transforms
+        new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON] = []
+        for ligand_ids, transform in zip(site_transforms.conformer_site_transform_ids, site_transforms.conformer_site_transforms):
+            transform_record = {
+                "from_conformer_site": ligand_ids[2],
+                "to_canon_site": ligand_ids[0],
+                "transform": {
+                    "vec": transform.vec,
+                    "mat": transform.mat
+                }
+            }
+            new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON].append(transform_record)
+
+        ## Get the canonical site to global transforms
+        new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CANON_SITES_TO_GLOBAL] = []
+        for canon_site_id, transform in zip(site_transforms.canonical_site_transform_ids, site_transforms.canonical_site_transforms):
+            transform_record = {
+                "from_canon_site": canon_site_id,
+                "transform": {
+                    "vec": transform.vec,
+                    "mat": transform.mat
+                }
+            }
+            new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CANON_SITES_TO_GLOBAL].append(transform_record)
+
+        new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID] = canonical_sites.reference_site_id
+
         num_extract_errors = self._extract_components(crystals, new_meta)
         if num_extract_errors:
             self.logger.error("there were problems extracting components. See above for details")
