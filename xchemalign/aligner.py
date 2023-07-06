@@ -602,7 +602,7 @@ class Aligner:
         new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CANON_SITES_TO_GLOBAL] = []
         for canon_site_id, transform in zip(site_transforms.canonical_site_transform_ids, site_transforms.canonical_site_transforms):
             transform_record = {
-                "from_canon_site": canon_site_id,
+                "from_canon_site": canon_site_id[1],
                 "transform": {
                     "vec": transform.vec,
                     "mat": transform.mat
