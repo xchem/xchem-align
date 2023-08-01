@@ -226,6 +226,62 @@ class PDBXtal:
 
         return mol
 
+    def extract_sequences(self):
+        if not self.apo_desolv_file:
+            self.create_apo_solv_desolv()
+        pdb_file = open(self.output_dir / (self.filebase + "_apo-desolv.pdb"), "rt")
+        lines = pdb_file.readlines()
+        curr_chain = None
+        curr_resno = 0
+        curr_seq = None
+        seqs = []
+        for line in lines:
+            if line.startswith('ATOM'):
+                alt = line[16].strip()
+                chain = line[21].strip()
+                code = line[17:20].strip()
+                resno = int(line[22:26].strip())
+                if chain != curr_chain:
+                    curr_chain = chain
+                    curr_seq = ProteinSeq(chain, [], start=int(resno))
+                    seqs.append(curr_seq)
+                if resno != curr_resno:
+                    for i in range(resno - curr_resno - 1):
+                        curr_seq.seq.append('UNK')
+                    curr_resno = resno
+                    curr_seq.seq.append(code)
+        return seqs
+
+
+class ProteinSeq:
+    def __init__(self, chain, seq, start=1):
+        self.chain = chain
+        self.seq = seq
+        self.start = start
+
+    def create_seqres_header(self):
+        line_res = []
+        lines = []
+        line_count = 1
+        num_res_str = str(len(self.seq)).rjust(4, ' ')
+        for i, res in enumerate(self.seq):
+            if i > 0 and i % 13 == 0:
+                lines.append(
+                    'SEQRES {} {} {}  {}'.format(
+                        str(line_count).rjust(3, ' '), self.chain, num_res_str, ' '.join(line_res)
+                    )
+                )
+                line_count += 1
+                line_res = []
+            line_res.append(res)
+        if line_res:
+            lines.append(
+                'SEQRES {} {} {}  {}'.format(
+                    str(line_count).rjust(3, ' '), self.chain, num_res_str, ' '.join(line_res)
+                )
+            )
+        return '\n'.join(lines)
+
 
 def main():
     parser = argparse.ArgumentParser(description="pdb_xtal")
@@ -252,6 +308,9 @@ def main():
     if args.residue and args.cif:
         lig_mol = p.create_ligands(args.chain, args.residue, args.cif)
         print(lig_mol)
+    seqs = p.extract_sequences()
+    for seq in seqs:
+        print(seq.create_seqres_header())
     print("Done")
 
 

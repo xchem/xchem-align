@@ -12,7 +12,7 @@ classifiers = [
 ]
 description = "Tools to generate data suitable for loading into Fragalysis"
 dependencies = [
-    'rdkit == 2022.09.5',
+    'rdkit == 2023.3.2',
     'pandas == 1.5.3',
     'pyyaml == 6.0',
     'gemmi == 0.6.0',
