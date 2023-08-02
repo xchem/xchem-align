@@ -146,7 +146,7 @@ def get_datasets_from_crystals(crystals, output_path):
 
 
 class Aligner:
-    def __init__(self, version_dir, metadata, xtalforms, assemblies, logger=None):
+    def __init__(self, version_dir, metadata, xtalforms, logger=None):
         self.version_dir = Path(version_dir)  # e.g. path/to/upload_1
         self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
@@ -156,10 +156,10 @@ class Aligner:
             self.xtalforms_file = xtalforms
         else:
             self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/xtalforms.yaml
-        if assemblies:
-            self.assemblies_file = assemblies
-        else:
-            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME
+        # if assemblies:
+        #     self.assemblies_file = assemblies
+        # else:
+        #     self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME
         if logger:
             self.logger = logger
         else:
