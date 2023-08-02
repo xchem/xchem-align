@@ -38,20 +38,40 @@ from ligand_neighbourhood_alignment.data import (
     SystemData,
     XtalForms,
 )
-from ligand_neighbourhood_alignment.generate_aligned_structures import _align_structures_from_sites
-from ligand_neighbourhood_alignment.generate_sites_from_components import (
-    get_components,
-    get_conformer_sites_from_components,
-    get_site_transforms,
-    get_sites_from_conformer_sites,
-    get_structures,
-    get_subsite_transforms,
-    get_xtalform_sites_from_canonical_sites,
+
+# from ligand neighbourhood_alignment
+from ligand_neighbourhood_alignment import dt
+
+# from ligand_neighbourhood_alignment.generate_aligned_structures import _align_structures_from_sites
+# from ligand_neighbourhood_alignment.generate_sites_from_components import (
+#     get_components,
+#     get_conformer_sites_from_components,
+#     get_site_transforms,
+#     get_sites_from_conformer_sites,
+#     get_structures,
+#     get_subsite_transforms,
+#     get_xtalform_sites_from_canonical_sites,
+# )
+# from ligand_neighbourhood_alignment.get_alignability import get_alignability
+# from ligand_neighbourhood_alignment.get_graph import get_graph
+# from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import get_ligand_neighbourhoods
+# from ligand_neighbourhood_alignment.cli import _get_assigned_xtalforms
+
+from ligand_neighbourhood_alignment.cli import (
+    _load_assemblies,
+    _load_xtalforms,
+    _load_dataset_assignments,
+    _load_ligand_neighbourhoods,
+    _load_alignability_graph,
+    _load_ligand_neighbourhood_transforms,
+    _load_conformer_sites,
+    _load_conformer_site_transforms,
+    _load_canonical_sites,
+    _load_canonical_site_transforms,
+    _load_xtalform_sites,
+    _load_reference_stucture_transforms,
+    _update,
 )
-from ligand_neighbourhood_alignment.get_alignability import get_alignability
-from ligand_neighbourhood_alignment.get_graph import get_graph
-from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import get_ligand_neighbourhoods
-from ligand_neighbourhood_alignment.cli import _get_assigned_xtalforms
 
 from . import utils
 from .utils import Constants
@@ -63,8 +83,70 @@ def try_make(path):
         os.mkdir(path)
 
 
+def read_yaml(path):
+    with open(path, 'r') as f:
+        dic = yaml.load(f)
+
+    return dic
+
+
+def get_datasets_from_crystals(crystals, output_path):
+    # dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
+    # paths to files will be defined like this: upload_1/crystallographic_files/8dz1/8dz1.pdb
+    # this is relative to the output_path variable that is defined from the metadata_file.yaml\
+    datasets = {}
+    reference_datasets = {}
+    new_datasets = {}
+    for dtag, crystal in crystals.items():
+        dataset = dt.Dataset(
+            dtag=dtag,
+            pdb=str(output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]),
+            xmap="",
+            mtz=str(
+                output_path
+                / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
+            ),
+            ligand_binding_events=LigandBindingEvents(
+                ligand_ids=[
+                    LigandID(
+                        dtag=dtag,
+                        chain=binding_event.get(Constants.META_PROT_CHAIN),
+                        residue=binding_event.get(Constants.META_PROT_RES),
+                    )
+                    for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
+                ],
+                ligand_binding_events=[
+                    LigandBindingEvent(
+                        id=0,
+                        dtag=dtag,
+                        chain=binding_event.get(Constants.META_PROT_CHAIN),
+                        residue=binding_event.get(Constants.META_PROT_RES),
+                        xmap=str(output_path / binding_event.get(Constants.META_FILE)),
+                    )
+                    for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
+                ],
+            ),
+        )
+        datasets[dtag] = dataset
+        if crystal[Constants.CRYSTAL_NEW]:
+            new_datasets[dtag] = dataset
+        if crystal[Constants.CRYSTAL_REFERENCE]:
+            reference_datasets[dtag] = dataset
+
+    if (len(datasets) == 0) or (len(datasets) == 0):
+        # self.logger.error(f"Did not find any datasets in metadata_file. Exiting.")
+        raise Exception
+
+    # self.logger.info(f"Ligand binding events in datasets:")
+    for _dataset_id, _dataset in datasets.items():
+        _num_binding_events = len(_dataset.ligand_binding_events.ligand_binding_events)
+        # self.logger.info(f"\t{_dataset_id.dtag} : Num Ligand binding events: {_num_binding_events}")
+
+    return datasets, reference_datasets, new_datasets
+
+
 class Aligner:
-    def __init__(self, version_dir, metadata, xtalforms, logger=None):
+    def __init__(self, version_dir, metadata, xtalforms, assemblies, logger=None):
         self.version_dir = Path(version_dir)  # e.g. path/to/upload_1
         self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
@@ -74,6 +156,10 @@ class Aligner:
             self.xtalforms_file = xtalforms
         else:
             self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/xtalforms.yaml
+        if assemblies:
+            self.assemblies_file = assemblies
+        else:
+            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME
         if logger:
             self.logger = logger
         else:
@@ -151,279 +237,147 @@ class Aligner:
         # the datasource json
         # visits = meta[lna_constants.META_INPUT]
         crystals = meta[Constants.META_XTALS]
-        output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
-
         # Assert that
         if len(crystals) == 0:
             self.logger.error(f"Did not find any crystals in metadata file. Exiting.")
             raise Exception
+        previous_output_path = meta[Constants.PREVIOUS_OUTPUT_DIR]
+        output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
 
-        dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
-        # paths to files will be defined like this: upload_1/crystallographic_files/8dz1/8dz1.pdb
-        # this is relative to the output_path variable that is defined from the metadata_file.yaml
-        datasets = [
-            Dataset(
-                dtag=dtag,
-                pdb=str(
-                    output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]
-                ),
-                xmap="",
-                mtz=str(
-                    output_path
-                    / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
-                ),
-                ligand_binding_events=LigandBindingEvents(
-                    ligand_ids=[
-                        LigandID(
-                            dtag=dtag,
-                            chain=binding_event.get(Constants.META_PROT_CHAIN),
-                            residue=binding_event.get(Constants.META_PROT_RES),
-                        )
-                        for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
-                    ],
-                    ligand_binding_events=[
-                        LigandBindingEvent(
-                            id=0,
-                            dtag=dtag,
-                            chain=binding_event.get(Constants.META_PROT_CHAIN),
-                            residue=binding_event.get(Constants.META_PROT_RES),
-                            xmap=str(output_path / binding_event.get(Constants.META_FILE)),
-                        )
-                        for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
-                    ],
-                ),
+        # Load the previous output dir if there is one
+        if previous_output_path:
+            source_fs_model = dt.FSModel.from_dir(previous_output_path)
+        else:
+            source_fs_model = None
+
+        # Load the fs model for the new output dir
+        fs_model = dt.FSModel.from_dir(
+            output_path,
+        )
+        if source_fs_model:
+            fs_model.alignments = source_fs_model.alignments
+            fs_model.reference_alignments = source_fs_model.reference_alignments
+
+        # symlink old aligned files
+        fs_model.symlink_old_data()
+
+        # Update the output fs model, creating flat symlinks to old data
+        if not output_path.exists():
+            os.mkdir(output_path)
+
+        aligned_structure_dir = output_path / lna_constants.constants.ALIGNED_STRUCTURES_DIR
+        if not aligned_structure_dir.exists():
+            os.mkdir(aligned_structure_dir)
+
+        # Get the datasets
+        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, output_path)
+
+        # Get assemblies
+        if source_fs_model:
+            assemblies: dict[str, dt.Assembly] = _load_assemblies(
+                source_fs_model.assemblies, Path(self.assemblies_file)
             )
-            for dtag, crystal in crystals.items()
-        ]
-        if len(dataset_ids) != len(datasets):
-            self.logger.error(
-                f"Number of dataset ids found in metadata_file not equal to number of datasets. Exiting."
+        else:
+            assemblies = _load_assemblies(fs_model.assemblies, Path(self.assemblies_file))
+
+        # Get xtalforms
+        if source_fs_model:
+            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, Path(self.xtalforms_file))
+        else:
+            xtalforms = _load_xtalforms(fs_model.xtalforms, Path(self.xtalforms_file))
+
+        # Get the dataset assignments
+        if source_fs_model:
+            dataset_assignments = _load_dataset_assignments(Path(source_fs_model.dataset_assignments))
+        else:
+            dataset_assignments = _load_dataset_assignments(Path(fs_model.dataset_assignments))
+
+        # Get Ligand neighbourhoods
+        if source_fs_model:
+            ligand_neighbourhoods: dict[tuple[str, str, str], dt.Neighbourhood] = _load_ligand_neighbourhoods(
+                source_fs_model.ligand_neighbourhoods
             )
-            raise Exception
+        else:
+            ligand_neighbourhoods = _load_ligand_neighbourhoods(fs_model.ligand_neighbourhoods)
 
-        if (len(datasets) == 0) or (len(datasets) == 0):
-            self.logger.error(f"Did not find any datasets in metadata_file. Exiting.")
-            raise Exception
+        # Get alignability graph
+        if source_fs_model:
+            alignability_graph = _load_alignability_graph(source_fs_model.alignability_graph)
+        else:
+            alignability_graph = _load_alignability_graph(fs_model.alignability_graph)
 
-        self.logger.info(f"Ligand binding events in datasets:")
-        for _dataset_id, _dataset in zip(dataset_ids, datasets):
-            _num_binding_events = len(_dataset.ligand_binding_events.ligand_binding_events)
-            self.logger.info(f"\t{_dataset_id.dtag} : Num Ligand binding events: {_num_binding_events}")
+        #
+        if source_fs_model:
+            ligand_neighbourhood_transforms: dict[
+                tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform
+            ] = _load_ligand_neighbourhood_transforms(source_fs_model.ligand_neighbourhood_transforms)
+        else:
+            ligand_neighbourhood_transforms = _load_ligand_neighbourhood_transforms(
+                fs_model.ligand_neighbourhood_transforms
+            )
 
-        system_data = SystemData(datasources=[], panddas=[], dataset_ids=dataset_ids, datasets=datasets)
+        # Get conformer sites
+        if source_fs_model:
+            conformer_sites: dict[str, dt.ConformerSite] = _load_conformer_sites(source_fs_model.conformer_sites)
+        else:
+            conformer_sites = _load_conformer_sites(fs_model.conformer_sites)
 
-        # Convert the xtalform yaml into a json and read into an Xtalforms object
-        # xtalforms = XtalForms.read(Path(meta[lna_constants.XTALFORM_JSON]))
-        with open(self.xtalforms_file, "r") as f:
-            xtalform_dict = yaml.safe_load(f)
-        xtalform_path = self.version_dir / "xtalforms.json"
-        with open(xtalform_path, "w") as f:
-            json.dump(xtalform_dict, f)
-        xtalforms = XtalForms.read(xtalform_path)
+        #
+        if source_fs_model:
+            conformer_site_transforms: dict[tuple[str, str], dt.Transform] = _load_conformer_site_transforms(
+                source_fs_model.conformer_site_transforms
+            )
+        else:
+            conformer_site_transforms = _load_conformer_site_transforms(fs_model.conformer_site_transforms)
 
-        # Parse the data sources and PanDDAs, matching ligands up to events
-        # system_data = _add_data_to_system_data(system_data)
+        # Get canonical sites
+        if source_fs_model:
+            canonical_sites: dict[str, dt.CanonicalSite] = _load_canonical_sites(source_fs_model.canonical_sites)
+        else:
+            canonical_sites = _load_canonical_sites(fs_model.canonical_sites)
 
-        # Assign each dataset to the closest xtalform and fail if this
-        # is not possible
-        assigned_xtalforms = _get_assigned_xtalforms(system_data, xtalforms)
-        self.logger.info(f"Assigned xtalforms are:")
-        for _dataset_id, _assigned_xtalform in assigned_xtalforms:
-            self.logger.info(f"\t{_dataset_id} : {_assigned_xtalform}")
+        #
+        if source_fs_model:
+            canonical_site_transforms: dict[str, dt.Transform] = _load_canonical_site_transforms(
+                source_fs_model.conformer_site_transforms
+            )
+        else:
+            canonical_site_transforms = _load_canonical_site_transforms(fs_model.conformer_site_transforms)
 
-        # Build the alignment graph
-        ligand_neighbourhoods: LigandNeighbourhoods = get_ligand_neighbourhoods(
-            system_data,
+        # Get xtalform sites
+        if source_fs_model:
+            xtalform_sites: dict[str, dt.XtalFormSite] = _load_xtalform_sites(source_fs_model.xtalform_sites)
+        else:
+            xtalform_sites = _load_xtalform_sites(fs_model.xtalform_sites)
+
+        # Get reference structure transforms
+        if source_fs_model:
+            reference_structure_transforms: dict[tuple[str, str], dt.Transform] = _load_reference_stucture_transforms(
+                source_fs_model.reference_structure_transforms
+            )
+        else:
+            reference_structure_transforms = _load_reference_stucture_transforms(
+                fs_model.reference_structure_transforms
+            )
+
+        # Run the update
+        updated_fs_model = _update(
+            fs_model,
+            datasets,
+            reference_datasets,
+            new_datasets,
+            assemblies,
             xtalforms,
-            assigned_xtalforms,
-        )
-        self.logger.info(f"Found {len(ligand_neighbourhoods.ligand_ids)} ligand neighbourhoods.")
-        self.logger.info(f"Ligand neighbourhoods are:")
-        for _ligand_id, _ligand_neighbourhood in zip(
-            ligand_neighbourhoods.ligand_ids, ligand_neighbourhoods.ligand_neighbourhoods
-        ):
-            _dtag, _chain, _residue = _ligand_id.dtag, _ligand_id.chain, _ligand_id.residue
-            _num_atoms, _num_art_atoms = len(_ligand_neighbourhood.atoms), len(_ligand_neighbourhood.artefact_atoms)
-            self.logger.info(
-                f"\t{_dtag} {_chain} {_residue} : Num atoms: {_num_atoms} : Num artefact atoms: {_num_art_atoms}"
-            )
-
-        # Get alignability
-        alignability_matrix, transforms = get_alignability(ligand_neighbourhoods, system_data)
-        _x, _y = alignability_matrix.shape
-        _z = len(ligand_neighbourhoods.ligand_ids)
-        if (_x != _y) or (_x != _z) or (_y != _z):
-            self.logger.error(f"Alignability matrix should be of shape: {_z} x {_z}, however is {_x} x {_y}")
-            raise Exception
-
-        # Generate the graph
-        g = get_graph(alignability_matrix, ligand_neighbourhoods)
-
-        # Generate canonical, conformer and xtalform sites from the
-        # alignment graph
-
-        # Get the connected components
-        connected_components = get_components(g)
-
-        # Get the subsites from the connected components with overlap
-        conformer_sites: ConformerSites = get_conformer_sites_from_components(
-            connected_components, ligand_neighbourhoods
-        )
-
-        # Merge the connected components with shared residues into sites
-        _sites = get_sites_from_conformer_sites(conformer_sites, ligand_neighbourhoods)
-        if len(_sites) == 0:
-            self.logger.error(f"Number of sites is 0: this should be impossible. Exiting.")
-            raise Exception
-
-        canonical_sites: CanonicalSites = CanonicalSites(
-            site_ids=[s.id for s in _sites],
-            sites=_sites,
-            reference_site=_sites[0],
-            reference_site_id=_sites[0].id,
-        )
-
-        # Get the xtalform sites
-        xtalform_sites = get_xtalform_sites_from_canonical_sites(
-            canonical_sites,
-            assigned_xtalforms,
-            xtalforms,
-            # assemblies,
-        )
-
-        # Get the subsite transforms
-        structures = get_structures(system_data)
-        subsite_transforms = get_subsite_transforms(canonical_sites, structures)
-
-        # Get the site transforms
-        site_transforms = get_site_transforms(canonical_sites, structures)
-        site_transforms = SiteTransforms(
-            # pylint: disable=consider-iterating-dictionary
-            canonical_site_transform_ids=[key for key in site_transforms.keys()],
-            canonical_site_transforms=[tr for tr in site_transforms.values()],
-            conformer_site_transform_ids=[key for key in subsite_transforms.keys()],
-            conformer_site_transforms=[tr for tr in subsite_transforms.values()],
-        )
-
-        # Fully specify the output now that the sites are known
-        output = Output(
-            source_dir=str(self.version_dir),
-            system_data="",
-            xtalforms="",
-            assigned_xtalforms="",
-            neighbourhoods="",
-            graph="",
-            transforms="",
-            sites="",
-            site_transforms="",
-            aligned_dir=str(self.aligned_dir),
-            dataset_output={},
-        )
-
-        # Create the aligned dir
-        try_make(output.aligned_dir)
-
-        dataset_output_dict = {}
-        for ligand_id in ligand_neighbourhoods.ligand_ids:
-            dtag, chain, residue = (
-                ligand_id.dtag,
-                ligand_id.chain,
-                ligand_id.residue,
-            )
-
-            # Create output dataset dir if not already exists
-            dataset_output_dir = output.aligned_dir + "/" + f"{dtag}"
-            try_make(dataset_output_dir)
-
-            if dtag not in dataset_output_dict:
-                dataset_output = DatasetOutput(aligned_chain_output={})
-                dataset_output_dict[dtag] = dataset_output
-            else:
-                dataset_output = dataset_output_dict[dtag]
-
-            if chain not in dataset_output.aligned_chain_output:
-                chain_output = ChainOutput(
-                    aligned_ligands={},
-                )
-                dataset_output_dict[dtag].aligned_chain_output[chain] = chain_output
-            else:
-                chain_output = dataset_output_dict[dtag].aligned_chain_output[chain]
-
-            chain_output.aligned_ligands[residue] = LigandOutput(
-                aligned_structures={}, aligned_artefacts={}, aligned_xmaps={}, aligned_event_maps={}
-            )
-
-            # Add output for each canonical site that the ligand is aligned to
-            for site_id, site in canonical_sites.iter():
-                if ligand_id not in site.members:
-                    continue
-
-                chain_output.aligned_ligands[residue].aligned_structures[site_id] = (
-                    Constants.META_ALIGNED_FILES
-                    + "/"
-                    + dtag
-                    + "/"
-                    + lna_constants.ALIGNED_STRUCTURE_TEMPLATE.format(
-                        dtag=dtag, chain=chain, residue=residue, site=site_id
-                    )
-                )
-
-                chain_output.aligned_ligands[residue].aligned_artefacts[site_id] = (
-                    Constants.META_ALIGNED_FILES
-                    + "/"
-                    + dtag
-                    + "/"
-                    + lna_constants.ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE.format(
-                        dtag=dtag, chain=chain, residue=residue, site=site_id
-                    )
-                )
-
-                chain_output.aligned_ligands[residue].aligned_xmaps[site_id] = (
-                    Constants.META_ALIGNED_FILES
-                    + "/"
-                    + dtag
-                    + "/"
-                    + lna_constants.ALIGNED_XMAP_TEMPLATE.format(dtag=dtag, chain=chain, residue=residue, site=site_id)
-                )
-
-                chain_output.aligned_ligands[residue].aligned_event_maps[site_id] = (
-                    Constants.META_ALIGNED_FILES
-                    + "/"
-                    + dtag
-                    + "/"
-                    + lna_constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
-                        dtag=dtag, chain=chain, residue=residue, site=site_id
-                    )
-                )
-
-        # Save the output file
-        output.dataset_output = dataset_output_dict
-
-        # Align structures to each canonical site
-        _align_structures_from_sites(
-            structures,
-            canonical_sites,
-            conformer_sites,
-            transforms,
+            dataset_assignments,
             ligand_neighbourhoods,
-            xtalforms,
-            assigned_xtalforms,
-            g,
-            site_transforms,
-            output,
-        )
-
-        # Align xmaps to each canonical site
-        _align_xmaps(
-            system_data,
-            structures,
-            canonical_sites,
+            alignability_graph,
+            ligand_neighbourhood_transforms,
             conformer_sites,
-            ligand_neighbourhoods,
-            g,
-            transforms,
-            site_transforms,
-            output,
+            conformer_site_transforms,
+            canonical_sites,
+            canonical_site_transforms,
+            xtalform_sites,
+            reference_structure_transforms,
         )
 
         # Update the metadata_file with aligned file locations and site information
@@ -431,10 +385,10 @@ class Aligner:
 
         # Add the xtalform information
         meta_xtalforms = {}
-        assemblies_dict = {}
-        for xtalform_id, xtalform in xtalforms.xtalforms.items():
+        xtalforms = read_yaml(updated_fs_model.xtalforms)
+        for xtalform_id, xtalform in xtalforms.items():
             xtalform_reference = xtalform.reference
-            reference_structure = gemmi.read_structure(system_data.get_dataset(xtalform_reference).pdb)
+            reference_structure = gemmi.read_structure(datasets)  # (xtalform_reference).pdb)
             reference_spacegroup = reference_structure.spacegroup_hm
             reference_unit_cell = reference_structure.cell
 
@@ -450,92 +404,127 @@ class Aligner:
                     "gamma": reference_unit_cell.gamma,
                 },
             }
-            for assembly_id, assembly in xtalform.assemblies.items():
-                assembly_ref_chains = []
-                for generator_id, generator in assembly.generators.items():
-                    ref_chain, chain, triplet = generator.reference_chain, generator.chain, generator.triplet
-                    assembly_ref_chains.append(ref_chain)
-
-                assembly_ref_chains_tup = tuple(assembly_ref_chains)
-
-                # Create an assembly or add one
-                if assembly_ref_chains_tup not in assemblies_dict:
-                    assemblies_dict[assembly_ref_chains_tup] = {
-                        Constants.META_ASSEMBLIES_CHAINS: assembly_ref_chains,
-                        Constants.META_ASSEMBLIES_XTALFORMS: [
-                            xtalform_id,
-                        ],
-                    }
-                else:
-                    assemblies_dict[assembly_ref_chains_tup][Constants.META_ASSEMBLIES_XTALFORMS].append(xtalform_id)
-
-        meta_assemblies = [x for x in assemblies_dict.values()]
 
         new_meta[Constants.META_XTALFORMS] = meta_xtalforms
-        new_meta[Constants.META_ASSEMBLIES] = meta_assemblies
 
-        print(conformer_sites)
-        print("##############################")
-        print(canonical_sites)
-        print("##############################")
-        print(xtalform_sites)
+        # for assembly_id, assembly in xtalform.assemblies.items():
+        #     assembly_ref_chains = []
+        #     for generator_id, generator in assembly.generators.items():
+        #         ref_chain, chain, triplet = generator.reference_chain, generator.chain, generator.triplet
+        #         assembly_ref_chains.append(ref_chain)
+        #
+        #     assembly_ref_chains_tup = tuple(assembly_ref_chains)
+        #
+        #     # Create an assembly or add one
+        #     if assembly_ref_chains_tup not in assemblies_dict:
+        #         assemblies_dict[assembly_ref_chains_tup] = {
+        #             Constants.META_ASSEMBLIES_CHAINS: assembly_ref_chains,
+        #             Constants.META_ASSEMBLIES_XTALFORMS: [
+        #                 xtalform_id,
+        #             ],
+        #         }
+        #     else:
+        #         assemblies_dict[assembly_ref_chains_tup][Constants.META_ASSEMBLIES_XTALFORMS].append(xtalform_id)
+
+        # meta_assemblies = [x for x in assemblies_dict.values()]
+
+        # assemblies = read_yaml(updated_fs_model.assemblies)
+        #
+        # new_meta[Constants.META_ASSEMBLIES] = meta_assemblies
 
         # Add the conformer sites
-        conformer_sites_meta = new_meta[Constants.META_CONFORMER_SITES] = {}
-        for conformer_site_id, conformer_site in conformer_sites.conformer_sites.items():
-            conformer_sites_meta[conformer_site_id] = {
-                Constants.META_CONFORMER_SITE_NAME: None,
-                Constants.META_CONFORMER_SITE_REFERENCE_LIG: {
-                    Constants.META_DTAG: conformer_site.reference_ligand_id.dtag,
-                    Constants.META_CHAIN: conformer_site.reference_ligand_id.chain,
-                    Constants.META_RESIDUE: conformer_site.reference_ligand_id.residue,
-                },
-                Constants.META_CONFORMER_SITE_RESIDUES: {
-                    Constants.META_CHAIN: [res.chain for res in conformer_site.residues],
-                    Constants.META_RESIDUE: [res.residue for res in conformer_site.residues],
-                },
-                Constants.META_CONFORMER_SITE_MEMBERS: {
-                    Constants.META_DTAG: [lid.dtag for lid in conformer_site.members],
-                    Constants.META_CHAIN: [lid.chain for lid in conformer_site.members],
-                    Constants.META_RESIDUE: [lid.residue for lid in conformer_site.members],
-                },
-            }
+        conformer_sites = read_yaml(updated_fs_model.conformer_sites)
+        new_meta[Constants.META_CONFORMER_SITES] = conformer_sites
+        # conformer_sites_meta = new_meta[Constants.META_CONFORMER_SITES] = {}
+        # for conformer_site_id, conformer_site in conformer_sites.conformer_sites.items():
+        #     conformer_sites_meta[conformer_site_id] = {
+        #         Constants.META_CONFORMER_SITE_NAME: None,
+        #         Constants.META_CONFORMER_SITE_REFERENCE_LIG: {
+        #             Constants.META_DTAG: conformer_site.reference_ligand_id.dtag,
+        #             Constants.META_CHAIN: conformer_site.reference_ligand_id.chain,
+        #             Constants.META_RESIDUE: conformer_site.reference_ligand_id.residue,
+        #         },
+        #         Constants.META_CONFORMER_SITE_RESIDUES: {
+        #             Constants.META_CHAIN: [res.chain for res in conformer_site.residues],
+        #             Constants.META_RESIDUE: [res.residue for res in conformer_site.residues],
+        #         },
+        #         Constants.META_CONFORMER_SITE_MEMBERS: {
+        #             Constants.META_DTAG: [lid.dtag for lid in conformer_site.members],
+        #             Constants.META_CHAIN: [lid.chain for lid in conformer_site.members],
+        #             Constants.META_RESIDUE: [lid.residue for lid in conformer_site.members],
+        #         },
+        #     }
 
         # Add the canonical sites
-        canonical_sites_meta = new_meta[Constants.META_CANONICAL_SITES] = {}
-        for canonical_site_id, canonical_site in zip(canonical_sites.site_ids, canonical_sites.sites):
-            canonical_sites_meta[canonical_site_id] = {
-                Constants.META_CANONICAL_SITE_REF_SUBSITE: canonical_site.reference_subsite_id,
-                Constants.META_CANONICAL_SITE_CONFORMER_SITES: canonical_site.subsite_ids,
-                Constants.META_CANONICAL_SITE_RESIDUES: {
-                    Constants.META_CHAIN: [res.chain for res in canonical_site.residues],
-                    Constants.META_RESIDUE: [res.residue for res in canonical_site.residues],
-                },
-                Constants.META_CANONICAL_SITE_MEMBERS: {
-                    Constants.META_DTAG: [lid.dtag for lid in canonical_site.members],
-                    Constants.META_CHAIN: [lid.chain for lid in canonical_site.members],
-                    Constants.META_RESIDUE: [lid.residue for lid in canonical_site.members],
-                },
-            }
+        canonical_sites = read_yaml(fs_model.canonical_sites)
+        new_meta[Constants.META_CANONICAL_SITES] = canonical_sites
+        # canonical_sites_meta = new_meta[Constants.META_CANONICAL_SITES] = {}
+        # for canonical_site_id, canonical_site in zip(canonical_sites.site_ids, canonical_sites.sites):
+        #     canonical_sites_meta[canonical_site_id] = {
+        #         Constants.META_CANONICAL_SITE_REF_SUBSITE: canonical_site.reference_subsite_id,
+        #         Constants.META_CANONICAL_SITE_CONFORMER_SITES: canonical_site.subsite_ids,
+        #         Constants.META_CANONICAL_SITE_RESIDUES: {
+        #             Constants.META_CHAIN: [res.chain for res in canonical_site.residues],
+        #             Constants.META_RESIDUE: [res.residue for res in canonical_site.residues],
+        #         },
+        #         Constants.META_CANONICAL_SITE_MEMBERS: {
+        #             Constants.META_DTAG: [lid.dtag for lid in canonical_site.members],
+        #             Constants.META_CHAIN: [lid.chain for lid in canonical_site.members],
+        #             Constants.META_RESIDUE: [lid.residue for lid in canonical_site.members],
+        #         },
+        #     }
 
         # Add the xtalform sites - note the chain is that of the original crystal structure, NOT the assembly
-        xtalform_sites_meta = new_meta[Constants.META_XTALFORM_SITES] = {}
-        for xtalform_site_id, xtalform_site in xtalform_sites.xtalform_sites.items():
-            xtalform_sites_meta[xtalform_site_id] = {
-                Constants.META_XTALFORM_SITE_XTALFORM_ID: xtalform_site.xtalform_id,
-                Constants.META_XTALFORM_SITE_CANONICAL_SITE_ID: xtalform_site.site_id,
-                Constants.META_XTALFORM_SITE_LIGAND_CHAIN: xtalform_site.crystallographic_chain,
-                Constants.META_XTALFORM_SITE_MEMBERS: {
-                    Constants.META_DTAG: [lid.dtag for lid in xtalform_site.members],
-                    Constants.META_CHAIN: [lid.chain for lid in xtalform_site.members],
-                    Constants.META_RESIDUE: [lid.residue for lid in xtalform_site.members],
-                },
-            }
+        xtalform_sites = read_yaml(fs_model.xtalform_sites)
+        new_meta[Constants.META_XTALFORM_SITES] = xtalform_sites
+        # xtalform_sites_meta = new_meta[Constants.META_XTALFORM_SITES] = {}
+        # for xtalform_site_id, xtalform_site in xtalform_sites.xtalform_sites.items():
+        #     xtalform_sites_meta[xtalform_site_id] = {
+        #         Constants.META_XTALFORM_SITE_XTALFORM_ID: xtalform_site.xtalform_id,
+        #         Constants.META_XTALFORM_SITE_CANONICAL_SITE_ID: xtalform_site.site_id,
+        #         Constants.META_XTALFORM_SITE_LIGAND_CHAIN: xtalform_site.crystallographic_chain,
+        #         Constants.META_XTALFORM_SITE_MEMBERS: {
+        #             Constants.META_DTAG: [lid.dtag for lid in xtalform_site.members],
+        #             Constants.META_CHAIN: [lid.chain for lid in xtalform_site.members],
+        #             Constants.META_RESIDUE: [lid.residue for lid in xtalform_site.members],
+        #         },
+        #     }
 
         # Add the output aligned files
+        assigned_xtalforms = read_yaml(fs_model.dataset_assignments)
+
+        # for dtag, crystal in crystals.items():
+        #     # Skip if no output for this dataset
+        #     if dtag not in dataset_output_dict:
+        #         continue
+        #
+        #     crystal_output = new_meta[dtag] = {}
+        #
+        #     # Otherwise iterate the output data structure, adding the aligned structure,
+        #     # artefacts, xmaps and event maps to the metadata_file
+        #     assigned_xtalform = assigned_xtalforms.get_xtalform_id(dtag)
+        #     crystal_output[Constants.META_ASSIGNED_XTALFORM] = assigned_xtalform
+        #
+        #     aligned_output = crystal_output[Constants.META_ALIGNED_FILES] = {}
+        #     dataset_output = dataset_output_dict[dtag]
+        #     for chain_name, chain_output in dataset_output.aligned_chain_output.items():
+        #         aligned_chain_output = aligned_output[chain_name] = {}
+        #         for ligand_residue, ligand_output in chain_output.aligned_ligands.items():
+        #             aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
+        #             for site_id, aligned_structure_path in ligand_output.aligned_structures.items():
+        #                 aligned_artefacts_path = ligand_output.aligned_artefacts[site_id]
+        #                 aligned_event_map_path = ligand_output.aligned_event_maps[site_id]
+        #                 aligned_xmap_path = ligand_output.aligned_xmaps[site_id]
+        #                 aligned_ligand_output[site_id] = {
+        #                     Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
+        #                     Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
+        #                     Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
+        #                     Constants.META_AIGNED_X_MAP: aligned_xmap_path,
+        #                 }
+
         for dtag, crystal in crystals.items():
             # Skip if no output for this dataset
-            if dtag not in dataset_output_dict:
+            if dtag not in fs_model.alignments:
                 continue
 
             crystal_output = new_meta[dtag] = {}
@@ -546,7 +535,7 @@ class Aligner:
             crystal_output[Constants.META_ASSIGNED_XTALFORM] = assigned_xtalform
 
             aligned_output = crystal_output[Constants.META_ALIGNED_FILES] = {}
-            dataset_output = dataset_output_dict[dtag]
+            dataset_output = fs_model.alignments[dtag]
             for chain_name, chain_output in dataset_output.aligned_chain_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
                 for ligand_residue, ligand_output in chain_output.aligned_ligands.items():
@@ -565,55 +554,60 @@ class Aligner:
         new_meta[Constants.META_TRANSFORMS] = {}
 
         ## Get the observation to conformer site transforms
-        new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES] = []
-        for ligand_ids, transform in zip(transforms.ligand_ids, transforms.transforms):
-            transform_record = {
-                "from": {
-                    Constants.META_DTAG: ligand_ids[1].dtag,
-                    Constants.META_CHAIN: ligand_ids[1].chain,
-                    Constants.META_RESIDUE: ligand_ids[1].residue,
-                },
-                "to": {
-                    Constants.META_DTAG: ligand_ids[0].dtag,
-                    Constants.META_CHAIN: ligand_ids[0].chain,
-                    Constants.META_RESIDUE: ligand_ids[0].residue,
-                },
-                "transform": {"vec": transform.vec, "mat": transform.mat},
-            }
-            new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES].append(
-                transform_record
-            )
+        ligand_neighbourhood_transforms = read_yaml(fs_model.ligand_neighbourhood_transforms)
+        new_meta[Constants.META_TRANSFORMS][
+            Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES
+        ] = ligand_neighbourhood_transforms
+        # new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES] = []
+        # for ligand_ids, transform in zip(transforms.ligand_ids, transforms.transforms):
+        #     transform_record = {
+        #         "from": {
+        #             Constants.META_DTAG: ligand_ids[1].dtag,
+        #             Constants.META_CHAIN: ligand_ids[1].chain,
+        #             Constants.META_RESIDUE: ligand_ids[1].residue,
+        #     },
+        #         "to": {
+        #             Constants.META_DTAG: ligand_ids[0].dtag,
+        #             Constants.META_CHAIN: ligand_ids[0].chain,
+        #             Constants.META_RESIDUE: ligand_ids[0].residue,
+        #     },
+        #         "transform": {
+        #             "vec": transform.vec,
+        #             "mat": transform.mat
+        #         }
+        #     }
+        #     new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES].append(transform_record)
 
         ## Get the conformer site to canonical site transforms
-        new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON] = []
-        for ligand_ids, transform in zip(
-            site_transforms.conformer_site_transform_ids, site_transforms.conformer_site_transforms
-        ):
-            transform_record = {
-                "from_conformer_site": ligand_ids[2],
-                "to_canon_site": ligand_ids[0],
-                "transform": {"vec": transform.vec, "mat": transform.mat},
-            }
-            new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON].append(
-                transform_record
-            )
+        conformer_site_transforms = read_yaml(fs_model.conformer_site_transforms)
+        new_meta[Constants.META_TRANSFORMS][
+            Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON
+        ] = conformer_site_transforms
+        # new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON] = []
+        # for ligand_ids, transform in zip(site_transforms.conformer_site_transform_ids, site_transforms.conformer_site_transforms):
+        #     transform_record = {
+        #         "from_conformer_site": ligand_ids[2],
+        #         "to_canon_site": ligand_ids[0],
+        #         "transform": {
+        #             "vec": transform.vec,
+        #             "mat": transform.mat
+        #         }
+        #     }
+        #     new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON].append(transform_record)
 
         ## Get the canonical site to global transforms
-        new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CANON_SITES_TO_GLOBAL] = []
-        for canon_site_id, transform in zip(
-            site_transforms.canonical_site_transform_ids, site_transforms.canonical_site_transforms
-        ):
-            transform_record = {
-                "from_canon_site": canon_site_id,
-                "transform": {"vec": transform.vec, "mat": transform.mat},
-            }
-            new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CANON_SITES_TO_GLOBAL].append(
-                transform_record
-            )
-
-        new_meta[Constants.META_TRANSFORMS][
-            Constants.META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID
-        ] = canonical_sites.reference_site_id
+        # new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CANON_SITES_TO_GLOBAL] = []
+        # for canon_site_id, transform in zip(site_transforms.canonical_site_transform_ids, site_transforms.canonical_site_transforms):
+        #     transform_record = {
+        #         "from_canon_site": canon_site_id[1],
+        #         "transform": {
+        #             "vec": transform.vec,
+        #             "mat": transform.mat
+        #         }
+        #     }
+        #     new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_CANON_SITES_TO_GLOBAL].append(transform_record)
+        #
+        # new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID] = canonical_sites.reference_site_id
 
         num_extract_errors = self._extract_components(crystals, new_meta)
         if num_extract_errors:
@@ -702,7 +696,7 @@ def main():
 
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
 
-    a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, logger=logger)
+    a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, None, logger=logger)
     num_errors, num_warnings = a.validate()
 
     if not args.validate:

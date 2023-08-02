@@ -124,6 +124,10 @@ class Constants:
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
     SOAKDB_COL_CIF = "RefinementCIF"
     SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
+    CRYSTAL_NEW = "crystal_new"
+    CRYSTAL_REFERENCE = "crystal_ref"
+    ASSEMBLIES_FILENAME = "assemblies.yaml"
+    PREVIOUS_OUTPUT_DIR = ""
 
 
 BOND_TYPES = {
