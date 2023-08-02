@@ -39,7 +39,7 @@ from ligand_neighbourhood_alignment.data import (
     XtalForms,
 )
 # from ligand neighbourhood_alignment
-import dt
+from ligand_neighbourhood_alignment import dt
 # from ligand_neighbourhood_alignment.generate_aligned_structures import _align_structures_from_sites
 # from ligand_neighbourhood_alignment.generate_sites_from_components import (
 #     get_components,
