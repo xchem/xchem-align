@@ -106,26 +106,39 @@ def get_datasets_from_crystals(crystals, output_path):
                 output_path
                 / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
             ),
-            ligand_binding_events=LigandBindingEvents(
-                ligand_ids=[
-                    LigandID(
-                        dtag=dtag,
-                        chain=binding_event.get(Constants.META_PROT_CHAIN),
-                        residue=binding_event.get(Constants.META_PROT_RES),
-                    )
-                    for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
-                ],
-                ligand_binding_events=[
-                    LigandBindingEvent(
+            # ligand_binding_events=LigandBindingEvents(
+            #     ligand_ids=[
+            #         LigandID(
+            #             dtag=dtag,
+            #             chain=binding_event.get(Constants.META_PROT_CHAIN),
+            #             residue=binding_event.get(Constants.META_PROT_RES),
+            #         )
+            #         for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
+            #     ],
+            #     ligand_binding_events=[
+            #         LigandBindingEvent(
+            #             id=0,
+            #             dtag=dtag,
+            #             chain=binding_event.get(Constants.META_PROT_CHAIN),
+            #             residue=binding_event.get(Constants.META_PROT_RES),
+            #             xmap=str(output_path / binding_event.get(Constants.META_FILE)),
+            #         )
+            #         for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
+            #     ],
+            # ),
+            ligand_binding_events={
+                (
+                    str(dtag),
+                    str(binding_event.get(Constants.META_PROT_CHAIN)),
+                    str(binding_event.get(Constants.META_PROT_RES))): dt.LigandBindingEvent(
                         id=0,
-                        dtag=dtag,
-                        chain=binding_event.get(Constants.META_PROT_CHAIN),
-                        residue=binding_event.get(Constants.META_PROT_RES),
+                        dtag=str(dtag),
+                        chain=str(binding_event.get(Constants.META_PROT_CHAIN)),
+                        residue=str(binding_event.get(Constants.META_PROT_RES)),
                         xmap=str(output_path / binding_event.get(Constants.META_FILE)),
-                    )
-                    for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
-                ],
-            ),
+            )
+                for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
+            },
         )
         datasets[dtag] = dataset
         if crystal[Constants.META_STATUS] == Constants.META_STATUS_NEW:
