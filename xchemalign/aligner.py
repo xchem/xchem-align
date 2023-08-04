@@ -128,9 +128,9 @@ def get_datasets_from_crystals(crystals, output_path):
             ),
         )
         datasets[dtag] = dataset
-        if crystal[Constants.CRYSTAL_NEW]:
+        if crystal[Constants.META_STATUS] == Constants.META_STATUS_NEW:
             new_datasets[dtag] = dataset
-        if crystal[Constants.CRYSTAL_REFERENCE]:
+        if crystal.get(Constants.CRYSTAL_REFERENCE):
             reference_datasets[dtag] = dataset
 
     if (len(datasets) == 0) or (len(datasets) == 0):
@@ -146,7 +146,7 @@ def get_datasets_from_crystals(crystals, output_path):
 
 
 class Aligner:
-    def __init__(self, version_dir, metadata, xtalforms, logger=None):
+    def __init__(self, version_dir, metadata, xtalforms, assemblies, logger=None):
         self.version_dir = Path(version_dir)  # e.g. path/to/upload_1
         self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
@@ -156,10 +156,10 @@ class Aligner:
             self.xtalforms_file = xtalforms
         else:
             self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/xtalforms.yaml
-        # if assemblies:
-        #     self.assemblies_file = assemblies
-        # else:
-        #     self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME
+        if assemblies:
+            self.assemblies_file = assemblies
+        else:
+            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME
         if logger:
             self.logger = logger
         else:
@@ -241,7 +241,7 @@ class Aligner:
         if len(crystals) == 0:
             self.logger.error(f"Did not find any crystals in metadata file. Exiting.")
             raise Exception
-        previous_output_path = meta[Constants.PREVIOUS_OUTPUT_DIR]
+        previous_output_path = meta.get(Constants.PREVIOUS_OUTPUT_DIR)
         output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
 
         # Load the previous output dir if there is one
@@ -265,7 +265,7 @@ class Aligner:
         if not output_path.exists():
             os.mkdir(output_path)
 
-        aligned_structure_dir = output_path / lna_constants.constants.ALIGNED_STRUCTURES_DIR
+        aligned_structure_dir = output_path / lna_constants.ALIGNED_STRUCTURES_DIR
         if not aligned_structure_dir.exists():
             os.mkdir(aligned_structure_dir)
 
@@ -375,7 +375,6 @@ class Aligner:
             conformer_sites,
             conformer_site_transforms,
             canonical_sites,
-            canonical_site_transforms,
             xtalform_sites,
             reference_structure_transforms,
         )
@@ -687,6 +686,7 @@ def main():
     parser.add_argument("-d", "--version-dir", required=True, help="Path to version dir")
     parser.add_argument("-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME, help="Metadata YAML file")
     parser.add_argument("-x", "--xtalforms", help="Crystal forms YAML file")
+    parser.add_argument("-a", "--assemblies", help="Assemblies YAML file")
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("--validate", action="store_true", help="Only perform validation")
@@ -696,7 +696,7 @@ def main():
 
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
 
-    a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, None, logger=logger)
+    a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, args.assemblies, logger=logger)
     num_errors, num_warnings = a.validate()
 
     if not args.validate:
