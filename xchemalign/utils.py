@@ -56,6 +56,9 @@ class Constants:
     CONFIG_TARGET_NAME = "target_name"
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
+    META_VERSION_NUM = "version_number"
+    META_VERSION_DIR = "version_dir"
+    META_PREV_VERSION_DIRS = "previous_version_dirs"
     META_LAST_UPDATED = "last_updated"
     META_STATUS = "status"
     META_STATUS_SUPERSEDES = "supersedes"
@@ -164,7 +167,7 @@ class Logger:
             self.closed = True
         atexit.register(self.close)
         x = datetime.datetime.now()
-        self.log("Initialising logging at level {} at {}".format(level, x), level=0)
+        self.log("initialising logging at level {} at {}".format(level, x), level=0)
         self.level = level
 
     def close(self):

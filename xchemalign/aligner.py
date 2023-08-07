@@ -85,7 +85,7 @@ def try_make(path):
 
 def read_yaml(path):
     with open(path, 'r') as f:
-        dic = yaml.load(f)
+        dic = yaml.safe_load(f)
 
     return dic
 
@@ -130,13 +130,14 @@ def get_datasets_from_crystals(crystals, output_path):
                 (
                     str(dtag),
                     str(binding_event.get(Constants.META_PROT_CHAIN)),
-                    str(binding_event.get(Constants.META_PROT_RES))): dt.LigandBindingEvent(
-                        id=0,
-                        dtag=str(dtag),
-                        chain=str(binding_event.get(Constants.META_PROT_CHAIN)),
-                        residue=str(binding_event.get(Constants.META_PROT_RES)),
-                        xmap=str(output_path / binding_event.get(Constants.META_FILE)),
-            )
+                    str(binding_event.get(Constants.META_PROT_RES)),
+                ): dt.LigandBindingEvent(
+                    id=0,
+                    dtag=str(dtag),
+                    chain=str(binding_event.get(Constants.META_PROT_CHAIN)),
+                    residue=str(binding_event.get(Constants.META_PROT_RES)),
+                    xmap=str(output_path / binding_event.get(Constants.META_FILE)),
+                )
                 for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
             },
         )
@@ -152,7 +153,7 @@ def get_datasets_from_crystals(crystals, output_path):
 
     # self.logger.info(f"Ligand binding events in datasets:")
     for _dataset_id, _dataset in datasets.items():
-        _num_binding_events = len(_dataset.ligand_binding_events.ligand_binding_events)
+        _num_binding_events = len(_dataset.ligand_binding_events)
         # self.logger.info(f"\t{_dataset_id.dtag} : Num Ligand binding events: {_num_binding_events}")
 
     return datasets, reference_datasets, new_datasets
@@ -223,7 +224,7 @@ class Aligner:
             yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
-        collator_dict[Constants.META_ASSEMBLIES] = aligner_dict[Constants.META_ASSEMBLIES]
+        # collator_dict[Constants.META_ASSEMBLIES] = aligner_dict[Constants.META_ASSEMBLIES]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
         collator_dict[Constants.META_CANONICAL_SITES] = aligner_dict[Constants.META_CANONICAL_SITES]
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
@@ -264,9 +265,7 @@ class Aligner:
             source_fs_model = None
 
         # Load the fs model for the new output dir
-        fs_model = dt.FSModel.from_dir(
-            output_path,
-        )
+        fs_model = dt.FSModel.from_dir(output_path)
         if source_fs_model:
             fs_model.alignments = source_fs_model.alignments
             fs_model.reference_alignments = source_fs_model.reference_alignments
@@ -399,13 +398,13 @@ class Aligner:
         meta_xtalforms = {}
         xtalforms = read_yaml(updated_fs_model.xtalforms)
         for xtalform_id, xtalform in xtalforms.items():
-            xtalform_reference = xtalform.reference
-            reference_structure = gemmi.read_structure(datasets)  # (xtalform_reference).pdb)
+            xtalform_reference = xtalform["reference"]
+            reference_structure = gemmi.read_structure(datasets[xtalform_reference].pdb)  # (xtalform_reference).pdb)
             reference_spacegroup = reference_structure.spacegroup_hm
             reference_unit_cell = reference_structure.cell
 
             meta_xtalforms[xtalform_id] = {
-                Constants.META_XTALFORM_REFERENCE: xtalform_reference.dtag,
+                Constants.META_XTALFORM_REFERENCE: xtalform_reference,
                 Constants.META_XTALFORM_SPACEGROUP: reference_spacegroup,
                 Constants.META_XTALFORM_CELL: {
                     "a": reference_unit_cell.a,
@@ -543,14 +542,14 @@ class Aligner:
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
-            assigned_xtalform = assigned_xtalforms.get_xtalform_id(dtag)
+            assigned_xtalform = assigned_xtalforms[dtag]
             crystal_output[Constants.META_ASSIGNED_XTALFORM] = assigned_xtalform
 
             aligned_output = crystal_output[Constants.META_ALIGNED_FILES] = {}
             dataset_output = fs_model.alignments[dtag]
-            for chain_name, chain_output in dataset_output.aligned_chain_output.items():
+            for chain_name, chain_output in dataset_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
-                for ligand_residue, ligand_output in chain_output.aligned_ligands.items():
+                for ligand_residue, ligand_output in chain_output.items():
                     aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
                     for site_id, aligned_structure_path in ligand_output.aligned_structures.items():
                         aligned_artefacts_path = ligand_output.aligned_artefacts[site_id]

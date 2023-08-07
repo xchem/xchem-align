@@ -12,12 +12,11 @@
 
 import argparse
 import shutil
-import os
 from pathlib import Path
 
 import pandas as pd
 
-from . import dbreader, processor, utils
+from . import collator, dbreader, utils
 from .utils import Constants
 
 
@@ -34,7 +33,7 @@ def _generate_path(base_path: Path, input_path: Path, file_path):
             return file_path
 
 
-class Copier(processor.Processor):
+class Copier:
     def __init__(
         self,
         base_path: Path,
@@ -98,7 +97,7 @@ class Copier(processor.Processor):
         for index, row in df.iterrows():
             count += 1
             xtal_name = row["CrystalName"]
-            xtal_dir_path = processor.generate_xtal_dir(self.input_path, xtal_name)
+            xtal_dir_path = collator.generate_xtal_dir(self.input_path, xtal_name)
             self.logger.info("processing {} {}".format(count, xtal_name))
 
             file = row["RefinementPDB_latest"]
