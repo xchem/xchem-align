@@ -272,7 +272,8 @@ class Aligner:
             fs_model.reference_alignments = source_fs_model.reference_alignments
 
         # symlink old aligned files
-        fs_model.symlink_old_data()
+        if Path(previous_output_path).resolve() != output_path.resolve():
+            fs_model.symlink_old_data()
 
         # Update the output fs model, creating flat symlinks to old data
         if not output_path.exists():
