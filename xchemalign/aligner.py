@@ -283,7 +283,7 @@ class Aligner:
             os.mkdir(aligned_structure_dir)
 
         # Get the datasets
-        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, output_path)
+        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, self.base_dir)
 
         # Get assemblies
         if source_fs_model:
