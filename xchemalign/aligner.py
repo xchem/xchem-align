@@ -224,7 +224,7 @@ class Aligner:
             yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
-        # collator_dict[Constants.META_ASSEMBLIES] = aligner_dict[Constants.META_ASSEMBLIES]
+        collator_dict[Constants.META_ASSEMBLIES] = aligner_dict[Constants.META_ASSEMBLIES]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
         collator_dict[Constants.META_CANONICAL_SITES] = aligner_dict[Constants.META_CANONICAL_SITES]
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
@@ -256,7 +256,8 @@ class Aligner:
             self.logger.error(f"Did not find any crystals in metadata file. Exiting.")
             raise Exception
         previous_output_path = meta.get(Constants.PREVIOUS_OUTPUT_DIR)
-        output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
+        # output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
+        output_path = self.version_dir
 
         # Load the previous output dir if there is one
         if previous_output_path:
@@ -417,31 +418,6 @@ class Aligner:
             }
 
         new_meta[Constants.META_XTALFORMS] = meta_xtalforms
-
-        # for assembly_id, assembly in xtalform.assemblies.items():
-        #     assembly_ref_chains = []
-        #     for generator_id, generator in assembly.generators.items():
-        #         ref_chain, chain, triplet = generator.reference_chain, generator.chain, generator.triplet
-        #         assembly_ref_chains.append(ref_chain)
-        #
-        #     assembly_ref_chains_tup = tuple(assembly_ref_chains)
-        #
-        #     # Create an assembly or add one
-        #     if assembly_ref_chains_tup not in assemblies_dict:
-        #         assemblies_dict[assembly_ref_chains_tup] = {
-        #             Constants.META_ASSEMBLIES_CHAINS: assembly_ref_chains,
-        #             Constants.META_ASSEMBLIES_XTALFORMS: [
-        #                 xtalform_id,
-        #             ],
-        #         }
-        #     else:
-        #         assemblies_dict[assembly_ref_chains_tup][Constants.META_ASSEMBLIES_XTALFORMS].append(xtalform_id)
-
-        # meta_assemblies = [x for x in assemblies_dict.values()]
-
-        # assemblies = read_yaml(updated_fs_model.assemblies)
-        #
-        # new_meta[Constants.META_ASSEMBLIES] = meta_assemblies
 
         # Add the conformer sites
         conformer_sites = read_yaml(updated_fs_model.conformer_sites)
