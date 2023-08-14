@@ -1,6 +1,6 @@
-1: 
+1:
     reference: Mpro-IBM0045
     assemblies:
-        1: 
+        1:
             assembly: 1
-            chains: A,A(-x,y,-z)
+            chains: A,A(-x,y,-z)a
