@@ -636,7 +636,8 @@ class Aligner:
                         for k4, v4 in v3.items():  # occurance?
                             pdb = v4[Constants.META_AIGNED_STRUCTURE]
                             self.logger.info("extracting components", k1, k2, k3, k4, pdb)
-                            pth = self.version_dir / pdb
+                            # pth = self.version_dir / pdb
+                            pth = Path(pdb)
                             if not pth.is_file():
                                 self.logger.error("can't find file", pth)
                                 num_errors += 1
