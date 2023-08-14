@@ -224,7 +224,7 @@ class Aligner:
             yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
-        collator_dict[Constants.META_ASSEMBLIES] = aligner_dict[Constants.META_ASSEMBLIES]
+        # collator_dict[Constants.META_ASSEMBLIES] = aligner_dict[Constants.META_ASSEMBLIES]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
         collator_dict[Constants.META_CANONICAL_SITES] = aligner_dict[Constants.META_CANONICAL_SITES]
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
