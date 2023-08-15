@@ -276,7 +276,6 @@ class Collator:
         num_mtz_files = 0
         num_cif_files = 0
         ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
-        print(ref_datasets)
 
         for index, row in df.iterrows():
             count += 1
@@ -388,6 +387,8 @@ class Collator:
                             Constants.META_SHA256: digest,
                         }
                     data[Constants.META_XTAL_FILES] = f_data
+
+        print(data)
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
         if num_mtz_files < num_pdb_files:
