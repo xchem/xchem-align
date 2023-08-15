@@ -100,7 +100,7 @@ def traverse_dictionary(dic, func):
         try:
             traverse_dictionary(value, func)
         except AttributeError:
-            value = func(value)
+            dic[key] = func(value)
 
 
 
