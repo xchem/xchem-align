@@ -143,7 +143,7 @@ def get_datasets_from_crystals(crystals, output_path):
         datasets[dtag] = dataset
         if crystal[Constants.META_STATUS] == Constants.META_STATUS_NEW:
             new_datasets[dtag] = dataset
-        if crystal.get(Constants.CRYSTAL_REFERENCE):
+        if crystal.get(Constants.META_REFERENCE):
             reference_datasets[dtag] = dataset
 
     if (len(datasets) == 0) or (len(datasets) == 0):
@@ -164,7 +164,7 @@ class Aligner:
         self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
         self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES  # e.g. path/to/upload_1/crystallographic_files
-        self.metadata_file = self.version_dir / metadata  # e.g. path/to/upload_1/metadata.yaml
+        self.metadata_file = self.version_dir / metadata  # e.g. path/to/upload_1/meta_collator.yaml
         if xtalforms:
             self.xtalforms_file = xtalforms
         else:
