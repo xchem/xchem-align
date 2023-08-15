@@ -388,7 +388,6 @@ class Collator:
                         }
                     data[Constants.META_XTAL_FILES] = f_data
 
-        print(data)
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
         if num_mtz_files < num_pdb_files:
