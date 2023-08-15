@@ -258,6 +258,10 @@ class Aligner:
         # output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
         output_path = self.version_dir
 
+        aligned_files_dir = output_path / lna_constants.ALIGNED_FILES_DIR
+        if not aligned_files_dir.exists():
+            os.mkdir(aligned_files_dir)
+
         # Load the previous output dir if there is one
         if previous_output_path:
             source_fs_model = dt.FSModel.from_dir(previous_output_path)
