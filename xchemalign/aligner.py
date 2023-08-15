@@ -91,9 +91,7 @@ def read_yaml(path):
 def path_to_relative_string(path, base_path, ):
     try:
         rel_path = path.relative_to(base_path)
-        print(str(path))
-        print(str(base_path))
-        print(str(rel_path))
+
         return str(rel_path)
     except AttributeError:
         return path
@@ -247,14 +245,12 @@ class Aligner:
         collator_dict[Constants.META_CANONICAL_SITES] = aligner_dict[Constants.META_CANONICAL_SITES]
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
 
-        print(f"DEBUG")
         xtals = collator_dict[Constants.META_XTALS]
         for k, v in aligner_dict.items():
             if Constants.META_ALIGNED_FILES in v:
                 if k in xtals:
                     xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
                     xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
-                    print(f"Traversing")
                     traverse_dictionary(
                         xtals[k][Constants.META_ALIGNED_FILES],
                         lambda x: path_to_relative_string(x, self.base_dir),
@@ -297,7 +293,6 @@ class Aligner:
 
         # Load the fs model for the new output dir
         fs_model = dt.FSModel.from_dir(output_path)
-        # hack to set the right paths
         fs_model.xtalforms = self.xtalforms_file
         fs_model.assemblies = self.assemblies_file
         if source_fs_model:
