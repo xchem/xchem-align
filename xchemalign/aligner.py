@@ -247,7 +247,7 @@ class Aligner:
         collator_dict[Constants.META_CANONICAL_SITES] = aligner_dict[Constants.META_CANONICAL_SITES]
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
 
-
+        print(f"DEBUG")
         xtals = collator_dict[Constants.META_XTALS]
         for k, v in aligner_dict.items():
             if Constants.META_ALIGNED_FILES in v:
