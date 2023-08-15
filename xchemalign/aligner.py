@@ -91,6 +91,9 @@ def read_yaml(path):
 def path_to_relative_string(path, base_path, ):
     try:
         rel_path = path.relative_to(base_path)
+        print(str(path))
+        print(str(base_path))
+        print(str(rel_path))
         return str(rel_path)
     except AttributeError:
         return path
@@ -244,16 +247,21 @@ class Aligner:
         collator_dict[Constants.META_CANONICAL_SITES] = aligner_dict[Constants.META_CANONICAL_SITES]
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
 
+
         xtals = collator_dict[Constants.META_XTALS]
         for k, v in aligner_dict.items():
             if Constants.META_ALIGNED_FILES in v:
                 if k in xtals:
                     xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
                     xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
+                    traverse_dictionary(
+                        xtals[k][Constants.META_ALIGNED_FILES],
+                        lambda x: path_to_relative_string(x, self.base_dir),
+                    )
+
                 else:
                     self.logger.warn('crystal {} not found in input. This is very strange.'.format(k))
 
-        traverse_dictionary(collator_dict, lambda x: path_to_relative_string(x, self.base_dir))
 
         with open(self.version_dir / Constants.METADATA_ALIGN_FILENAME, "w") as stream:
             yaml.dump(collator_dict, stream, sort_keys=False, default_flow_style=None)
