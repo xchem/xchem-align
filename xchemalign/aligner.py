@@ -166,11 +166,11 @@ class Aligner:
         self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES  # e.g. path/to/upload_1/crystallographic_files
         self.metadata_file = self.version_dir / metadata  # e.g. path/to/upload_1/meta_collator.yaml
         if xtalforms:
-            self.xtalforms_file = xtalforms
+            self.xtalforms_file = Path(xtalforms)
         else:
             self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/xtalforms.yaml
         if assemblies:
-            self.assemblies_file = assemblies
+            self.assemblies_file = Path(assemblies)
         else:
             self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME  # e.g. path/to/assemblies.yaml
         if logger:
