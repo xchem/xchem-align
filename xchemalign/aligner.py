@@ -96,14 +96,12 @@ def path_to_relative_string(path, base_path, ):
         return path
 
 def traverse_dictionary(dic, func):
-    try:
-        for key, value in dic.items():
-            try:
-                traverse_dictionary(value, func)
-            except AttributeError:
-                value = func(value)
-    except AttributeError:
-        return
+    for key, value in dic.items():
+        try:
+            traverse_dictionary(value, func)
+        except AttributeError:
+            value = func(value)
+
 
 
 
