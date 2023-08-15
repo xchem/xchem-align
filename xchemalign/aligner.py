@@ -88,6 +88,24 @@ def read_yaml(path):
 
     return dic
 
+def path_to_relative_string(path, base_path, ):
+    try:
+        rel_path = path.relative_to(base_path)
+        return str(rel_path)
+    except AttributeError:
+        return path
+
+def traverse_dictionary(dic, func):
+    try:
+        for key, value in dic.items():
+            try:
+                traverse_dictionary(value, func)
+            except AttributeError:
+                value = func(value)
+    except AttributeError:
+        return
+
+
 
 def get_datasets_from_crystals(crystals, output_path):
     # dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
@@ -236,6 +254,8 @@ class Aligner:
                     xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
                 else:
                     self.logger.warn('crystal {} not found in input. This is very strange.'.format(k))
+
+        traverse_dictionary(collator_dict, lambda x: path_to_relative_string(x, self.base_dir))
 
         with open(self.version_dir / Constants.METADATA_ALIGN_FILENAME, "w") as stream:
             yaml.dump(collator_dict, stream, sort_keys=False, default_flow_style=None)
