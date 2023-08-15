@@ -56,6 +56,7 @@ class Input:
         type: str,
         soakdb_file_path,
         panddas_event_file_paths: list[Path],
+        reference=False,
         logger=None,
     ):
         self.base_path = base_path
@@ -65,6 +66,7 @@ class Input:
         self.panddas_event_file_paths = panddas_event_file_paths
         self.errors = []
         self.warnings = []
+        self.reference = reference
         if logger:
             self.logger = logger
         else:
@@ -273,6 +275,7 @@ class Collator:
         num_pdb_files = 0
         num_mtz_files = 0
         num_cif_files = 0
+        ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
 
         for index, row in df.iterrows():
             count += 1
@@ -354,7 +357,10 @@ class Collator:
                     if xtal_name in crystals.keys():
                         self._log_warning("Crystal {} already exists, it's data will be overriden".format(xtal_name))
 
-                    data = {Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MODEL_BUILDING}
+                    data = {}
+                    if xtal_name in ref_datasets:
+                        data[Constants.META_REFERENCE] = True
+                    data[Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MODEL_BUILDING
                     self.logger.info("adding crystal (model_building)", xtal_name)
                     crystals[xtal_name] = data
                     last_updated_date = row[Constants.SOAKDB_COL_LAST_UPDATED]
@@ -395,6 +401,7 @@ class Collator:
     def _validate_manual_input(self, input, crystals):
         num_pdb_files = 0
         num_mtz_files = 0
+        ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
         for child in (self.base_path / input.input_dir_path).iterdir():
             pdb = None
             mtz = None
@@ -421,10 +428,11 @@ class Collator:
                             Constants.META_SHA256: digest,
                         }
                         num_mtz_files += 1
-                    crystals[child.name] = {
-                        Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MANUAL,
-                        Constants.META_XTAL_FILES: data,
-                    }
+                    crystals[child.name] = {}
+                    if child.name in ref_datasets:
+                        crystals[child.name][Constants.META_REFERENCE] = True
+                    crystals[child.name][Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MANUAL
+                    crystals[child.name][Constants.META_XTAL_FILES] = data
 
         if num_mtz_files < num_pdb_files:
             self.logger.warn(

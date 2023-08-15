@@ -11,7 +11,6 @@
 # limitations under the License.
 
 import argparse
-import json
 import os
 from pathlib import Path
 
@@ -173,7 +172,7 @@ class Aligner:
         if assemblies:
             self.assemblies_file = assemblies
         else:
-            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME
+            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME  # e.g. path/to/assemblies.yaml
         if logger:
             self.logger = logger
         else:
@@ -210,9 +209,10 @@ class Aligner:
 
         input_meta = utils.read_config_file(str(self.metadata_file))
 
-        if not self.aligned_dir.is_dir():
-            self.aligned_dir.mkdir()
-            self.logger.info("created aligned directory", self.aligned_dir)
+        # FIXME
+        # if not self.aligned_dir.is_dir():
+        #     self.aligned_dir.mkdir()
+        #     self.logger.info("created aligned directory", self.aligned_dir)
 
         new_meta = self._perform_alignments(input_meta)
 
@@ -224,7 +224,6 @@ class Aligner:
             yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
-        # collator_dict[Constants.META_ASSEMBLIES] = aligner_dict[Constants.META_ASSEMBLIES]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
         collator_dict[Constants.META_CANONICAL_SITES] = aligner_dict[Constants.META_CANONICAL_SITES]
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
@@ -267,6 +266,9 @@ class Aligner:
 
         # Load the fs model for the new output dir
         fs_model = dt.FSModel.from_dir(output_path)
+        # hack to set the right paths
+        fs_model.xtalforms = self.xtalforms_file
+        fs_model.assemblies = self.assemblies_file
         if source_fs_model:
             fs_model.alignments = source_fs_model.alignments
             fs_model.reference_alignments = source_fs_model.reference_alignments
@@ -289,17 +291,19 @@ class Aligner:
 
         # Get assemblies
         if source_fs_model:
-            assemblies: dict[str, dt.Assembly] = _load_assemblies(
-                source_fs_model.assemblies, Path(self.assemblies_file)
-            )
+            self.logger.info('1 reading assemblies from', source_fs_model.assemblies, self.assemblies_file)
+            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.assemblies, self.assemblies_file)
         else:
-            assemblies = _load_assemblies(fs_model.assemblies, Path(self.assemblies_file))
+            self.logger.info('2 reading assemblies from', fs_model.assemblies, self.assemblies_file)
+            assemblies = _load_assemblies(fs_model.assemblies, self.assemblies_file)
 
         # Get xtalforms
         if source_fs_model:
-            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, Path(self.xtalforms_file))
+            self.logger.info('1 reading xtalforms from', source_fs_model.xtalforms, self.xtalforms_file)
+            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.xtalforms_file)
         else:
-            xtalforms = _load_xtalforms(fs_model.xtalforms, Path(self.xtalforms_file))
+            self.logger.info('2 reading xtalforms from', fs_model.xtalforms, self.xtalforms_file)
+            xtalforms = _load_xtalforms(fs_model.xtalforms, self.xtalforms_file)
 
         # Get the dataset assignments
         if source_fs_model:
