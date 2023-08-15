@@ -276,6 +276,7 @@ class Collator:
         num_mtz_files = 0
         num_cif_files = 0
         ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
+        print(ref_datasets)
 
         for index, row in df.iterrows():
             count += 1
