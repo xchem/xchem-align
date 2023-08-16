@@ -12,6 +12,7 @@
 
 import argparse
 import os
+import shutil
 from pathlib import Path
 
 import yaml
@@ -88,7 +89,11 @@ def read_yaml(path):
 
     return dic
 
-def path_to_relative_string(path, base_path, ):
+
+def path_to_relative_string(
+    path,
+    base_path,
+):
     try:
         rel_path = path.relative_to(base_path)
 
@@ -96,14 +101,13 @@ def path_to_relative_string(path, base_path, ):
     except AttributeError:
         return path
 
+
 def traverse_dictionary(dic, func):
     for key, value in dic.items():
         try:
             traverse_dictionary(value, func)
         except AttributeError:
             dic[key] = func(value)
-
-
 
 
 def get_datasets_from_crystals(crystals, output_path):
@@ -223,22 +227,18 @@ class Aligner:
 
     def run(self):
         self.logger.info("Running aligner...")
-
         input_meta = utils.read_config_file(str(self.metadata_file))
-
-        # FIXME
-        # if not self.aligned_dir.is_dir():
-        #     self.aligned_dir.mkdir()
-        #     self.logger.info("created aligned directory", self.aligned_dir)
-
         new_meta = self._perform_alignments(input_meta)
-
         self._write_output(input_meta, new_meta)
 
     def _write_output(self, collator_dict, aligner_dict):
         # remove this eventually
         with open(self.version_dir / 'aligner_tmp.yaml', "w") as stream:
             yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
+
+        # keep a copy of the xtaforms and assemblies configs
+        self._copy_file_to_version_dir(self.xtalforms_file)
+        self._copy_file_to_version_dir(self.assemblies_file)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
@@ -259,9 +259,13 @@ class Aligner:
                 else:
                     self.logger.warn('crystal {} not found in input. This is very strange.'.format(k))
 
-
         with open(self.version_dir / Constants.METADATA_ALIGN_FILENAME, "w") as stream:
             yaml.dump(collator_dict, stream, sort_keys=False, default_flow_style=None)
+
+    def _copy_file_to_version_dir(self, file_path):
+        f = shutil.copy2(file_path, self.version_dir)
+        if not f:
+            self.logger.warn("Failed to copy file {} to {}".format(file_path, self.version_dir))
 
     def _perform_alignments(self, meta):
         self.logger.info("Performing alignments")
@@ -281,7 +285,7 @@ class Aligner:
         # output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
         output_path = self.version_dir
 
-        aligned_files_dir = output_path / lna_constants.ALIGNED_FILES_DIR
+        aligned_files_dir = output_path / Constants.META_ALIGNED_FILES
         if not aligned_files_dir.exists():
             os.mkdir(aligned_files_dir)
 
