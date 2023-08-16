@@ -8,4 +8,4 @@ data
 ./config.yaml
 xchemalign/xchem_align.egg-info/
 xchemalign/_version.py
-test-data/outputs/
+test-data/outputs/upload_*
