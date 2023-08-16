@@ -312,10 +312,6 @@ class Aligner:
         if not output_path.exists():
             os.mkdir(output_path)
 
-        aligned_structure_dir = output_path / lna_constants.ALIGNED_STRUCTURES_DIR
-        if not aligned_structure_dir.exists():
-            os.mkdir(aligned_structure_dir)
-
         # Get the datasets
         datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, self.base_dir)
 
@@ -685,20 +681,20 @@ class Aligner:
                                     pdbxtal.create_apo_file()
                                     pdbxtal.create_apo_solv_desolv()
 
-                                    v4[Constants.META_PDB_APO] = str(pdbxtal.apo_file.relative_to(self.version_dir))
+                                    v4[Constants.META_PDB_APO] = str(pdbxtal.apo_file.relative_to(self.base_dir))
                                     v4[Constants.META_PDB_APO_SOLV] = str(
-                                        pdbxtal.apo_solv_file.relative_to(self.version_dir)
+                                        pdbxtal.apo_solv_file.relative_to(self.base_dir)
                                     )
                                     v4[Constants.META_PDB_APO_DESOLV] = str(
-                                        pdbxtal.apo_desolv_file.relative_to(self.version_dir)
+                                        pdbxtal.apo_desolv_file.relative_to(self.base_dir)
                                     )
                                     if cif_file:
                                         pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
                                         v4[Constants.META_LIGAND_MOL] = (
-                                            str(pdbxtal.ligand_base_file.relative_to(self.version_dir)) + '.mol'
+                                            str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.mol'
                                         )
                                         v4[Constants.META_LIGAND_PDB] = (
-                                            str(pdbxtal.ligand_base_file.relative_to(self.version_dir)) + '.pdb'
+                                            str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.pdb'
                                         )
                                         v4[Constants.META_LIGAND_SMILES] = pdbxtal.smiles
 
