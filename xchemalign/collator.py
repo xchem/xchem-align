@@ -330,6 +330,7 @@ class Collator:
                         expanded_files.append(None)
                         self._log_warning("MTZ entry {} for {} not defined in SoakDB".format(colname, xtal_name))
 
+
                     colname = Constants.SOAKDB_COL_CIF
                     file = row[colname]
                     # RefinementCIF file names are relative to the xtal_dir
