@@ -570,6 +570,18 @@ class Aligner:
                             Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                         }
 
+        ## Add the reference alignments
+        new_meta[Constants.META_REFERENCE_ALIGNMENTS] = {}
+        for dtag, crystal in crystals.items():
+            # Skip if no output for this dataset
+            if dtag not in fs_model.reference_alignments:
+                continue
+
+            crystal_output = new_meta[Constants.META_REFERENCE_ALIGNMENTS][dtag] = {}
+
+            for canonical_site_id, aligned_files in fs_model.reference_alignments.items():
+                crystal_output[canonical_site_id] = aligned_files
+
         new_meta[Constants.META_TRANSFORMS] = {}
 
         ## Get the observation to conformer site transforms
