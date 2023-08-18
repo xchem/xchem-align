@@ -281,7 +281,11 @@ class Aligner:
         if len(crystals) == 0:
             self.logger.error(f"Did not find any crystals in metadata file. Exiting.")
             raise Exception
-        previous_output_path = meta.get(Constants.PREVIOUS_OUTPUT_DIR)
+        previous_version_dirs = meta.get(Constants.META_PREV_VERSION_DIRS)
+        if len(previous_version_dirs) > 0:
+            previous_output_path = self.base_dir / previous_version_dirs[-1]
+        else:
+            previous_output_path = None
         # output_path = Path(meta[Constants.CONFIG_OUTPUT_DIR])
         output_path = self.version_dir
 
