@@ -254,6 +254,13 @@ class Aligner:
 
                 else:
                     self.logger.warn('crystal {} not found in input. This is very strange.'.format(k))
+
+        collator_dict[Constants.META_REFERENCE_ALIGNMENTS] = aligner_dict[Constants.META_REFERENCE_ALIGNMENTS]
+        traverse_dictionary(
+            collator_dict[Constants.META_REFERENCE_ALIGNMENTS],
+            lambda x: path_to_relative_string(x, self.base_dir),
+        )
+
         # remove this eventually
         with open(self.version_dir / 'aligner_tmp.yaml', "w") as stream:
             yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
