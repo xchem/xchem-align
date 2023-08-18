@@ -9,3 +9,8 @@ inputs:
     soakdb: processing/database/soakDBDataFile.sqlite
     panddas_event_files:
     - processing/analysis/panddas/analyses/pandda_inspect_events.csv
+  - dir: dls/labxchem/data/2020/lb18145-153
+    type: model_building
+    soakdb: processing/database/soakDBDataFile.sqlite
+    panddas_event_files:
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv
