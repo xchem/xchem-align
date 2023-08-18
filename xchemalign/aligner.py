@@ -232,10 +232,6 @@ class Aligner:
         self._write_output(input_meta, new_meta)
 
     def _write_output(self, collator_dict, aligner_dict):
-        # remove this eventually
-        with open(self.version_dir / 'aligner_tmp.yaml', "w") as stream:
-            yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
-
         # keep a copy of the xtaforms and assemblies configs
         self._copy_file_to_version_dir(self.xtalforms_file)
         self._copy_file_to_version_dir(self.assemblies_file)
@@ -258,6 +254,9 @@ class Aligner:
 
                 else:
                     self.logger.warn('crystal {} not found in input. This is very strange.'.format(k))
+        # remove this eventually
+        with open(self.version_dir / 'aligner_tmp.yaml', "w") as stream:
+            yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
 
         with open(self.version_dir / Constants.METADATA_ALIGN_FILENAME, "w") as stream:
             yaml.dump(collator_dict, stream, sort_keys=False, default_flow_style=None)

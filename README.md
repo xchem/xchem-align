@@ -28,6 +28,8 @@ you can create an environment using the built-in `venv` module: -
     source venv/bin/activate
     pip install --upgrade pip
 
+Make sure you create the venv using Python 3.10 (or later).
+
 From your clean virtual environment you can now install the run-time and development
 dependencies like this: -
 
