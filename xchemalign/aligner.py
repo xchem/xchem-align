@@ -291,8 +291,10 @@ class Aligner:
 
         # Load the previous output dir if there is one
         if previous_output_path:
+            self.logger.info(f"Updating from previous directory: {previous_output_path}")
             source_fs_model = dt.FSModel.from_dir(previous_output_path)
         else:
+            self.logger.info(f"First run! Not updating!")
             source_fs_model = None
 
         # Load the fs model for the new output dir
