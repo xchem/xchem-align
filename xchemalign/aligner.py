@@ -372,6 +372,7 @@ class Aligner:
             ligand_neighbourhood_transforms = _load_ligand_neighbourhood_transforms(
                 fs_model.ligand_neighbourhood_transforms
             )
+        print(ligand_neighbourhood_transforms)
 
         # Get conformer sites
         if source_fs_model:
