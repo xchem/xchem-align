@@ -370,6 +370,7 @@ class Aligner:
             )
         print(ligand_neighbourhood_transforms)
 
+
         # Get conformer sites
         if source_fs_model:
             conformer_sites: dict[str, dt.ConformerSite] = _load_conformer_sites(source_fs_model.conformer_sites)
