@@ -248,6 +248,8 @@ class Aligner:
                 if k in xtals:
                     xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
                     xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
+                    print(f"TRAVERSING!")
+                    print(xtals[k][Constants.META_ALIGNED_FILES])
                     traverse_dictionary(
                         xtals[k][Constants.META_ALIGNED_FILES],
                         lambda x: path_to_relative_string(x, self.base_dir),
