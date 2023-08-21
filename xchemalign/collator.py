@@ -184,7 +184,7 @@ class Collator:
         v_dir = self.read_versions()
         if not v_dir:
             self.logger.error("Error with version dir. Please fix and try again.")
-            return None
+            return None, None, None
         self.logger.info("Using version dir {}".format(v_dir))
 
         self.logger.info("validating paths")
@@ -329,7 +329,6 @@ class Collator:
                     else:
                         expanded_files.append(None)
                         self._log_warning("MTZ entry {} for {} not defined in SoakDB".format(colname, xtal_name))
-
 
                     colname = Constants.SOAKDB_COL_CIF
                     file = row[colname]
@@ -935,7 +934,7 @@ def main():
     meta, num_errors, num_warnings = c.validate()
 
     if not args.validate:
-        if num_errors:
+        if meta is None or num_errors:
             print("There are errors, cannot continue")
             exit(1)
         else:

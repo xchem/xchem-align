@@ -315,12 +315,12 @@ class Aligner:
             fs_model.alignments = source_fs_model.alignments
             fs_model.reference_alignments = source_fs_model.reference_alignments
 
-        # symlink old aligned files
-        if previous_output_path:
-            if Path(previous_output_path).resolve() != output_path.resolve():
-                fs_model.symlink_old_data()
+        # # symlink old aligned files
+        # if previous_output_path:
+        #     if Path(previous_output_path).resolve() != output_path.resolve():
+        #         fs_model.symlink_old_data()
 
-        # Update the output fs model, creating flat symlinks to old data
+        # Create output dir
         if not output_path.exists():
             os.mkdir(output_path)
 
@@ -329,18 +329,14 @@ class Aligner:
 
         # Get assemblies
         if source_fs_model:
-            self.logger.info('1 reading assemblies from', source_fs_model.assemblies, self.assemblies_file)
             assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.assemblies, self.assemblies_file)
         else:
-            self.logger.info('2 reading assemblies from', fs_model.assemblies, self.assemblies_file)
             assemblies = _load_assemblies(fs_model.assemblies, self.assemblies_file)
 
         # Get xtalforms
         if source_fs_model:
-            self.logger.info('1 reading xtalforms from', source_fs_model.xtalforms, self.xtalforms_file)
             xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.xtalforms_file)
         else:
-            self.logger.info('2 reading xtalforms from', fs_model.xtalforms, self.xtalforms_file)
             xtalforms = _load_xtalforms(fs_model.xtalforms, self.xtalforms_file)
 
         # Get the dataset assignments
