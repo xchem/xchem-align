@@ -361,6 +361,7 @@ class Aligner:
 
         #
         if source_fs_model:
+            print(f"Have source fs model!")
             ligand_neighbourhood_transforms: dict[
                 tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform
             ] = _load_ligand_neighbourhood_transforms(source_fs_model.ligand_neighbourhood_transforms)
