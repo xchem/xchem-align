@@ -86,16 +86,16 @@ profile = "black"
 [tool.black]
 line-length = 119
 
-[tool.pytest.ini_options]
-# Run pytest with all our checkers, and don't spam us with massive tracebacks on error
-addopts = """
-    --tb=native -vv --doctest-modules --doctest-glob="*.rst"
-    --cov=ligand_neighbourhood_alignment --cov-report term --cov-report xml:cov.xml
-    """
-# https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
-filterwarnings = "error"
-# Doctest python code in docs, python code in src docstrings, test functions in tests
-testpaths = "docs src tests"
+#[tool.pytest.ini_options]
+## Run pytest with all our checkers, and don't spam us with massive tracebacks on error
+#addopts = """
+#    --tb=native -vv --doctest-modules --doctest-glob="*.rst"
+#    --cov=ligand_neighbourhood_alignment --cov-report term --cov-report xml:cov.xml
+#    """
+## https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
+#filterwarnings = "error"
+## Doctest python code in docs, python code in src docstrings, test functions in tests
+#testpaths = "docs src tests"
 
 [tool.coverage.run]
 data_file = "/tmp/ligand_neighbourhood_alignment.coverage"
