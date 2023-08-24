@@ -18,7 +18,7 @@ def constants():
         TEST_DIR = "test-data/outputs"
         UPLOAD_1_DIR = "test-data/outputs/upload_1"
         UPLOAD_2_DIR = "test-data/outputs/upload_2"
-        METADATA_FILE = "metadata_collator.yaml"
+        METADATA_FILE = "meta_collator.yaml"
 
     return Constants()
 
