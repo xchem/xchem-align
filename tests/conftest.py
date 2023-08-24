@@ -31,9 +31,15 @@ def test_data_dir(constants):
 
 @pytest.fixture(scope="session")
 def test_dir(constants):
+    path = Path(constants.UPLOAD_1_DIR)
+    if path.exists():
+        shutil.rmtree(path)
+
+    path = Path(constants.UPLOAD_2_DIR)
+    if path.exists():
+        shutil.rmtree(path)
+
     path = Path(constants.TEST_DIR)
-
-
     return path
 
 
