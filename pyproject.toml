@@ -86,6 +86,9 @@ profile = "black"
 [tool.black]
 line-length = 119
 
+[tool.pytest.ini_options]
+testpaths = ['tests']
+
 #[tool.pytest.ini_options]
 ## Run pytest with all our checkers, and don't spam us with massive tracebacks on error
 #addopts = """
