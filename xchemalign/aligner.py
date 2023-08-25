@@ -593,8 +593,9 @@ class Aligner:
 
             crystal_output = new_meta[Constants.META_REFERENCE_ALIGNMENTS][dtag] = {}
 
-            for canonical_site_id, aligned_files in fs_model.reference_alignments.items():
-                crystal_output[canonical_site_id] = aligned_files
+            for dtag, canonical_site_aligned_files in fs_model.reference_alignments.items():
+                for canonical_site_id, aligned_files in canonical_site_aligned_files.items():
+                    crystal_output[canonical_site_id] = aligned_files
 
         new_meta[Constants.META_TRANSFORMS] = {}
 
