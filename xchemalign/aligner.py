@@ -598,6 +598,7 @@ class Aligner:
                     crystal_output[canonical_site_id] = aligned_files
 
         new_meta[Constants.META_TRANSFORMS] = {}
+        print(fs_model.reference_alignments)
         print(new_meta[Constants.META_REFERENCE_ALIGNMENTS])
         if len(fs_model.reference_alignments) > 1:
             raise Exception
