@@ -591,7 +591,7 @@ class Aligner:
             if dtag not in fs_model.reference_alignments:
                 continue
 
-            new_meta[Constants.META_REFERENCE_ALIGNMENTS][dtag] = {}
+            crystal_output = new_meta[Constants.META_REFERENCE_ALIGNMENTS][dtag] = {}
 
             # for dtag, canonical_site_aligned_files in fs_model.reference_alignments.items():
             for canonical_site_id, aligned_files in fs_model.reference_alignments[dtag].items():
