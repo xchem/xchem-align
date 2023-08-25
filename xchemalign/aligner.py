@@ -600,8 +600,8 @@ class Aligner:
         new_meta[Constants.META_TRANSFORMS] = {}
         # print(fs_model.reference_alignments)
         # print(new_meta[Constants.META_REFERENCE_ALIGNMENTS])
-        if len(fs_model.reference_alignments) > 1:
-            raise Exception
+        # if len(fs_model.reference_alignments) > 1:
+        #     raise Exception
 
         ## Get the observation to conformer site transforms
         ligand_neighbourhood_transforms = read_yaml(fs_model.ligand_neighbourhood_transforms)
