@@ -598,6 +598,8 @@ class Aligner:
                     crystal_output[canonical_site_id] = aligned_files
 
         new_meta[Constants.META_TRANSFORMS] = {}
+        print(new_meta[Constants.META_REFERENCE_ALIGNMENTS])
+        raise Exception
 
         ## Get the observation to conformer site transforms
         ligand_neighbourhood_transforms = read_yaml(fs_model.ligand_neighbourhood_transforms)
