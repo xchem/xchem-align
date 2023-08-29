@@ -243,7 +243,7 @@ class Aligner:
 
         xtals = collator_dict[Constants.META_XTALS]
         print(aligner_dict)
-        for k, v in aligner_dict.items():
+        for k, v in aligner_dict[Constants.META_XTALS].items():
             if Constants.META_ALIGNED_FILES in v:
                 if k in xtals:
                     xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
