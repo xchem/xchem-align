@@ -555,12 +555,14 @@ class Aligner:
         #                     Constants.META_AIGNED_X_MAP: aligned_xmap_path,
         #                 }
 
+        new_meta[Constants.META_XTALS] = {}
         for dtag, crystal in crystals.items():
             # Skip if no output for this dataset
             if dtag not in fs_model.alignments:
                 continue
 
-            crystal_output = new_meta[dtag] = {}
+            new_meta[Constants.META_XTALS][dtag] = {}
+            crystal_output = new_meta[Constants.META_XTALS][dtag][Constants.META_ALIGNED_FILES] = {}
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
