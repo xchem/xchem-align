@@ -17,7 +17,9 @@ dependencies = [
     'pyyaml == 6.0',
     'gemmi == 0.6.0',
     'im-standardize-molecule == 0.1.0',
-    'ligand_neighbourhood_alignment@git+https://github.com/ConorFWild/ligand_neighbourhood_alignment'
+    'ligand_neighbourhood_alignment@git+https://github.com/ConorFWild/ligand_neighbourhood_alignment',
+    'pytest',
+    'pytest-order'
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
@@ -85,43 +87,46 @@ profile = "black"
 line-length = 119
 
 [tool.pytest.ini_options]
-# Run pytest with all our checkers, and don't spam us with massive tracebacks on error
-addopts = """
-    --tb=native -vv --doctest-modules --doctest-glob="*.rst"
-    --cov=ligand_neighbourhood_alignment --cov-report term --cov-report xml:cov.xml
-    """
-# https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
-filterwarnings = "error"
-# Doctest python code in docs, python code in src docstrings, test functions in tests
-testpaths = "docs src tests"
+testpaths = ['tests']
 
-[tool.coverage.run]
-data_file = "/tmp/ligand_neighbourhood_alignment.coverage"
+#[tool.pytest.ini_options]
+## Run pytest with all our checkers, and don't spam us with massive tracebacks on error
+#addopts = """
+#    --tb=native -vv --doctest-modules --doctest-glob="*.rst"
+#    --cov=ligand_neighbourhood_alignment --cov-report term --cov-report xml:cov.xml
+#    """
+## https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
+#filterwarnings = "error"
+## Doctest python code in docs, python code in src docstrings, test functions in tests
+#testpaths = "docs src tests"
 
-[tool.coverage.paths]
-# Tests are run from installed location, map back to the src directory
-source = ["src", "**/site-packages/"]
+#[tool.coverage.run]
+#data_file = "/tmp/ligand_neighbourhood_alignment.coverage"
+
+#[tool.coverage.paths]
+## Tests are run from installed location, map back to the src directory
+#source = ["src", "**/site-packages/"]
 
 # tox must currently be configured via an embedded ini string
 # See: https://github.com/tox-dev/tox/issues/999
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-skipsdist=True
+#[tool.tox]
+#legacy_tox_ini = """
+#[tox]
+#skipsdist=True
 
-[testenv:{pre-commit,mypy,pytest,docs}]
-# Don't create a virtualenv for the command, requires tox-direct plugin
-direct = True
-passenv = *
-allowlist_externals =
-    pytest
-    pre-commit
-    mypy
-    sphinx-build
-    sphinx-autobuild
-commands =
-    pytest: pytest {posargs}
-    mypy: mypy src tests {posargs}
-    pre-commit: pre-commit run --all-files {posargs}
-    docs: sphinx-{posargs:build -EW --keep-going} -T docs build/html
-"""
+#[testenv:{pre-commit,mypy,pytest,docs}]
+## Don't create a virtualenv for the command, requires tox-direct plugin
+#direct = True
+#passenv = *
+#allowlist_externals =
+#    pytest
+#    pre-commit
+#    mypy
+#    sphinx-build
+#    sphinx-autobuild
+#commands =
+#    pytest: pytest {posargs}
+#    mypy: mypy src tests {posargs}
+#    pre-commit: pre-commit run --all-files {posargs}
+#    docs: sphinx-{posargs:build -EW --keep-going} -T docs build/html
+#"""

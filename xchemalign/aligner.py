@@ -242,11 +242,14 @@ class Aligner:
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
 
         xtals = collator_dict[Constants.META_XTALS]
-        for k, v in aligner_dict.items():
+        print(aligner_dict)
+        for k, v in aligner_dict[Constants.META_XTALS].items():
             if Constants.META_ALIGNED_FILES in v:
                 if k in xtals:
                     xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
                     xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
+                    print(f"TRAVERSING!")
+                    print(xtals[k][Constants.META_ALIGNED_FILES])
                     traverse_dictionary(
                         xtals[k][Constants.META_ALIGNED_FILES],
                         lambda x: path_to_relative_string(x, self.base_dir),
@@ -361,6 +364,7 @@ class Aligner:
 
         #
         if source_fs_model:
+            print(f"Have source fs model at {source_fs_model.ligand_neighbourhood_transforms}!")
             ligand_neighbourhood_transforms: dict[
                 tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform
             ] = _load_ligand_neighbourhood_transforms(source_fs_model.ligand_neighbourhood_transforms)
@@ -368,6 +372,8 @@ class Aligner:
             ligand_neighbourhood_transforms = _load_ligand_neighbourhood_transforms(
                 fs_model.ligand_neighbourhood_transforms
             )
+        print(ligand_neighbourhood_transforms)
+
 
         # Get conformer sites
         if source_fs_model:
@@ -549,12 +555,15 @@ class Aligner:
         #                     Constants.META_AIGNED_X_MAP: aligned_xmap_path,
         #                 }
 
+        new_meta[Constants.META_XTALS] = {}
         for dtag, crystal in crystals.items():
             # Skip if no output for this dataset
             if dtag not in fs_model.alignments:
                 continue
 
-            crystal_output = new_meta[dtag] = {}
+            new_meta[Constants.META_XTALS][dtag] = {}
+            crystal_output = new_meta[Constants.META_XTALS][dtag] = {}
+            # aligned_files = crystal_output[Constants.META_ALIGNED_FILES]
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
@@ -587,7 +596,8 @@ class Aligner:
 
             crystal_output = new_meta[Constants.META_REFERENCE_ALIGNMENTS][dtag] = {}
 
-            for canonical_site_id, aligned_files in fs_model.reference_alignments.items():
+            # for dtag, canonical_site_aligned_files in fs_model.reference_alignments.items():
+            for canonical_site_id, aligned_files in fs_model.reference_alignments[dtag].items():
                 crystal_output[canonical_site_id] = aligned_files
 
         new_meta[Constants.META_TRANSFORMS] = {}
