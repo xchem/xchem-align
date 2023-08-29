@@ -562,7 +562,8 @@ class Aligner:
                 continue
 
             new_meta[Constants.META_XTALS][dtag] = {}
-            crystal_output = new_meta[Constants.META_XTALS][dtag][Constants.META_ALIGNED_FILES] = {}
+            crystal_output = new_meta[Constants.META_XTALS][dtag] = {}
+            # aligned_files = crystal_output[Constants.META_ALIGNED_FILES]
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
