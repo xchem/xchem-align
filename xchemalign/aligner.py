@@ -242,14 +242,14 @@ class Aligner:
         collator_dict[Constants.META_XTALFORM_SITES] = aligner_dict[Constants.META_XTALFORM_SITES]
 
         xtals = collator_dict[Constants.META_XTALS]
-        print(aligner_dict)
+        # print(aligner_dict)
         for k, v in aligner_dict[Constants.META_XTALS].items():
             if Constants.META_ALIGNED_FILES in v:
                 if k in xtals:
                     xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
                     xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
-                    print(f"TRAVERSING!")
-                    print(xtals[k][Constants.META_ALIGNED_FILES])
+                    # print(f"TRAVERSING!")
+                    # print(xtals[k][Constants.META_ALIGNED_FILES])
                     traverse_dictionary(
                         xtals[k][Constants.META_ALIGNED_FILES],
                         lambda x: path_to_relative_string(x, self.base_dir),
@@ -373,7 +373,6 @@ class Aligner:
                 fs_model.ligand_neighbourhood_transforms
             )
         print(ligand_neighbourhood_transforms)
-
 
         # Get conformer sites
         if source_fs_model:
@@ -677,23 +676,22 @@ class Aligner:
         :return:
         """
 
-        EMPTY_DICT = {}
+        self.logger.info('extracting components')
 
         num_errors = 0
-        ignore_keys = [Constants.META_CONFORMER_SITES, Constants.META_CANONICAL_SITES, Constants.META_XTALFORM_SITES]
-        for k1, v1 in aligner_meta.items():  # k = xtal
-            if k1 not in ignore_keys and Constants.META_ALIGNED_FILES in v1:
+        for k1, v1 in aligner_meta.get(Constants.META_XTALS, {}).items():  # k = xtal
+            if Constants.META_ALIGNED_FILES in v1:
                 self.logger.info('handling', k1)
                 cif_file = (
                     crystals.get(k1)
-                    .get(Constants.META_XTAL_FILES, EMPTY_DICT)
-                    .get(Constants.META_XTAL_CIF, EMPTY_DICT)
+                    .get(Constants.META_XTAL_FILES, {})
+                    .get(Constants.META_XTAL_CIF, {})
                     .get(Constants.META_FILE)
                 )
 
                 for k2, v2 in v1[Constants.META_ALIGNED_FILES].items():  # chain
                     for k3, v3 in v2.items():  # ligand
-                        for k4, v4 in v3.items():  # occurance?
+                        for k4, v4 in v3.items():  # conf site
                             pdb = v4[Constants.META_AIGNED_STRUCTURE]
                             self.logger.info("extracting components", k1, k2, k3, k4, pdb)
                             # pth = self.version_dir / pdb

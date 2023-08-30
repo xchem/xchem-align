@@ -249,20 +249,28 @@ class Copier:
 def main():
     parser = argparse.ArgumentParser(description="copier")
 
-    parser.add_argument("-b", "--base-dir", required=True, help="Base directory")
-    parser.add_argument("-i", "--input-dir", required=True, help="Input directory (relative to base-dir)")
+    parser.add_argument(
+        "-b", "--base-dir", required=True, help="Base directory. If running against the Diamond file system use /"
+    )
+    parser.add_argument(
+        "-i",
+        "--input-dir",
+        required=True,
+        help="Input directory (relative to base-dir) e.g. the dir with the data for your visit. "
+        + "e.g. dls/labxchem/data/2020/lb18145-153",
+    )
     parser.add_argument(
         "-s",
         "--soakdb-file",
         default="processing/database/soakDBDataFile.sqlite",
-        help="Path to soakdb file relative to input-dir",
+        help="Path to soakdb file relative to input-dir. Default is processing/database/soakDBDataFile.sqlite",
     )
     parser.add_argument(
-        "-p", "--panddas-files", nargs="*", help="Path to CSV files with panddas data relative to input-dir"
+        "-p", "--panddas-files", nargs="*", help="Paths to CSV files with panddas data relative to input-dir"
     )
     parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
     parser.add_argument("-l", "--log-file", help="File to write logs to")
-    parser.add_argument("--log-level", type=int, default=0, help="Logging level")
+    parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
     args = parser.parse_args()
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)

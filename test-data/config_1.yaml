@@ -1,0 +1,11 @@
+target_name: Mpro
+base_dir: test-data/inputs_1
+output_dir: test-data/outputs
+ref_datasets:
+  - Mpro-IBM0045
+inputs:
+  - dir: dls/labxchem/data/2020/lb27995-1
+    type: model_building
+    soakdb: processing/database/soakDBDataFile.sqlite
+    panddas_event_files:
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv

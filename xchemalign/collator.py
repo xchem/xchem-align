@@ -582,7 +582,8 @@ class Collator:
                     for k, tup in best_event_map_paths.items():
                         path = tup[0]
                         digest = utils.gen_sha256(path)
-                        ccp4_output = cryst_path / xtal_name / "{}_{}_{}.ccp4".format(k[0], k[1], k[2])
+                        ccp4_output = cryst_path / xtal_name / "{}_{}_{}_{}.ccp4".format(xtal_name, k[0], k[1], k[2])
+                        # ccp4_output = cryst_path / xtal_name / "{}_{}_{}.ccp4".format(k[0], k[1], k[2])
                         event_maps_to_copy[k] = (path, ccp4_output, digest, k, tup[1], tup[2])
                         hist_data = hist_event_maps.get(k)
                         if hist_data:
@@ -797,42 +798,42 @@ class Collator:
         else:
             return Constants.META_STATUS_SUPERSEDES
 
-    def _get_xtal_status_old(self, xtal_name, old_data, new_data):
-        """
-        Compare status using the last_updated property.
-        Even if this can be relied on, it is not present for manual entries.
-
-        :param xtal_name:
-        :param old_data:
-        :param new_data:
-        :return:
-        """
-        old_date = old_data.get(Constants.META_LAST_UPDATED)
-        if old_date:
-            new_date = new_data.get(Constants.META_LAST_UPDATED)
-        if not old_date or not new_date:
-            self.logger.warn("Dates not defined for {}, must assume xtal is updated".format(xtal_name))
-            return Constants.META_STATUS_SUPERSEDES
-        elif utils.to_datetime(new_date) > utils.to_datetime(old_date):
-            self.logger.info("Xtal {} is updated".format(xtal_name))
-            return Constants.META_STATUS_SUPERSEDES
-        else:
-            # self.logger.info('Xtal {} is unchanged'.format(xtal_name))
-            return Constants.META_STATUS_UNCHANGED
+    # def _get_xtal_status_old(self, xtal_name, old_data, new_data):
+    #     """
+    #     Compare status using the last_updated property.
+    #     Even if this can be relied on, it is not present for manual entries.
+    #
+    #     :param xtal_name:
+    #     :param old_data:
+    #     :param new_data:
+    #     :return:
+    #     """
+    #     old_date = old_data.get(Constants.META_LAST_UPDATED)
+    #     if old_date:
+    #         new_date = new_data.get(Constants.META_LAST_UPDATED)
+    #     if not old_date or not new_date:
+    #         self.logger.warn("Dates not defined for {}, must assume xtal is updated".format(xtal_name))
+    #         return Constants.META_STATUS_SUPERSEDES
+    #     elif utils.to_datetime(new_date) > utils.to_datetime(old_date):
+    #         self.logger.info("Xtal {} is updated".format(xtal_name))
+    #         return Constants.META_STATUS_SUPERSEDES
+    #     else:
+    #         # self.logger.info('Xtal {} is unchanged'.format(xtal_name))
+    #         return Constants.META_STATUS_UNCHANGED
 
     def _write_metadata(self, meta, all_xtals, new_xtals):
         f = self.output_path / self.version_dir / Constants.METADATA_XTAL_FILENAME
         with open(f, "w") as stream:
             yaml.dump(meta, stream, sort_keys=False)
-        f = self.output_path / self.version_dir / "all_xtals.yaml"
-        with open(f, "w") as stream:
-            yaml.dump(all_xtals, stream, sort_keys=False)
-            f = self.output_path / self.version_dir / "new_xtals.yaml"
-        with open(f, "w") as stream:
-            yaml.dump(new_xtals, stream, sort_keys=False)
+        # f = self.output_path / self.version_dir / "all_xtals.yaml"
+        # with open(f, "w") as stream:
+        #     yaml.dump(all_xtals, stream, sort_keys=False)
+        #     f = self.output_path / self.version_dir / "new_xtals.yaml"
+        # with open(f, "w") as stream:
+        #     yaml.dump(new_xtals, stream, sort_keys=False)
 
     def _copy_config(self):
-        f = shutil.copy2(self.config_file, self.output_path / self.version_dir)
+        f = shutil.copy2(self.config_file, self.output_path / self.version_dir / 'config.yaml')
         if not f:
             print("Failed to copy config file to {}".format((self.output_path / self.version_dir)))
             return False
