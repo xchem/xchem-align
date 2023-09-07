@@ -661,6 +661,13 @@ class Aligner:
         if num_extract_errors:
             self.logger.error("there were problems extracting components. See above for details")
 
+        # cleanup empty aligned files dirs
+        empty_dir_count = 0
+        for d in aligned_files_dir.iterdir():
+            if len(list(d.iterdir())) == 0:
+                empty_dir_count += 1
+                d.rmdir()
+        self.logger.info('removing {} empty aligned_files dirs'.format(empty_dir_count))
         return new_meta
 
     def _extract_components(self, crystals, aligner_meta):
