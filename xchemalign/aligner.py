@@ -329,6 +329,9 @@ class Aligner:
 
         # Get the datasets
         datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, self.base_dir)
+        print(datasets)
+        raise Exception
+
 
         # Get assemblies
         if source_fs_model:
