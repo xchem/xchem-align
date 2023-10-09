@@ -17,6 +17,7 @@ from pathlib import Path
 
 import yaml
 import gemmi
+from rich import print as rprint
 
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
@@ -329,7 +330,13 @@ class Aligner:
 
         # Get the datasets
         datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, self.base_dir)
-        print(datasets)
+        rprint(datasets)
+        rprint(
+            {dtag: dataset.mtz
+             for dtag, dataset
+             in datasets.items()}
+        )
+        # print()
         raise Exception
 
 
