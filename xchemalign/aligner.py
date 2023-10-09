@@ -337,7 +337,7 @@ class Aligner:
              in datasets.items()}
         )
         # print()
-        raise Exception
+        # raise Exception
 
 
         # Get assemblies
