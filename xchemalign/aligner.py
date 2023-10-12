@@ -579,11 +579,14 @@ class Aligner:
                         aligned_artefacts_path = ligand_output.aligned_artefacts[site_id]
                         aligned_event_map_path = ligand_output.aligned_event_maps[site_id]
                         aligned_xmap_path = ligand_output.aligned_xmaps[site_id]
+                        aligned_diff_map_path = ligand_output.aligned_diff_maps[site_id]
                         aligned_ligand_output[site_id] = {
                             Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
                             Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
                             Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
                             Constants.META_AIGNED_X_MAP: aligned_xmap_path,
+                            Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
+
                         }
 
         ## Add the reference alignments
