@@ -2,33 +2,48 @@
 
 _XChemAlign_ is a small suite of tools for preparing PDB models for loading into into [Fragalysis](https://fragalysis.diamond.ac.uk/).
 
-* It formalises sites and packing artefacts across crystal forms and conformations,  setting common origins per binding site to which models, maps and artefacts can be aligned.
-* It handles model updates, repeat experiments (e.g. to resolve stereochemistry), and supports fast release cycles through incremental updates.
+* It formalises sites and packing artefacts across crystal forms and conformations, aligning models, maps and artefacts to common origins for each binding site.
+* It handles model updates and multiple repeat experiments (e.g. to resolve stereochemistry).
+* It allows for fast release cycles through supporting incremental updates.
 * It assists efficient curation of auto-identified features, by running fast and on the minimal set of files in any given iteration. 
 
 ## Overview
 
 There a few steps involved. 
-1. **Declare** a few things about your data in two structured (_"yaml"_) files. 
-2. _(only once, easy)_ **Set up** your runtime environment
-3. _(if not at Diamond)_ **Copy** over relevant files from Diamond, using *Copyier*
-4. **Collate** your files in a new (speicific) directory structure, using *Collator*
-5. **Align** all binding sites to common origins, using *Aligner*
-6. **Release** the data to Fragalysis, using *Releaser*
-7. **Re-release** additional data by rerunning (some or all of) steps 1-6. 
+1. **Declare** a few things about your data in two structured files in `yaml`[^1]
+2. **Set up** _(only once)_ your runtime environment _(easy)_
+3. **Copy** relevant files from Diamond _(if not at Diamond)_
+4. **Collate** your files in a new (speicific) directory structure
+5. **Align** all binding sites to common origins
+6. **Release** the data to Fragalysis
+7. **Re-release** additional data by repeating (some or all) steps 1-6. 
+
+[^1]: "yet another markup language"
 
 
 ## 1. Declaring things
 
-Create files.yaml
-Create assembly.yaml
+    Create config.yaml
+    Create assembly.yaml
 
 
-## 2. Set up runtime environment _(only once)_ 
 
-To run the XChemAlign tools you can ~~use a development environment
-as described above or~~ create a suitable user (run-time) environment; this does
-not install the packages used for development: -
+## 2. Setting up runtime environment _(only once)_ 
+
+<details> 
+    <summary>questions</summary>
+
+    Old text was:
+    To run the XChemAlign tools you can use a development environment
+    as described above or create a suitable user (run-time) environment; this does
+    not install the packages used for development: -
+
+    Questions:
+    * what is this development environment "described above" (it wasn't), and does this need mentioning here?
+    * how often does this need to be run - really only once?
+</details> 
+
+To run the XChemAlign tools, create a user (run-time) environment: 
 
     python -m venv venv
     source venv/bin/activate
@@ -36,7 +51,35 @@ not install the packages used for development: -
 
     pip install .
 
-Make sure you use Python 3.10. Earlier versions will not work, and later ones may work, but have not been tested.
+Make sure you use Python 3.10. Earlier versions will not work, and later ones have not been tested.
+
+
+## 3. Copying files from Diamond _(if not at Diamond)_
+
+The next step (Collating) requires files  
+
+
+## 4. Collating files 
+
+
+## 5. Aligning everything
+
+
+## 6. Releasing to Fragalysis
+
+
+
+> [!NOTE]
+> Still reworking these instructions.  FvD 2023-10-17
+
+> [!NOTE]
+> Still reworking these instructions.  FvD 2023-10-17
+
+> [!NOTE]
+> Still reworking these instructions.  FvD 2023-10-17
+
+
+# Original text
 
 ## The tools
 
@@ -55,7 +98,7 @@ If you can run directly against the Diamond files system you do not need to use 
 
 This tool reads the SoakDB file (found at `processing/database/soakDBDataFile.sqlite`), reads the files that
 are needed from the `mainTable` database table and copies those files to the output directory.
-From there they can be tared up and  copied to your local system.
+From there they can be tarred up and copied to your local system.
 
 Usage:
 ```commandline
