@@ -142,7 +142,7 @@ The `output_dir` must exist and contain the required `upload_*` directories (ini
 
 The `inputs` property is a list of *visits* (Diamond nomenclature) containing data for a number of crystals.
 There can be one or more inputs. `inputs` is specified **relative** to `base_dir` (but if you need a different `base_dir`
-then it can be specified here where it will override the one defined at the top level. The properties of `inputs` are the
+then it can be specified here where it will override the one defined at the top level). The properties of `inputs` are the
 data required to be processed, specified as paths **relative** to the `dir` path which is the base dir of the data
 for that visit.
 
