@@ -1,11 +1,33 @@
-# XChem Align User Guide
+# _XChemAlign_ User Guide
 
-A guide for using the tools that generate data suitable for loading into [Fragalysis](https://fragalysis.diamond.ac.uk/).
+_XChemAlign_ is a small suite of tools for preparing PDB models for loading into into [Fragalysis](https://fragalysis.diamond.ac.uk/).
 
-## Getting started (to use)
+* It formalises sites and packing artefacts across crystal forms and conformations,  setting common origins per binding site to which models, maps and artefacts can be aligned.
+* It handles model updates, repeat experiments (e.g. to resolve stereochemistry), and supports fast release cycles through incremental updates.
+* It assists efficient curation of auto-identified features, by running fast and on the minimal set of files in any given iteration. 
 
-To run the XChem Align tools you can use a development environment
-as described above or create a suitable user (run-time) environment, that does
+## Overview
+
+There a few steps involved. 
+1. **Declare** a few things about your data in two structured (_"yaml"_) files. 
+2. _(only once, easy)_ **Set up** your runtime environment
+3. _(if not at Diamond)_ **Copy** over relevant files from Diamond, using *Copyier*
+4. **Collate** your files in a new (speicific) directory structure, using *Collator*
+5. **Align** all binding sites to common origins, using *Aligner*
+6. **Release** the data to Fragalysis, using *Releaser*
+7. **Re-release** additional data by rerunning (some or all of) steps 1-6. 
+
+
+## 1. Declaring things
+
+Create files.yaml
+Create assembly.yaml
+
+
+## 2. Set up runtime environment _(only once)_ 
+
+To run the XChemAlign tools you can ~~use a development environment
+as described above or~~ create a suitable user (run-time) environment; this does
 not install the packages used for development: -
 
     python -m venv venv
@@ -326,11 +348,10 @@ Fragalysis). In summary these are:
 - the ligand in PDB format
 - the ligand SMILES
 
-To run the aligner you need to produce two other important bits of information, for the biological assemblies and the
+To run *aligner* you need to produce two other important bits of information: (1) the biological assemblies and (2) the
 crystal forms.
 
-The biological assemblies (probably you only have one) is defined in `assemblies.yaml`, the default location being
-in the output dir. For our example data it looks like this:
+The biological assemblies (often you only have one) are defined in `assemblies.yaml` (default location is in the output dir). For our example data it looks like this:
 
 ```yaml
 dimer:
