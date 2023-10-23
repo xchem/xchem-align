@@ -295,14 +295,14 @@ def gen_mol_from_cif(cif_file):
     x = block.find_loop('_chem_comp_atom.x')
     y = block.find_loop('_chem_comp_atom.y')
     z = block.find_loop('_chem_comp_atom.z')
-    charge = [0]*len(atom_ids)
+    charges = [0]*len(atom_ids)
     if block.find_loop('_chem_comp_atom.charge'):
-        charge = list(block.find_loop('_chem_comp_atom.charge'))
+        charges = list(block.find_loop('_chem_comp_atom.charge'))
     elif block.find_loop('_chem_comp_atom.partial_charge'):
-        charge = list(block.find_loop('_chem_comp_atom.partial_charge'))
+        charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
 
     atoms = {}
-    for s, i, px, py, pz in zip(atom_symbols, atom_ids, x, y, z, charge):
+    for s, i, px, py, pz, charge in zip(atom_symbols, atom_ids, x, y, z, charges):
         if len(s) == 2:
             s = s[0] + s[1].lower()
 
