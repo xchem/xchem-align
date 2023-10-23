@@ -1,7 +1,7 @@
 import argparse
 
-from xchemalign import utils
-from xchemalign.collator import Collator
+from xchemalign.xchemalign import utils
+from xchemalign.xchemalign.collator import Collator
 
 
 def main():

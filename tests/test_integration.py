@@ -1,6 +1,6 @@
 import pytest
 
-from xchemalign.collator import Collator
+from xchemalign.xchemalign.collator import Collator
 from xchemalign.aligner import Aligner
 
 def test_collator_upload_1(

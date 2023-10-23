@@ -16,7 +16,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import collator, dbreader, utils
+from xchemalign import dbreader
+from xchemalign.xchemalign import collator, utils
 from .utils import Constants
 
 

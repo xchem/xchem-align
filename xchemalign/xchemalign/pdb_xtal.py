@@ -18,7 +18,7 @@ from pathlib import Path
 from rdkit import Chem
 from rdkit import Geometry
 
-from . import utils
+from xchemalign.xchemalign import utils
 
 
 class PDBXtal:

@@ -26,8 +26,9 @@ import pandas as pd
 
 from rdkit import Chem
 
-from xchemalign import utils, dbreader
-from xchemalign.utils import Constants
+from xchemalign import dbreader
+from xchemalign.xchemalign import utils
+from xchemalign.xchemalign.utils import Constants
 
 
 def generate_xtal_dir(input_path: Path, xtal_name: str):

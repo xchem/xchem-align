@@ -21,23 +21,6 @@ import gemmi
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
-from ligand_neighbourhood_alignment.data import (
-    CanonicalSites,
-    ChainOutput,
-    ConformerSites,
-    Dataset,
-    DatasetID,
-    DatasetOutput,
-    LigandBindingEvent,
-    LigandBindingEvents,
-    LigandID,
-    LigandNeighbourhoods,
-    LigandOutput,
-    Output,
-    SiteTransforms,
-    SystemData,
-    XtalForms,
-)
 
 # from ligand neighbourhood_alignment
 from ligand_neighbourhood_alignment import dt
@@ -73,7 +56,7 @@ from ligand_neighbourhood_alignment.cli import (
     _update,
 )
 
-from . import utils
+from xchemalign.xchemalign import utils
 from .utils import Constants
 from .pdb_xtal import PDBXtal
 
