@@ -296,7 +296,7 @@ class Aligner:
         # Load the fs model for the new output dir
         fs_model = dt.FSModel.from_dir(output_path)
         fs_model.xtalforms = self.xtalforms_file
-        # fs_model.assemblies = self.assemblies_file
+        fs_model.assemblies = self.assemblies_file
         if source_fs_model:
             fs_model.alignments = source_fs_model.alignments
             fs_model.reference_alignments = source_fs_model.reference_alignments
@@ -314,21 +314,21 @@ class Aligner:
         datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, self.base_dir)
 
         # Get assemblies
-        # if source_fs_model:
-        #     assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.assemblies, self.assemblies_file)
-        # else:
-        #     assemblies = _load_assemblies(fs_model.assemblies, self.assemblies_file)
-        #
+        if source_fs_model:
+            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.assemblies, self.assemblies_file)
+        else:
+            assemblies = _load_assemblies(fs_model.assemblies, self.assemblies_file)
+
         # # Get xtalforms
-        # if source_fs_model:
-        #     xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.xtalforms_file)
-        # else:
-        #     xtalforms = _load_xtalforms(fs_model.xtalforms, self.xtalforms_file)
-        xtalforms, assemblies = _load_xtalforms_and_assemblies(
-            source_fs_model.xtalforms,
-            source_fs_model.assemblies,
-            self.xtalforms_file
-        )
+        if source_fs_model:
+            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.xtalforms_file)
+        else:
+            xtalforms = _load_xtalforms(fs_model.xtalforms, self.xtalforms_file)
+        # xtalforms, assemblies = _load_xtalforms_and_assemblies(
+        #     source_fs_model.xtalforms,
+        #     source_fs_model.assemblies,
+        #     self.xtalforms_file
+        # )
 
         # Get the dataset assignments
         if source_fs_model:
