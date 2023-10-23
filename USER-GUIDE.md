@@ -11,12 +11,15 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 
 There a few steps involved. 
 1. **Declare** a few things about your data in two structured files in `yaml`[^1]
-2. **Set up** _(only once)_ your runtime environment _(easy)_
-3. **Copy** relevant files from Diamond _(if not at Diamond)_
-4. **Collate** your files in a new (speicific) directory structure
-5. **Align** all binding sites to common origins
-6. **Release** the data to Fragalysis
-7. **Re-release** additional data by repeating (some or all) steps 1-6. 
+2. **Collate** your files in a new (speicific) directory structure
+3. **Align** all binding sites to common origins
+4. **Release** the data to Fragalysis
+5. **Re-release** additional data by repeating (some or all) steps 1-6. 
+
+If you won't run this at Diamond, you will first have to:
+1. **Set up** _(only once)_ your runtime environment _(easy)_
+2. **Copy** relevant files from Diamond _(if not at Diamond)_
+
 
 [^1]: "yet another markup language"
 
