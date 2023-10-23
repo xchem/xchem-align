@@ -56,9 +56,9 @@ from ligand_neighbourhood_alignment.cli import (
     _update,
 )
 
-from xchemalign.xchemalign import utils
-from .utils import Constants
-from .pdb_xtal import PDBXtal
+from xchemalign import utils
+from xchemalign.utils import Constants
+from xchemalign.pdb_xtal import PDBXtal
 
 
 def try_make(path):
