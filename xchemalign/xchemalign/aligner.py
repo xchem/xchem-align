@@ -173,6 +173,10 @@ class Aligner:
             self.xtalforms_file = Path(xtalforms)
         else:
             self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/xtalforms.yaml
+        if assemblies:
+            self.assemblies_file = Path(assemblies)
+        else:
+            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME
         if logger:
             self.logger = logger
         else:
