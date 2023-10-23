@@ -137,10 +137,14 @@ class Constants:
 
 
 BOND_TYPES = {
-    'single': Chem.BondType.SINGLE,
-    'aromatic': Chem.BondType.AROMATIC,
-    'double': Chem.BondType.DOUBLE,
-    'triple': Chem.BondType.TRIPLE,
+    'single': Chem.rdchem.BondType.SINGLE,
+    'double': Chem.rdchem.BondType.DOUBLE,
+    'triple': Chem.rdchem.BondType.TRIPLE,
+    'SINGLE': Chem.rdchem.BondType.SINGLE,
+    'DOUBLE': Chem.rdchem.BondType.DOUBLE,
+    'TRIPLE': Chem.rdchem.BondType.TRIPLE,
+    'aromatic': Chem.rdchem.BondType.AROMATIC,
+    'deloc': Chem.rdchem.BondType.SINGLE
 }
 
 
