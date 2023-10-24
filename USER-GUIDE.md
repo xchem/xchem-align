@@ -90,7 +90,7 @@ python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <yo
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-/dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -x <your xtalforms file> -a <your assemblies file>
+python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -x <your xtalforms file> -a <your assemblies file>
 ```
 
 ## 6. Releasing to Fragalysis
