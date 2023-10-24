@@ -81,7 +81,7 @@ The first step is to collate your data. This process analyses your crystallograp
 
 ```commandline
 mkdir <path to your output_dir>/upload_1
-/dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <your upload config file>
+python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <your upload config file>
 ```
 
 
