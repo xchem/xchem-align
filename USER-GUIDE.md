@@ -10,6 +10,7 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 ## Overview
 
 There a few steps involved. 
+1. **Enable** the XChemAlign environment 
 1. **Declare** a few things about your data in two structured files in `yaml`[^1]
 2. **Collate** your files in a new (speicific) directory structure
 3. **Align** all binding sites to common origins
@@ -23,15 +24,77 @@ If you won't run this at Diamond, you will first have to:
 
 [^1]: "yet another markup language"
 
+## 1. Enabling the XChemAlign environment
 
-## 1. Declaring things
+If you are uploading your data from diamond light source then this is as simple as running the commands:
 
-    Create config.yaml
-    Create assembly.yaml
+```commandline
+source /dls/science/groups/i04-1/conor_dev/xchem-align/act
+conda activate /dls/science/groups/i04-1/conor_dev/xchem-align/env_xchem_align
+```
+
+
+## 2. Declaring things
+
+In order to run XChemAlign you will need to create three files:
+1. The config.yaml file
+2. The xtalforms.yaml file
+3. The assemblies.yaml file
+
+### 2.1. The Config Yaml
+
+The config yaml defines what data to collect for collation. This will include raw crystalographic data, PanDDA data and ligand information.
+
+```yaml
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that 
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at 
+                                            # Diamond this should be set to '/' 
+output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is 
+                                             # NOT relative to base_dir.
+ref_datasets:  # A set of exemplar datasets that you want aligned to every ligand binding site. If you have multiple 
+              # major classes of conformations there should be at least one of each class.
+  - Mpro-IBM0045  # There are given with the dataset folder name/crystal id as it appears in the 
+                  # model_building directory
+inputs:  # The datasources to collate
+  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from 
+                                            # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
+    type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align 
+                          # which is an advanced topic not covered here.
+    soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
+    panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+
+```
+
+### 2.2. The assembly and xtalform Yamls
+
+An example can be found [here](test-data/outputs/xtalforms.yaml), and a guide for preparing this can be found
+[here](xtalforms_example.md).
+
+## 4. Collating files 
+
+The first step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
+
+```commandline
+mkdir <path to your output_dir>/upload_1
+/dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <your upload config file>
+```
+
+
+## 5. Aligning everything
+
+The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
+
+```commandline
+/dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -x <your xtalforms file> -a <your assemblies file>
+```
+
+## 6. Releasing to Fragalysis
 
 
 
-## 2. Setting up runtime environment _(only once)_ 
+## 3. Setting up runtime environment _(only once)_ 
 
 <details> 
     <summary>questions</summary>
@@ -44,7 +107,7 @@ If you won't run this at Diamond, you will first have to:
     Questions:
     * what is this development environment "described above" (it wasn't), and does this need mentioning here?
     * how often does this need to be run - really only once?
-</details> 
+</details>
 
 To run the XChemAlign tools, create a user (run-time) environment: 
 
@@ -60,17 +123,6 @@ Make sure you use Python 3.10. Earlier versions will not work, and later ones ha
 ## 3. Copying files from Diamond _(if not at Diamond)_
 
 The next step (Collating) requires files  
-
-
-## 4. Collating files 
-
-
-## 5. Aligning everything
-
-
-## 6. Releasing to Fragalysis
-
-
 
 > [!NOTE]
 > Still reworking these instructions.  FvD 2023-10-17
