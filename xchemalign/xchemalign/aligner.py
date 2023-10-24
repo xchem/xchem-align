@@ -319,7 +319,6 @@ class Aligner:
         else:
             assemblies = _load_assemblies(fs_model.assemblies, self.assemblies_file)
 
-
         # # Get xtalforms
         if source_fs_model:
             xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.xtalforms_file)
