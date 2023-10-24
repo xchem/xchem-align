@@ -275,15 +275,15 @@ class Collator:
             raise ValueError("unexpected input type:", input.type)
 
     def _validate_soakdb_input(self, input, crystals):
+        ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
         dbfile = input.get_soakdb_file_path()
         self.logger.info("opening DB file:", dbfile)
-        df = dbreader.filter_dbmeta(dbfile)
+        df = dbreader.filter_dbmeta(dbfile, ref_datasets)
         count = 0
         processed = 0
         num_pdb_files = 0
         num_mtz_files = 0
         num_cif_files = 0
-        ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
 
         for index, row in df.iterrows():
             count += 1
