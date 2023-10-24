@@ -46,6 +46,7 @@ In order to run XChemAlign you will need to create three files:
 The config yaml defines what data to collect for collation. This will include raw crystalographic data, PanDDA data and ligand information.
 
 ```yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
 target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that 
                    # it appears under
 base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at 
