@@ -292,6 +292,7 @@ class Collator:
             # Exclude datasets
             if xtal_name in input.exclude:
                 self._log_warning(f"Excluding dataset: {xtal_name}")
+                continue
 
             xtal_dir = generate_xtal_dir(input.input_dir_path, xtal_name)
             # print('xtal_dir:', xtal_dir)
