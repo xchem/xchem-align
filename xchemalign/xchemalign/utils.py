@@ -55,6 +55,7 @@ class Constants:
     CONFIG_OUTPUT_DIR = "output_dir"
     CONFIG_TARGET_NAME = "target_name"
     CONFIG_REF_DATASETS = "ref_datasets"
+    CONFIG_EXCLUDE = 'exclude'
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
     META_VERSION_NUM = "version_number"

@@ -57,6 +57,7 @@ class Input:
         type: str,
         soakdb_file_path,
         panddas_event_file_paths: list[Path],
+        exclude: list[str],
         reference=False,
         logger=None,
     ):
@@ -65,6 +66,7 @@ class Input:
         self.type = type
         self.soakdb_file_path = soakdb_file_path
         self.panddas_event_file_paths = panddas_event_file_paths
+        self.exclude = exclude
         self.errors = []
         self.warnings = []
         self.reference = reference
@@ -162,14 +164,19 @@ class Collator:
                     else:
                         panddas_paths = []
 
+                    # Determine which datasets to exclude
+                    excluded_datasets = utils.find_property(input, Constants.CONFIG_EXCLUDE)
+                    if not excluded_datasets:
+                        excluded_datasets = []
+
                     self.logger.info("adding input", input_path)
                     self.inputs.append(
-                        Input(self.base_path, input_path, type, soakdb_path, panddas_paths, logger=self.logger)
+                        Input(self.base_path, input_path, type, soakdb_path, panddas_paths, excluded_datasets, logger=self.logger)
                     )
 
                 elif type == Constants.CONFIG_TYPE_MANUAL:
                     self.logger.info("adding input", input_path)
-                    self.inputs.append(Input(self.base_path, input_path, type, None, [], logger=self.logger))
+                    self.inputs.append(Input(self.base_path, input_path, type, None, [], excluded_datasets, logger=self.logger))
                 else:
                     raise ValueError("unexpected input type:", type)
 
@@ -281,6 +288,11 @@ class Collator:
         for index, row in df.iterrows():
             count += 1
             xtal_name = row[Constants.SOAKDB_XTAL_NAME]
+
+            # Exclude datasets
+            if xtal_name in input.exclude:
+                self._log_warning(f"Excluding dataset: {xtal_name}")
+
             xtal_dir = generate_xtal_dir(input.input_dir_path, xtal_name)
             # print('xtal_dir:', xtal_dir)
             if not xtal_name:
