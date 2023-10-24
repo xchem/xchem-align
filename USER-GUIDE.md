@@ -62,6 +62,9 @@ inputs:  # The datasources to collate
     type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align 
                           # which is an advanced topic not covered here.
     soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
+    exclude: [
+      Mpro-IBM0045,
+    ]
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
     - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
 
