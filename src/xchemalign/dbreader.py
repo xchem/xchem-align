@@ -13,6 +13,15 @@
 import sqlite3
 import pandas as pd
 
+# RefinementOutcome values:
+# 1 - Analysis Pending
+# 2 - PANDDA model
+# 3 - In Refinement
+# 4 - CompChem ready
+# 5 - Deposition ready
+# 6 - Deposited
+# 7 - Analysed & Rejected
+
 
 def read_dbmeta(dbfile):
     """
