@@ -20,8 +20,7 @@ from scp import SCPClient
 
 import pandas as pd
 
-from xchemalign import dbreader
-from xchemalign.xchemalign import collator, utils
+from xchemalign import dbreader, collator, utils
 from .utils import Constants
 
 
@@ -92,6 +91,7 @@ class Copier:
         soakdb_file_path: Path,
         panddas_file_paths: list[Path],
         mode: str,
+        ref_datasets: list[str],
         scp_user: str = None,
         scp_server="ssh.diamond.ac.uk",
         scp_key=None,
@@ -108,6 +108,7 @@ class Copier:
         self.soakdb_file_path = soakdb_file_path
         self.panddas_file_paths = panddas_file_paths
         self.mode = mode
+        self.ref_datasets = ref_datasets
         self.errors = []
         self.warnings = []
         if mode == 'copy':
@@ -151,7 +152,7 @@ class Copier:
             sys.exit(1)
 
         self.logger.info("reading soakdb file", dbfile_out)
-        df = dbreader.filter_dbmeta(dbfile_out)
+        df = dbreader.filter_dbmeta(dbfile_out, self.ref_datasets)
         count = 0
         num_files = 0
         num_csv = 0
@@ -350,6 +351,7 @@ def main():
     parser.add_argument("--scp-server", default="ssh.diamond.ac.uk", help="SCP server")
     parser.add_argument("--scp-key", help="SSH key")
     parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
+    parser.add_argument("-r", "--ref-datasets", nargs="*", help="Names of any reference datasets")
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
@@ -365,6 +367,7 @@ def main():
     scp_server = None
     scp_username = None
     scp_key = None
+    ref_datasets = []
     if args.config_file:
         config = utils.read_config_file(args.config_file)
         scp_config = config.get('scp')
@@ -373,6 +376,8 @@ def main():
             scp_username = scp_config.get('username')
             scp_key = scp_config.get('key')
             base_dir = scp_config.get('base_dir', '/')
+
+        ref_datasets = config.get(Constants.CONFIG_REF_DATASETS, [])
 
         inputs = config.get('inputs')
         if not inputs:
@@ -425,6 +430,9 @@ def main():
             sys.exit(1)
         panddas_files[0] = args.panddas_files
 
+    if args.ref_datasets:
+        ref_datasets = args.ref_datasets
+
     # CLI scp args override what is in the config file
     if args.scp_server:
         scp_server = args.scp_server
@@ -448,6 +456,7 @@ def main():
             Path(soakdbfiles[i]),
             [Path(p) for p in panddas_files[i]],
             args.mode,
+            ref_datasets,
             scp_server=scp_server,
             scp_user=scp_username,
             scp_key=scp_key,

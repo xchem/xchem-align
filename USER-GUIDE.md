@@ -473,6 +473,22 @@ crystals:
 For brevity the data for only one crystal, IBM0045, is shown.
 The output lists the files and a sha256 digest for each one to allow to determine if it has changed between versions.
 
+#### Overrides
+
+Certain attributes can be overridden by the user. Currently this is limited to the status of a crystal (for instance,
+allowing a user to deprecate individual crystals), but in future it may become possible to override other attributes.
+
+This is defined in the `overrides` section of the `config.yaml` file. For instance, the following deprecates the
+crystal Mpro-IBM0078, also providing a reason for the deprecation:
+
+```yaml
+overrides:
+  crystals:
+    Mpro-IBM0078:
+      status: deprecated
+      status_reason: Planets not aligned
+```
+
 ### 3. Aligner
 
 This tool generates alignments of the individual protein chains based on sites that

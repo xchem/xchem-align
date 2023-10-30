@@ -62,12 +62,13 @@ class Constants:
     META_VERSION_DIR = "version_dir"
     META_PREV_VERSION_DIRS = "previous_version_dirs"
     META_LAST_UPDATED = "last_updated"
+    META_REFINEMENT_OUTCOME = "refinement_outcome"
     META_STATUS = "status"
     META_STATUS_SUPERSEDES = "supersedes"
     META_STATUS_UNCHANGED = "unchanged"
     META_STATUS_NEW = "new"
     META_STATUS_DEPRECATED = "deprecated"
-    META_REASON = "reason"
+    META_STATUS_REASON = "status_reason"
     META_XTALS = "crystals"
     META_REFERENCE = "reference"
     META_FILE = "file"
@@ -132,6 +133,7 @@ class Constants:
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
     SOAKDB_COL_CIF = "RefinementCIF"
     SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
+    SOAKDB_COL_REFINEMENT_OUTCOME = "RefinementOutcome"
     CRYSTAL_NEW = "crystal_new"
     ASSEMBLIES_FILENAME = "assemblies.yaml"
     PREVIOUS_OUTPUT_DIR = ""
@@ -145,7 +147,7 @@ BOND_TYPES = {
     'DOUBLE': Chem.rdchem.BondType.DOUBLE,
     'TRIPLE': Chem.rdchem.BondType.TRIPLE,
     'aromatic': Chem.rdchem.BondType.AROMATIC,
-    'deloc': Chem.rdchem.BondType.SINGLE
+    'deloc': Chem.rdchem.BondType.SINGLE,
 }
 
 
@@ -296,7 +298,7 @@ def gen_mol_from_cif(cif_file):
     x = block.find_loop('_chem_comp_atom.x')
     y = block.find_loop('_chem_comp_atom.y')
     z = block.find_loop('_chem_comp_atom.z')
-    charges = [0]*len(atom_ids)
+    charges = [0] * len(atom_ids)
     if block.find_loop('_chem_comp_atom.charge'):
         charges = list(block.find_loop('_chem_comp_atom.charge'))
     elif block.find_loop('_chem_comp_atom.partial_charge'):

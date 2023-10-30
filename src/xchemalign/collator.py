@@ -141,6 +141,7 @@ class Collator:
         self.previous_version_dirs = []
         self.meta_history = []
         self.all_xtals = None
+        self.rejected_xtals = set()
         self.new_or_updated_xtals = None
         if logger:
             self.logger = logger
@@ -171,12 +172,22 @@ class Collator:
 
                     self.logger.info("adding input", input_path)
                     self.inputs.append(
-                        Input(self.base_path, input_path, type, soakdb_path, panddas_paths, excluded_datasets, logger=self.logger)
+                        Input(
+                            self.base_path,
+                            input_path,
+                            type,
+                            soakdb_path,
+                            panddas_paths,
+                            excluded_datasets,
+                            logger=self.logger,
+                        )
                     )
 
                 elif type == Constants.CONFIG_TYPE_MANUAL:
                     self.logger.info("adding input", input_path)
-                    self.inputs.append(Input(self.base_path, input_path, type, None, [], excluded_datasets, logger=self.logger))
+                    self.inputs.append(
+                        Input(self.base_path, input_path, type, None, [], excluded_datasets, logger=self.logger)
+                    )
                 else:
                     raise ValueError("unexpected input type:", type)
 
@@ -294,113 +305,121 @@ class Collator:
                 self._log_warning(f"Excluding dataset: {xtal_name}")
                 continue
 
-            xtal_dir = generate_xtal_dir(input.input_dir_path, xtal_name)
-            # print('xtal_dir:', xtal_dir)
-            if not xtal_name:
-                self._log_error("Crystal name not defined, cannot process row {}".format(xtal_name))
+            status_str = str(row[Constants.SOAKDB_COL_REFINEMENT_OUTCOME])
+            if status_str.startswith("7"):
+                # need to check that this crystal was not encountered earlier, if so deprecate it
+                self.rejected_xtals.add(xtal_name)
             else:
-                # self.logger.info('Processing crystal {} {}'.format(count, xtal_name))
-                missing_files = 0
-                expanded_files = []
-                colname = Constants.SOAKDB_COL_PDB
-                file = row[colname]
-                # RefinementPDB_latest file names are specified as absolute file names, but need to be handled as
-                # relative to the base_path
-                if not file:
-                    expanded_files.append(None)
-                    self._log_warning("PDB entry {} for {} not defined in SoakDB".format(colname, xtal_name))
+                xtal_dir = generate_xtal_dir(input.input_dir_path, xtal_name)
+                # print('xtal_dir:', xtal_dir)
+                if not xtal_name:
+                    self._log_error("Crystal name not defined, cannot process row {}".format(xtal_name))
                 else:
-                    # print('handling', colname, file)
-                    inputpath = utils.make_path_relative(Path(file))
-                    full_inputpath = self.base_path / inputpath
-                    # print('generated', full_inputpath)
-                    ok = full_inputpath.exists()
-                    if ok:
-                        num_pdb_files += 1
-                        expanded_files.append(inputpath)
-                    else:
-                        expanded_files.append(None)
-                        missing_files += 1
-                        self._log_warning("PDB file for {} not found: {}".format(xtal_name, full_inputpath))
-
-                    # if we have a PDB file then continue to look for the others
-                    colname = Constants.SOAKDB_COL_MTZ
+                    # self.logger.info('Processing crystal {} {}'.format(count, xtal_name))
+                    missing_files = 0
+                    expanded_files = []
+                    colname = Constants.SOAKDB_COL_PDB
                     file = row[colname]
-                    # RefinementMTZ_latest file names are specified as absolute file names, but need to be handled as
+                    # RefinementPDB_latest file names are specified as absolute file names, but need to be handled as
                     # relative to the base_path
-                    if file:
+                    if not file:
+                        expanded_files.append(None)
+                        self._log_warning("PDB entry {} for {} not defined in SoakDB".format(colname, xtal_name))
+                    else:
+                        # print('handling', colname, file)
                         inputpath = utils.make_path_relative(Path(file))
                         full_inputpath = self.base_path / inputpath
                         # print('generated', full_inputpath)
                         ok = full_inputpath.exists()
                         if ok:
-                            num_mtz_files += 1
+                            num_pdb_files += 1
                             expanded_files.append(inputpath)
                         else:
                             expanded_files.append(None)
                             missing_files += 1
-                            self._log_warning("MTZ file for {} not found: {}".format(xtal_name, full_inputpath))
-                    else:
-                        expanded_files.append(None)
-                        self._log_warning("MTZ entry {} for {} not defined in SoakDB".format(colname, xtal_name))
+                            self._log_warning("PDB file for {} not found: {}".format(xtal_name, full_inputpath))
 
-                    colname = Constants.SOAKDB_COL_CIF
-                    file = row[colname]
-                    # RefinementCIF file names are relative to the xtal_dir
-                    if file:
-                        p = Path(file)
-                        if p.is_absolute():
-                            inputpath = p.relative_to("/")
-                        else:
-                            inputpath = xtal_dir / file
-                        full_inputpath = self.base_path / inputpath
-                        # print('generated', full_inputpath)
-                        ok = full_inputpath.exists()
-                        if ok:
-                            num_cif_files += 1
-                            expanded_files.append(inputpath)
+                        # if we have a PDB file then continue to look for the others
+                        colname = Constants.SOAKDB_COL_MTZ
+                        file = row[colname]
+                        # RefinementMTZ_latest file names are specified as absolute file names, but need to be
+                        # handled as relative to the base_path
+                        if file:
+                            inputpath = utils.make_path_relative(Path(file))
+                            full_inputpath = self.base_path / inputpath
+                            # print('generated', full_inputpath)
+                            ok = full_inputpath.exists()
+                            if ok:
+                                num_mtz_files += 1
+                                expanded_files.append(inputpath)
+                            else:
+                                expanded_files.append(None)
+                                missing_files += 1
+                                self._log_warning("MTZ file for {} not found: {}".format(xtal_name, full_inputpath))
                         else:
                             expanded_files.append(None)
-                            missing_files += 1
-                            self._log_warning("CIF file for {} not found: {}".format(xtal_name, full_inputpath))
-                    else:
-                        expanded_files.append(None)
-                        self._log_warning("CIF entry {} for {} not defined in SoakDB".format(colname, xtal_name))
+                            self._log_warning("MTZ entry {} for {} not defined in SoakDB".format(colname, xtal_name))
 
-                    processed += 1
-                    if xtal_name in crystals.keys():
-                        self._log_warning("Crystal {} already exists, it's data will be overriden".format(xtal_name))
+                        colname = Constants.SOAKDB_COL_CIF
+                        file = row[colname]
+                        # RefinementCIF file names are relative to the xtal_dir
+                        if file:
+                            p = Path(file)
+                            if p.is_absolute():
+                                inputpath = p.relative_to("/")
+                            else:
+                                inputpath = xtal_dir / file
+                            full_inputpath = self.base_path / inputpath
+                            # print('generated', full_inputpath)
+                            ok = full_inputpath.exists()
+                            if ok:
+                                num_cif_files += 1
+                                expanded_files.append(inputpath)
+                            else:
+                                expanded_files.append(None)
+                                missing_files += 1
+                                self._log_warning("CIF file for {} not found: {}".format(xtal_name, full_inputpath))
+                        else:
+                            expanded_files.append(None)
+                            self._log_warning("CIF entry {} for {} not defined in SoakDB".format(colname, xtal_name))
 
-                    data = {}
-                    if xtal_name in ref_datasets:
-                        data[Constants.META_REFERENCE] = True
-                    data[Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MODEL_BUILDING
-                    self.logger.info("adding crystal (model_building)", xtal_name)
-                    crystals[xtal_name] = data
-                    last_updated_date = row[Constants.SOAKDB_COL_LAST_UPDATED]
-                    if last_updated_date:
-                        dt_str = last_updated_date.strftime(utils._DATETIME_FORMAT)
-                        data[Constants.META_LAST_UPDATED] = dt_str
-                    digest = utils.gen_sha256(self.base_path / expanded_files[0])
-                    f_data = {
-                        Constants.META_XTAL_PDB: {
-                            Constants.META_FILE: str(expanded_files[0]),
-                            Constants.META_SHA256: digest,
+                        processed += 1
+                        if xtal_name in crystals.keys():
+                            self._log_warning(
+                                "Crystal {} already exists, it's data will be overriden".format(xtal_name)
+                            )
+
+                        data = {}
+                        if xtal_name in ref_datasets:
+                            data[Constants.META_REFERENCE] = True
+                        data[Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MODEL_BUILDING
+                        self.logger.info("adding crystal (model_building)", xtal_name)
+                        crystals[xtal_name] = data
+                        last_updated_date = row[Constants.SOAKDB_COL_LAST_UPDATED]
+                        if last_updated_date:
+                            dt_str = last_updated_date.strftime(utils._DATETIME_FORMAT)
+                            data[Constants.META_LAST_UPDATED] = dt_str
+                        data[Constants.META_REFINEMENT_OUTCOME] = row[Constants.SOAKDB_COL_REFINEMENT_OUTCOME]
+                        digest = utils.gen_sha256(self.base_path / expanded_files[0])
+                        f_data = {
+                            Constants.META_XTAL_PDB: {
+                                Constants.META_FILE: str(expanded_files[0]),
+                                Constants.META_SHA256: digest,
+                            }
                         }
-                    }
-                    if expanded_files[1]:
-                        digest = utils.gen_sha256(self.base_path / expanded_files[1])
-                        f_data[Constants.META_XTAL_MTZ] = {
-                            Constants.META_FILE: str(expanded_files[1]),
-                            Constants.META_SHA256: digest,
-                        }
-                    if expanded_files[2]:
-                        digest = utils.gen_sha256(self.base_path / expanded_files[2])
-                        f_data[Constants.META_XTAL_CIF] = {
-                            Constants.META_FILE: str(expanded_files[2]),
-                            Constants.META_SHA256: digest,
-                        }
-                    data[Constants.META_XTAL_FILES] = f_data
+                        if expanded_files[1]:
+                            digest = utils.gen_sha256(self.base_path / expanded_files[1])
+                            f_data[Constants.META_XTAL_MTZ] = {
+                                Constants.META_FILE: str(expanded_files[1]),
+                                Constants.META_SHA256: digest,
+                            }
+                        if expanded_files[2]:
+                            digest = utils.gen_sha256(self.base_path / expanded_files[2])
+                            f_data[Constants.META_XTAL_CIF] = {
+                                Constants.META_FILE: str(expanded_files[2]),
+                                Constants.META_SHA256: digest,
+                            }
+                        data[Constants.META_XTAL_FILES] = f_data
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
         if num_mtz_files < num_pdb_files:
@@ -763,23 +782,20 @@ class Collator:
                 new_or_updated_xtals[xtal_name] = xtal_data
             all_xtals[xtal_name] = xtal_data
 
-            # look for any deprecations
-            xtals_overrides = overrides.get(Constants.META_XTALS, {})
-            xtal_override = overrides.get(Constants.META_XTALS, {}).get(xtal_name)
+            # look for any user defined deprecations
+            xtal_override = overrides.get(Constants.META_XTALS, {}).get(xtal_name, {})
             if xtal_override:
                 status_override = xtal_override.get(Constants.META_STATUS)
                 if status_override:
-                    status = status_override.get(Constants.META_STATUS)
-                    if status:
-                        xtal_data[Constants.META_STATUS] = status
-                        reason = status_override.get(Constants.META_REASON)
-                        self.logger.info("status for xtal {} is overridden to be {}".format(xtal_name, status))
-                        if reason:
-                            xtal_data[Constants.META_REASON] = reason
-                        else:
-                            self.logger.warn("status is overridden, but no reason was given")
+                    xtal_data[Constants.META_STATUS] = status_override
+                    reason = xtal_override.get(Constants.META_STATUS_REASON)
+                    self.logger.info(
+                        "status for xtal {} is overridden by user to be {}".format(xtal_name, status_override)
+                    )
+                    if reason:
+                        xtal_data[Constants.META_STATUS_REASON] = reason
                     else:
-                        self.logger.warn("status is declared to be overridden, but no new status was given")
+                        self.logger.warn("status is overridden, but no reason was given")
 
         self.logger.info("metadata {} has {} items".format(count, total))
         self.logger.info(
@@ -803,6 +819,11 @@ class Collator:
         :param new_data:
         :return:
         """
+        # if status is now '7 - Analysed & Rejected' then it will be in the set of rejected_xtals so
+        # we must mark the status as deprecated
+        if xtal_name in self.rejected_xtals:
+            return Constants.META_STATUS_DEPRECATED
+
         old_pdb_data = old_data[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB]
         new_pdb_data = new_data[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB]
         old_sha256 = old_pdb_data[Constants.META_SHA256]
@@ -811,29 +832,6 @@ class Collator:
             return Constants.META_STATUS_UNCHANGED
         else:
             return Constants.META_STATUS_SUPERSEDES
-
-    # def _get_xtal_status_old(self, xtal_name, old_data, new_data):
-    #     """
-    #     Compare status using the last_updated property.
-    #     Even if this can be relied on, it is not present for manual entries.
-    #
-    #     :param xtal_name:
-    #     :param old_data:
-    #     :param new_data:
-    #     :return:
-    #     """
-    #     old_date = old_data.get(Constants.META_LAST_UPDATED)
-    #     if old_date:
-    #         new_date = new_data.get(Constants.META_LAST_UPDATED)
-    #     if not old_date or not new_date:
-    #         self.logger.warn("Dates not defined for {}, must assume xtal is updated".format(xtal_name))
-    #         return Constants.META_STATUS_SUPERSEDES
-    #     elif utils.to_datetime(new_date) > utils.to_datetime(old_date):
-    #         self.logger.info("Xtal {} is updated".format(xtal_name))
-    #         return Constants.META_STATUS_SUPERSEDES
-    #     else:
-    #         # self.logger.info('Xtal {} is unchanged'.format(xtal_name))
-    #         return Constants.META_STATUS_UNCHANGED
 
     def _write_metadata(self, meta, all_xtals, new_xtals):
         f = self.output_path / self.version_dir / Constants.METADATA_XTAL_FILENAME

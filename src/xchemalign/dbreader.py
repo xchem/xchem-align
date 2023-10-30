@@ -51,19 +51,7 @@ def filter_dbmeta(dbfile, reference_datasets):
             | df1.RefinementOutcome.str.startswith("4")
             | df1.RefinementOutcome.str.startswith("5")
             | df1.RefinementOutcome.str.startswith("6")
+            | df1.RefinementOutcome.str.startswith("7")
         )
     ]
     return df2
-
-
-def main():
-    df = filter_dbmeta("data/dls/labxchem/data/2020/lb18145-153/processing/database/soakDBDataFile.sqlite")
-
-    s = pd.to_datetime(df["LastUpdated"], infer_datetime_format=True)
-    print(s)
-    # for d in s:
-    #     print(d)
-
-
-if __name__ == "__main__":
-    main()
