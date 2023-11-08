@@ -5,17 +5,17 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 * It formalises sites and packing artefacts across crystal forms and conformations, aligning models, maps and artefacts to common origins for each binding site.
 * It handles model updates and multiple repeat experiments (e.g. to resolve stereochemistry).
 * It allows for fast release cycles through supporting incremental updates.
-* It assists efficient curation of auto-identified features, by running fast and on the minimal set of files in any given iteration. 
+* It assists efficient curation of auto-identified features, by running fast and on the minimal set of files in any given iteration.
 
 ## Overview
 
-There a few steps involved. 
-1. **Enable** the XChemAlign environment 
+There a few steps involved.
+1. **Enable** the XChemAlign environment
 1. **Declare** a few things about your data in two structured files in `yaml`[^1]
 2. **Collate** your files in a new (speicific) directory structure
 3. **Align** all binding sites to common origins
 4. **Release** the data to Fragalysis
-5. **Re-release** additional data by repeating (some or all) steps 1-6. 
+5. **Re-release** additional data by repeating (some or all) steps 1-6.
 
 If you won't run this at Diamond, you will first have to:
 1. **Set up** _(only once)_ your runtime environment _(easy)_
@@ -33,7 +33,6 @@ source /dls/science/groups/i04-1/conor_dev/xchem-align/act
 conda activate /dls/science/groups/i04-1/conor_dev/xchem-align/env_xchem_align
 ```
 
-
 ## 2. Declaring things
 
 In order to run XChemAlign you will need to create three files:
@@ -47,20 +46,20 @@ The config yaml defines what data to collect for collation. This will include ra
 
 ```yaml
 # DO NOT USE TABS FOR THE WHITESPACE!
-target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that 
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
                    # it appears under
-base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at 
-                                            # Diamond this should be set to '/' 
-output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is 
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is
                                              # NOT relative to base_dir.
-ref_datasets:  # A set of exemplar datasets that you want aligned to every ligand binding site. If you have multiple 
+ref_datasets:  # A set of exemplar datasets that you want aligned to every ligand binding site. If you have multiple
               # major classes of conformations there should be at least one of each class.
-  - Mpro-IBM0045  # There are given with the dataset folder name/crystal id as it appears in the 
+  - Mpro-IBM0045  # There are given with the dataset folder name/crystal id as it appears in the
                   # model_building directory
 inputs:  # The datasources to collate
-  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from 
+  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
                                             # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
-    type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align 
+    type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
                           # which is an advanced topic not covered here.
     soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
     exclude: [  # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
@@ -76,7 +75,7 @@ inputs:  # The datasources to collate
 An example can be found [here](test-data/outputs/xtalforms.yaml), and a guide for preparing this can be found
 [here](xtalforms_example.md).
 
-## 4. Collating files 
+## 4. Collating files
 
 The first step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
 
@@ -98,41 +97,23 @@ python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your
 
 
 
-## 3. Setting up runtime environment _(only once)_ 
+## 3. Setting up runtime environment _(only once)_
 
-<details> 
-    <summary>questions</summary>
-
-    Old text was:
-    To run the XChemAlign tools you can use a development environment
-    as described above or create a suitable user (run-time) environment; this does
-    not install the packages used for development: -
-
-    Questions:
-    * what is this development environment "described above" (it wasn't), and does this need mentioning here?
-    * how often does this need to be run - really only once?
-</details>
-
-To run the XChemAlign tools, create a user (run-time) environment: 
+To run the XChemAlign tools you need to setup a Python environment.
+This is described in more detail in the [Developer guide](DEV-GUIDE.md), but just to run the tools do this:
 
     python -m venv venv
     source venv/bin/activate
     pip install --upgrade pip
-
     pip install .
 
 Make sure you use Python 3.10. Earlier versions will not work, and later ones have not been tested.
-
+Those steps just install what you need to run the tools, not to develop them.
+You only need to set up this environment once.
 
 ## 3. Copying files from Diamond _(if not at Diamond)_
 
 The next step (Collating) requires files  
-
-> [!NOTE]
-> Still reworking these instructions.  FvD 2023-10-17
-
-> [!NOTE]
-> Still reworking these instructions.  FvD 2023-10-17
 
 > [!NOTE]
 > Still reworking these instructions.  FvD 2023-10-17
@@ -159,15 +140,66 @@ This tool reads the SoakDB file (found at `processing/database/soakDBDataFile.sq
 are needed from the `mainTable` database table and copies those files to the output directory.
 From there they can be tarred up and copied to your local system.
 
+Copier can be run in 2 modes:
+1. SSH to Diamond, and copy the files there, (`copy` mode), then tar of zip up those copied files and copy the archive
+   to your working environment.
+2. Use SCP to copy the files from Diamond directly your working environment (`scp` mode).
+
+Both modes require you to have SSH login credentials t Diamond (e.g. a FedID account and a SSH key).
+`scp` mode is simpler to run, but a lot slower.
+
+The settings can be provided in a `config.yaml` file or as commandline arguments, or as a bit of both.
+When running in `copy` mode using commandline arguments is probably easier, when running in `scp` mode using a config
+file is probably easier.
+
+A `config.yaml` file will look like this:
+
+```yaml
+target_name: Mpro
+output_dir: data/outputs/Mpro
+
+scp:
+  server: ssh.diamond.ac.uk
+  username: gse84885
+  key: /home/username/.ssh/id_rsa
+  base_dir: /
+
+inputs:
+- dir: dls/labxchem/data/2020/lb18145-153
+  type: model_building
+  soakdb: processing/database/soakDBDataFile.sqlite
+  panddas_event_files:
+    - processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv
+    - processing/analysis/pandda_2_2020_04_30/analyses/pandda_inspect_events.csv
+    - processing/analysis/pandda_2_2020_05_10/analyses/pandda_inspect_events.csv
+```
+
+Some notes about this file:
+
+1. The same file is used to configure the collator tool, which you will run after copying. As the outputs of `copier`
+   are the inputs of `collator` some of the names can be confusing.
+2. The `scp` section contains your SSH credentials that are used when using `scp` mode.
+3. The default for `scp.server` is `ssh.diamond.ac.uk` so you do not actually need this setting.
+4. If you don't specify a SSH key then all your SSH keys (in the ~/ssh directory) are loaded.
+5. The default for `scp.base_dir` is `/` so you do not actually need this setting.
+6. There can be multiple values for the contents of `inputs`. If so all are copied, unless the `--input-dir` option is
+   specified, in which case just that one input is copied.
+7. When copying multiple inputs some of the commandline options become ambiguous so can't be used.
+8. When not using a config file, only a single input can be copied. Run multiple times to copy multiple visits.
+9. Commandline options take preference over settings in the config file.
+
 Usage:
 ```commandline
 $ python -m xchemalign.copier --help
-usage: copier.py [-h] -b BASE_DIR -i INPUT_DIR [-s SOAKDB_FILE] [-p [PANDDAS_FILES ...]] -o OUTPUT_DIR [-l LOG_FILE] [--log-level LOG_LEVEL]
+usage: copier.py [-h] [-c CONFIG_FILE] [-b BASE_DIR] [-i INPUT_DIR] [-s SOAKDB_FILE] [-p [PANDDAS_FILES ...]] -m {copy,scp} [--scp-username SCP_USERNAME] [--scp-server SCP_SERVER] [--scp-key SCP_KEY] -o OUTPUT_DIR
+                 [-l LOG_FILE] [--log-level LOG_LEVEL]
 
 copier
 
 options:
   -h, --help            show this help message and exit
+  -c CONFIG_FILE, --config-file CONFIG_FILE
+                        Configuration file
   -b BASE_DIR, --base-dir BASE_DIR
                         Base directory. If running against the Diamond file system use /
   -i INPUT_DIR, --input-dir INPUT_DIR
@@ -176,6 +208,13 @@ options:
                         Path to soakdb file relative to input-dir. Default is processing/database/soakDBDataFile.sqlite
   -p [PANDDAS_FILES ...], --panddas-files [PANDDAS_FILES ...]
                         Paths to CSV files with panddas data relative to input-dir
+  -m {copy,scp}, --mode {copy,scp}
+                        Mode of file copying
+  --scp-username SCP_USERNAME
+                        SCP username
+  --scp-server SCP_SERVER
+                        SCP server
+  --scp-key SCP_KEY     SSH key
   -o OUTPUT_DIR, --output-dir OUTPUT_DIR
                         Output directory
   -l LOG_FILE, --log-file LOG_FILE
@@ -184,17 +223,17 @@ options:
                         Logging level (0=INFO, 1=WARN, 2=ERROR)
 ```
 
-Example:
+Example using `scp` mode with only commandline options:
 ```commandline
-python -m xchemalign.copier -b / -i dls/labxchem/data/2020/lb18145-153 \
+$ python -m xchemalign.copier -b / -i dls/labxchem/data/2020/lb18145-153 \
   -p processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv \
   processing/analysis/pandda_2_2020_04_30/analyses/pandda_inspect_events.csv \
   processing/analysis/pandda_2_2020_05_10/analyses/pandda_inspect_events.csv \
-  -o xce-outputs/lb18145-158
+  -o xca-outputs -m scp --scp-user=username --scp-key ~/.ssh/id_rsa
 ```
 
-That example copies the required data for the visit found at `2020/lb18145-158` to the output directory
-`xce-outputs/lb18145-158`. The full paths of the files are retained, and typically the required files can be located
+That example copies the required data for the visit found at `/dls/labxchem/data/2020/lb18145-153` to the output directory
+`xca-outputs`. The full paths of the files are retained, and typically the required files can be located
 anywhere under the `processing` directory in unpredictable locations.
 Only the SoakDB database knows where the necessary files are actually located.
 
@@ -204,6 +243,16 @@ The files copied are:
 * the CIF file for the ligand in the crystal
 * the panddas event map data in `pandda_inspect_events.csv` files
 * the *best* panddas event map (`.ccp4` file) identified from the `.csv` file
+
+Example using `scp` mode with config file options:
+```commandline
+$ python -m xchemalign.copier -c config.yaml -o xca-outputs -m scp
+```
+
+For using `copy` mode just change `--mode scp` to `--mode copy`.
+The key difference is that `scp` mode is run remotely from your working environment whereas to use `copy` mode you must
+first ssh to `ssh.diamond.ac.uk`, then run copier (having created a new working Python environment), then zip up the
+copied files and copy them back to your working environment.
 
 ### 2. Collator
 
@@ -423,6 +472,22 @@ crystals:
 
 For brevity the data for only one crystal, IBM0045, is shown.
 The output lists the files and a sha256 digest for each one to allow to determine if it has changed between versions.
+
+#### Overrides
+
+Certain attributes can be overridden by the user. Currently this is limited to the status of a crystal (for instance,
+allowing a user to deprecate individual crystals), but in future it may become possible to override other attributes.
+
+This is defined in the `overrides` section of the `config.yaml` file. For instance, the following deprecates the
+crystal Mpro-IBM0078, also providing a reason for the deprecation:
+
+```yaml
+overrides:
+  crystals:
+    Mpro-IBM0078:
+      status: deprecated
+      status_reason: Planets not aligned
+```
 
 ### 3. Aligner
 
