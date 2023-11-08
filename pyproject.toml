@@ -28,7 +28,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [tool.setuptools.packages.find]
-where = ["xchemalign"]
+where = ["src/xchemalign"]
 
 [project.optional-dependencies]
 dev = [
