@@ -4,7 +4,6 @@ import shutil
 
 import pytest
 
-
 @pytest.fixture(scope="session")
 def constants():
     class Constants:
