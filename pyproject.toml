@@ -57,7 +57,7 @@ dev = [
 #name = "jfi22496"
 
 [tool.setuptools_scm]
-write_to = "xchemalign/_version.py"
+write_to = "src/xchemalign/_version.py"
 
 [tool.mypy]
 ignore_missing_imports = true
