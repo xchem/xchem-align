@@ -138,6 +138,14 @@ class Copier:
 
         return len(self.errors), len(self.warnings)
 
+    def check_path(self, path, expected_path):
+        try:
+            relp = path.relative_to(expected_path)
+            return True
+        except ValueError as ve:
+            self.logger.warn('unexpected path for file:', path)
+            return False
+
     def copy_files(self):
         if self.base_path and self.input_path.is_absolute():
             self.logger.warn("INFO: making input_path relative as a base_path is specified")
@@ -160,12 +168,19 @@ class Copier:
         for index, row in df.iterrows():
             count += 1
             xtal_name = row["CrystalName"]
+            status_str = str(row[Constants.SOAKDB_COL_REFINEMENT_OUTCOME])
+            if status_str.startswith("7"):
+                self.logger.info("ignoring {} as status is 7".format(xtal_name))
+                continue
+
             xtal_dir_path = collator.generate_xtal_dir(self.input_path, xtal_name)
             self.logger.info("processing {} {}".format(count, xtal_name))
+            expected_path = self.base_path / self.input_path / Constants.DEFAULT_MODEL_BUILDING_DIR
 
             file = row["RefinementPDB_latest"]
             if file:
                 path = Path(file)
+                self.check_path(path, expected_path)
                 ok = self.copy_file(path, xtal_dir_path)
                 if ok:
                     num_files += 1

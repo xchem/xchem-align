@@ -226,31 +226,32 @@ class PDBXtal:
 
         return mol
 
-    def extract_sequences(self):
-        if not self.apo_desolv_file:
-            self.create_apo_solv_desolv()
-        pdb_file = open(self.output_dir / (self.filebase + "_apo-desolv.pdb"), "rt")
-        lines = pdb_file.readlines()
-        curr_chain = None
-        curr_resno = 0
-        curr_seq = None
-        seqs = []
-        for line in lines:
-            if line.startswith('ATOM'):
-                alt = line[16].strip()
-                chain = line[21].strip()
-                code = line[17:20].strip()
-                resno = int(line[22:26].strip())
-                if chain != curr_chain:
-                    curr_chain = chain
-                    curr_seq = ProteinSeq(chain, [], start=int(resno))
-                    seqs.append(curr_seq)
-                if resno != curr_resno:
-                    for i in range(resno - curr_resno - 1):
-                        curr_seq.seq.append('UNK')
-                    curr_resno = resno
-                    curr_seq.seq.append(code)
-        return seqs
+    def extract_sequences(self, pdb_file=None):
+        if not pdb_file:
+            pdb_file = self.pdbfile
+
+        with open(pdb_file, "rt") as pdb:
+            lines = pdb.readlines()
+            curr_chain = None
+            curr_resno = 0
+            curr_seq = None
+            seqs = []
+            for line in lines:
+                if line.startswith('ATOM'):
+                    alt = line[16].strip()
+                    chain = line[21].strip()
+                    code = line[17:20].strip()
+                    resno = int(line[22:26].strip())
+                    if chain != curr_chain:
+                        curr_chain = chain
+                        curr_seq = ProteinSeq(chain, [], start=int(resno))
+                        seqs.append(curr_seq)
+                    if resno != curr_resno:
+                        for i in range(resno - curr_resno - 1):
+                            curr_seq.seq.append('UNK')
+                        curr_resno = resno
+                        curr_seq.seq.append(code)
+            return seqs
 
 
 class ProteinSeq:

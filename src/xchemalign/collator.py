@@ -151,8 +151,14 @@ class Collator:
         self.inputs = []
         inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
         self.logger.info("found {} inputs".format(len(inputs)))
+
         if inputs:
             for input in inputs:
+                # Determine which datasets to exclude
+                excluded_datasets = utils.find_property(input, Constants.CONFIG_EXCLUDE)
+                if not excluded_datasets:
+                    excluded_datasets = []
+
                 input_path = utils.find_path(input, Constants.CONFIG_DIR)
                 type = utils.find_property(input, Constants.CONFIG_TYPE)
                 if type == Constants.CONFIG_TYPE_MODEL_BUILDING:
@@ -164,11 +170,6 @@ class Collator:
                         panddas_paths = [Path(p) for p in panddas_csvs]
                     else:
                         panddas_paths = []
-
-                    # Determine which datasets to exclude
-                    excluded_datasets = utils.find_property(input, Constants.CONFIG_EXCLUDE)
-                    if not excluded_datasets:
-                        excluded_datasets = []
 
                     self.logger.info("adding input", input_path)
                     self.inputs.append(
@@ -342,7 +343,10 @@ class Collator:
                         else:
                             expanded_files.append(None)
                             missing_files += 1
-                            self._log_warning("PDB file for {} not found: {}".format(xtal_name, full_inputpath))
+                            self._log_warning(
+                                "PDB file for {} not found: {}. Skipping entry".format(xtal_name, full_inputpath)
+                            )
+                            continue
 
                         # if we have a PDB file then continue to look for the others
                         colname = Constants.SOAKDB_COL_MTZ
@@ -852,7 +856,7 @@ class Collator:
     def _copy_config(self):
         f = shutil.copy2(self.config_file, self.output_path / self.version_dir / 'config.yaml')
         if not f:
-            print("Failed to copy config file to {}".format((self.output_path / self.version_dir)))
+            self.logger.warn("Failed to copy config file to {}".format((self.output_path / self.version_dir)))
             return False
         return True
 

@@ -12,6 +12,7 @@
 
 import argparse
 import os
+import logging
 import shutil
 from pathlib import Path
 
@@ -217,7 +218,7 @@ class Aligner:
     def _write_output(self, collator_dict, aligner_dict):
         # keep a copy of the xtaforms and assemblies configs
         self._copy_file_to_version_dir(self.xtalforms_file)
-        # self._copy_file_to_version_dir(self.assemblies_file)
+        self._copy_file_to_version_dir(self.assemblies_file)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
@@ -544,8 +545,10 @@ class Aligner:
 
         new_meta[Constants.META_XTALS] = {}
         for dtag, crystal in crystals.items():
+            self.logger.info('looking at', dtag)
             # Skip if no output for this dataset
             if dtag not in fs_model.alignments:
+                self.logger.warn('skipping {} as not in alignments'.format(dtag))
                 continue
 
             new_meta[Constants.META_XTALS][dtag] = {}
@@ -574,7 +577,6 @@ class Aligner:
                             Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
                             Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                             Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
-
                         }
 
         ## Add the reference alignments
