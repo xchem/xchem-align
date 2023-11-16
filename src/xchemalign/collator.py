@@ -184,6 +184,11 @@ class Collator:
                     )
 
                 elif type == Constants.CONFIG_TYPE_MANUAL:
+                    # Determine which datasets to exclude
+                    excluded_datasets = utils.find_property(input, Constants.CONFIG_EXCLUDE)
+                    if not excluded_datasets:
+                        excluded_datasets = []
+
                     self.logger.info("adding input", input_path)
                     self.inputs.append(
                         Input(self.base_path, input_path, type, None, [], excluded_datasets, logger=self.logger)
