@@ -755,6 +755,8 @@ def main():
             exit(1)
         else:
             a.run()
+            # write a summary of errors and warnings
+            logger.report()
 
 
 if __name__ == "__main__":

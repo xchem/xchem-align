@@ -166,9 +166,9 @@ class Logger:
         """
         self.console = console
         self.level = 0
-        self.infos = 0
-        self.warnings = 0
-        self.errors = 0
+        self.infos = []
+        self.warnings = []
+        self.errors = []
         if logfile:
             self.logfile = open(logfile, "w")
             self.closed = False
@@ -203,12 +203,14 @@ class Logger:
         :return:
         """
 
+        msg = " ".join([str(s) for s in args])
+
         if level == 0:
-            self.infos += 1
+            self.infos.append(msg)
         elif level == 1:
-            self.warnings += 1
+            self.warnings.append(msg)
         elif level == 2:
-            self.errors += 1
+            self.errors.append(msg)
 
         if level >= self.level:
             if level == 0:
@@ -225,7 +227,26 @@ class Logger:
                 print(key, *args, file=self.logfile, **kwargs)
 
     def get_num_messages(self):
-        return self.infos, self.warnings, self.errors
+        return len(self.infos), len(self.warnings), len(self.errors)
+
+    def report(self):
+        """
+        Write out a summary of the warnings and errors
+        :return:
+        """
+        if self.warnings:
+            print(
+                "*********** CAUTION:",
+                len(self.warnings),
+                "warnings were generated. See above for context ***********",
+            )
+            for msg in self.warnings:
+                print("WARN:", msg)
+
+        if self.errors:
+            print("*********** CAUTION:", len(self.errors), "errors were generated. See above for context ***********")
+            for msg in self.errors:
+                print("ERROR:", msg)
 
 
 def gen_sha256(file):

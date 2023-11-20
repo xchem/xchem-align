@@ -949,7 +949,7 @@ def main():
 
     args = parser.parse_args()
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
-    logger.info("collator: ", args)
+    logger.info("collator: ", str(args))
 
     c = Collator(args.config_file, logger=logger)
 
@@ -961,6 +961,8 @@ def main():
             exit(1)
         else:
             c.run(meta)
+            # write a summary of errors and warnings
+            logger.report()
 
 
 if __name__ == "__main__":
