@@ -136,6 +136,8 @@ class Collator:
 
         self.target_name = utils.find_property(config, Constants.CONFIG_TARGET_NAME)
 
+        self.panddas_missing_ok = utils.find_property(config, Constants.META_PANDDAS_MISSING_OK, default=[])
+
         self.version_number = None
         self.version_dir = None
         self.previous_version_dirs = []
@@ -623,14 +625,16 @@ class Collator:
                 if best_event_map_paths:
                     for k, tup in best_event_map_paths.items():
                         path = tup[0]
-                        digest = utils.gen_sha256(path)
-                        ccp4_output = cryst_path / xtal_name / "{}_{}_{}_{}.ccp4".format(xtal_name, k[0], k[1], k[2])
-                        # ccp4_output = cryst_path / xtal_name / "{}_{}_{}.ccp4".format(k[0], k[1], k[2])
-                        event_maps_to_copy[k] = (path, ccp4_output, digest, k, tup[1], tup[2])
-                        hist_data = hist_event_maps.get(k)
-                        if hist_data:
-                            if digest == hist_data.get(Constants.META_SHA256):
-                                num_identical_historical_event_maps += 1
+                        if path:
+                            digest = utils.gen_sha256(path)
+                            ccp4_output = (
+                                cryst_path / xtal_name / "{}_{}_{}_{}.ccp4".format(xtal_name, k[0], k[1], k[2])
+                            )
+                            event_maps_to_copy[k] = (path, ccp4_output, digest, k, tup[1], tup[2])
+                            hist_data = hist_event_maps.get(k)
+                            if hist_data:
+                                if digest == hist_data.get(Constants.META_SHA256):
+                                    num_identical_historical_event_maps += 1
 
             else:
                 self.logger.error("PDB entry missing for {}".format(xtal_name))
@@ -919,9 +923,6 @@ class Collator:
         self, xtal_name: str, pdb_file: Path, event_tables: dict[Path, pd.DataFrame]
     ) -> dict[tuple[str, str, str], Path]:
         # Get the relevant structure
-        # self.logger.info('Reading', xtal_name, pdb_file)
-        # self.logger.info('Using {} event tables'.format(len(event_tables)))
-
         structure = gemmi.read_structure(str(pdb_file))
 
         # Get the coordinates of ligands
@@ -930,11 +931,25 @@ class Collator:
         # Get the closest events within some reasonable radius
         closest_event_maps = {}
         for ligand_key, ligand_coord in ligand_coords.items():
-            # print('coord:', ligand_coord)
             closest_event_map, data = self.get_closest_event_map(xtal_name, ligand_coord, event_tables)
             if closest_event_map:
-                # print('closest:', closest_event_map)
                 closest_event_maps[ligand_key] = (closest_event_map, data[0], data[1])
+            else:
+                if xtal_name in self.panddas_missing_ok:
+                    self.logger.warn(
+                        "no PanDDA event map found for",
+                        xtal_name,
+                        "but this is OK as it's been added to the panddas_missing_ok",
+                        "list in the config file",
+                    )
+                else:
+                    self.logger.error(
+                        "no PanDDA event map found. If you want to allow this then add",
+                        xtal_name,
+                        "to the panddas_missing_ok list in the config file",
+                    )
+
+                closest_event_maps[ligand_key] = (None, None, None)
 
         return closest_event_maps
 

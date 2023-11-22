@@ -548,7 +548,7 @@ class Aligner:
             self.logger.info('looking at', dtag)
             # Skip if no output for this dataset
             if dtag not in fs_model.alignments:
-                self.logger.warn('skipping {} as not in alignments'.format(dtag))
+                self.logger.warn('skipping {} as aligned structures not found'.format(dtag))
                 continue
 
             new_meta[Constants.META_XTALS][dtag] = {}

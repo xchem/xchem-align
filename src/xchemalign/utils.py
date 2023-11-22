@@ -81,6 +81,7 @@ class Constants:
     META_XTAL_CIF = "ligand_cif"
     META_SMILES = "smiles"
     META_BINDING_EVENT = "panddas_event_files"
+    META_PANDDAS_MISSING_OK = "panddas_missing_ok"
     META_PROT_MODEL = "model"
     META_PROT_CHAIN = "chain"
     META_PROT_RES = "res"
