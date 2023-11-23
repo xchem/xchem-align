@@ -758,7 +758,7 @@ class Collator:
                                 continue
                             attested_ligand_event_data = attested_ligand_events[ligand_key]
                             data = {
-                                Constants.META_FILE: str(attested_ligand_event_data[0]),
+                                Constants.META_FILE: str(attested_ligand_event_data[1]),
                                 Constants.META_SHA256: attested_ligand_event_data[2],
                                 Constants.META_PROT_MODEL: ligand_key[0],
                                 Constants.META_PROT_CHAIN: ligand_key[1],
