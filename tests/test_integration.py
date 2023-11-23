@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from xchemalign.collator import Collator
@@ -63,3 +65,5 @@ def test_aligner_upload_2(constants, assemblies_file, xtalforms_file, upload_2_d
         exit(1)
     else:
         a.run()
+
+    assert "Mpro-i0130" in [x.name for x in (Path(upload_2_dir) / "aligned_files").glob("*")]
