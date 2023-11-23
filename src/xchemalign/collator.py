@@ -658,6 +658,8 @@ class Collator:
                                     identical_historical_event_maps[ligand_key] = True
                                 else:
                                     event_maps_to_copy[ligand_key] = True
+                            else:
+                                event_maps_to_copy[ligand_key] = True
                     # Handle ligands that cannot be matched
                     else:
                         # Add those permitted ligands
