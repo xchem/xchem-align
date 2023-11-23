@@ -621,7 +621,7 @@ class Collator:
                         hist_event_maps[(model, chain, res)] = ligand_binding_data
 
                 # Determine the ligands present and their coordinates
-                dataset_ligands = self.get_dataset_ligands(pdb)
+                dataset_ligands = self.get_dataset_ligands(pdb_input)
 
                 # Match ligand to panddas event maps if possible and determine if those maps are new
                 best_event_map_paths = self.get_dataset_event_maps(xtal_name, dataset_ligands, event_tables)
