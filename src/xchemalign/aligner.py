@@ -94,6 +94,13 @@ def traverse_dictionary(dic, func):
             dic[key] = func(value)
 
 
+def _get_xmap_path_or_none(output_path, binding_event):
+    xmap_file = binding_event.get(Constants.META_FILE)
+    if xmap_file:
+        return str(output_path / xmap_file)
+    else:
+        return None
+
 def get_datasets_from_crystals(crystals, output_path):
     # dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
     # paths to files will be defined like this: upload_1/crystallographic_files/8dz1/8dz1.pdb
@@ -140,7 +147,7 @@ def get_datasets_from_crystals(crystals, output_path):
                     dtag=str(dtag),
                     chain=str(binding_event.get(Constants.META_PROT_CHAIN)),
                     residue=str(binding_event.get(Constants.META_PROT_RES)),
-                    xmap=str(output_path / binding_event.get(Constants.META_FILE)),
+                    xmap=_get_xmap_path_or_none(output_path, binding_event),
                 )
                 for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
             },
