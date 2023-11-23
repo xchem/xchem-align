@@ -4,6 +4,8 @@ output_dir: test-data/outputs
 ref_datasets:
   - Mpro-IBM0045
   - 5rgs
+panddas_missing_ok:
+  - Mpro-i0130
 inputs:
   - dir: dls/labxchem/data/2020/lb27995-1
     type: model_building
