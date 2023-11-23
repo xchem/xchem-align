@@ -635,6 +635,9 @@ class Collator:
                             if hist_data:
                                 if digest == hist_data.get(Constants.META_SHA256):
                                     num_identical_historical_event_maps += 1
+                        else:
+                            event_maps_to_copy[k] = (None, None, None, k, tup[1], tup[2])
+
 
             else:
                 self.logger.error("PDB entry missing for {}".format(xtal_name))
