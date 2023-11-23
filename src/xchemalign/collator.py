@@ -739,11 +739,11 @@ class Collator:
                         for ligand_key in event_maps_to_copy:
                             source = attested_ligand_events[ligand_key][0]
                             destination = attested_ligand_events[ligand_key][1]
-                            f = shutil.copy2(source[0], self.output_path / destination[1], follow_symlinks=True)
+                            f = shutil.copy2(source, self.output_path / destination, follow_symlinks=True)
                             if not f:
                                 self.logger.error(
                                     "Failed to copy Panddas file {} to {}".format(
-                                        source[0], self.output_path / destination[1]
+                                        source, self.output_path / destination
                                     )
                                 )
                                 # Mark that copying failed
