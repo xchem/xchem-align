@@ -1,9 +1,11 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
 from xchemalign.collator import Collator
 from xchemalign.aligner import Aligner
+from xchemalign.utils import Constants
 
 def test_collator_upload_1(
         constants,
@@ -54,6 +56,10 @@ def test_collator_upload_2(
         exit(1)
     else:
         c.run(meta)
+
+    with open(Path(upload_2_dir) / "meta_collator.yaml", 'r') as f:
+        new_meta = yaml.safe_load(f)
+    assert len(meta[Constants.META_XTALS]["Mpro-i0130"][Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})) != 0
 
 @pytest.mark.order(after="test_collator_upload_2")
 def test_aligner_upload_2(constants, assemblies_file, xtalforms_file, upload_2_dir):
