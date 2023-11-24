@@ -610,7 +610,6 @@ class Collator:
                 elif type == Constants.CONFIG_TYPE_MODEL_BUILDING:
                     self.logger.warn("CIF entry missing for {}".format(xtal_name))
 
-
                 # Handle histroical ligand binding events (in particular pull up their event map SHA256s for comparing)
                 hist_event_maps = {}
                 for ligand_binding_data in historical_xtal_data.get(Constants.META_BINDING_EVENT, []):
@@ -637,11 +636,9 @@ class Collator:
                         if path:
                             digest = utils.gen_sha256(path)
                             ccp4_output = (
-                                cryst_path / xtal_name / "{}_{}_{}_{}.ccp4".format(
-                                xtal_name,
-                                ligand_key[0],
-                                ligand_key[1],
-                                ligand_key[2])
+                                cryst_path
+                                / xtal_name
+                                / "{}_{}_{}_{}.ccp4".format(xtal_name, ligand_key[0], ligand_key[1], ligand_key[2])
                             )
                             attested_ligand_events[ligand_key] = (
                                 path,
@@ -679,7 +676,6 @@ class Collator:
                                 "to the panddas_missing_ok list in the config file",
                             )
                             forbidden_unattested_ligand_events[xtal_name] = ligand_key
-
 
             else:
                 self.logger.error("PDB entry missing for {}".format(xtal_name))
@@ -749,7 +745,6 @@ class Collator:
                                 # Mark that copying failed
                                 unsucessfully_copied_event_maps[ligand_key] = True
 
-
                     # Create ligand binding events for the dataset
                     ligand_binding_events = []
                     for ligand_key in dataset_ligands:
@@ -767,7 +762,7 @@ class Collator:
                                 Constants.META_PROT_RES: ligand_key[2],
                                 Constants.META_PROT_INDEX: attested_ligand_event_data[4],
                                 Constants.META_PROT_BDC: attested_ligand_event_data[5],
-                                }
+                            }
                         # Add binding events for permitted ligands without an event map
                         elif ligand_key in unattested_ligand_events:
                             data = {
@@ -787,7 +782,6 @@ class Collator:
                     # Add data on the ligand binding events to the new dataset to add
                     data_to_add[Constants.META_BINDING_EVENT] = ligand_binding_events
 
-
             new_xtal_data = {}
             for k, v in historical_xtal_data.items():
                 new_xtal_data[k] = v
@@ -803,7 +797,7 @@ class Collator:
             )
             for dtag, ligand_key in forbidden_unattested_ligand_events.items():
                 lk = ligand_key
-                exception = exception + f"{dtag} : Model: {lk[0]}; Chain: {lk[1]}; Residue: {lk[2]}"
+                exception = exception + f"{dtag} : Model: {lk[0]}; Chain: {lk[1]}; Residue: {lk[2]}\n"
             raise Exception(exception)
 
         return meta
@@ -1002,9 +996,8 @@ class Collator:
         else:
             return None, None
 
-
     def get_dataset_event_maps(
-        self, xtal_name: str, ligand_coords: dict[(str,str,int), np.array], event_tables: dict[Path, pd.DataFrame]
+        self, xtal_name: str, ligand_coords: dict[(str, str, int), np.array], event_tables: dict[Path, pd.DataFrame]
     ) -> dict[tuple[str, str, str], Path]:
         # Get the relevant structure
 
@@ -1017,7 +1010,6 @@ class Collator:
             closest_event_map, data = self.get_closest_event_map(xtal_name, ligand_coord, event_tables)
             if closest_event_map:
                 closest_event_maps[ligand_key] = (closest_event_map, data[0], data[1])
-
 
         return closest_event_maps
 

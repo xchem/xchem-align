@@ -26,7 +26,7 @@ Make sure you create the venv using Python 3.10 (or later).
 From your clean virtual environment you can now install the run-time and development
 dependencies like this: -
 
-    pip install .[dev]
+    pip install -e .[dev]
 
 The project also relies on CI that is run in GitHub using the actions defined
 in the files you'll find in the `.github/workflows` directory.

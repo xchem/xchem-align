@@ -12,7 +12,7 @@
 
 import argparse
 import os
-import logging
+import traceback
 import shutil
 from pathlib import Path
 
@@ -100,6 +100,7 @@ def _get_xmap_path_or_none(output_path, binding_event):
         return str(output_path / xmap_file)
     else:
         return None
+
 
 def get_datasets_from_crystals(crystals, output_path):
     # dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
@@ -724,14 +725,23 @@ class Aligner:
                                         pdbxtal.apo_desolv_file.relative_to(self.base_dir)
                                     )
                                     if cif_file:
-                                        pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
-                                        v4[Constants.META_LIGAND_MOL] = (
-                                            str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.mol'
-                                        )
-                                        v4[Constants.META_LIGAND_PDB] = (
-                                            str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.pdb'
-                                        )
-                                        v4[Constants.META_LIGAND_SMILES] = pdbxtal.smiles
+                                        try:
+                                            pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
+                                            v4[Constants.META_LIGAND_MOL] = (
+                                                str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.mol'
+                                            )
+                                            v4[Constants.META_LIGAND_PDB] = (
+                                                str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.pdb'
+                                            )
+                                            v4[Constants.META_LIGAND_SMILES] = pdbxtal.smiles
+                                        except:
+                                            num_errors += 1
+                                            self.logger.warn(
+                                                "failed to create ligand for",
+                                                k1,
+                                                "Check that ligand in PDB and CIF files are compatible ",
+                                            )
+                                            traceback.print_exc()
 
         return num_errors
 
