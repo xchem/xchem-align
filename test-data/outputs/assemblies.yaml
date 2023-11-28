@@ -1,5 +1,0 @@
-dimer:
-    reference: Mpro-IBM0045
-    biomol: A,B
-    chains: A, A(-x,y,-z)
-

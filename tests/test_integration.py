@@ -27,8 +27,8 @@ def test_collator_upload_1(
 
 
 @pytest.mark.order(after="test_collator_upload_1")
-def test_aligner_upload_1(constants, assemblies_file, xtalforms_file, upload_1_dir):
-    a = Aligner(upload_1_dir, constants.METADATA_FILE, xtalforms_file, assemblies_file, )
+def test_aligner_upload_1(constants, xtalforms_file, upload_1_dir):
+    a = Aligner(upload_1_dir, constants.METADATA_FILE, xtalforms_file, )
     num_errors, num_warnings = a.validate()
 
     if num_errors:
@@ -62,8 +62,8 @@ def test_collator_upload_2(
     assert len(meta[Constants.META_XTALS]["Mpro-i0130"][Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})) != 0
 
 @pytest.mark.order(after="test_collator_upload_2")
-def test_aligner_upload_2(constants, assemblies_file, xtalforms_file, upload_2_dir):
-    a = Aligner(upload_2_dir, constants.METADATA_FILE, xtalforms_file, assemblies_file, )
+def test_aligner_upload_2(constants, xtalforms_file, upload_2_dir):
+    a = Aligner(upload_2_dir, constants.METADATA_FILE, xtalforms_file, )
     num_errors, num_warnings = a.validate()
 
     if num_errors:
