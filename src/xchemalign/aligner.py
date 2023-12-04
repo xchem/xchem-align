@@ -648,8 +648,16 @@ class Aligner:
         # new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID] = canonical_sites.reference_site_id
 
         num_extract_errors = self._extract_components(crystals, new_meta)
-        if num_extract_errors:
-            self.logger.error("there were problems extracting components. See above for details")
+        if num_extract_errors == 1:
+            self.logger.warn(
+                "there was a problem extracting components for 1 aligned structure. See above for details"
+            )
+        elif num_extract_errors > 1:
+            self.logger.warn(
+                "there were problems extracting components for",
+                num_extract_errors,
+                "aligned structures. See above for details",
+            )
 
         # cleanup empty aligned files dirs
         empty_dir_count = 0
@@ -728,7 +736,7 @@ class Aligner:
                                             self.logger.warn(
                                                 "failed to create ligand for",
                                                 k1,
-                                                "Check that ligand in PDB and CIF files are compatible ",
+                                                "Check that the ligand in PDB file and the CIF file are compatible",
                                             )
                                             traceback.print_exc()
 
