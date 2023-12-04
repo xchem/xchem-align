@@ -38,6 +38,7 @@ def test_aligner_upload_1(constants, xtalforms_file, upload_1_dir):
         a.run()
 
 
+
 @pytest.mark.order(after="test_aligner_upload_1")
 def test_collator_upload_2(
     constants,
