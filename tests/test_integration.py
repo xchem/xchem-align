@@ -46,7 +46,6 @@ def test_collator_upload_2(
     upload_2_dir,
     upload_2_data_dir,
     config_2_file,
-
 ):
     c = Collator(str(config_2_file), )
 
@@ -61,6 +60,7 @@ def test_collator_upload_2(
     with open(Path(upload_2_dir) / "meta_collator.yaml", 'r') as f:
         new_meta = yaml.safe_load(f)
     assert len(meta[Constants.META_XTALS]["Mpro-i0130"][Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})) != 0
+
 
 @pytest.mark.order(after="test_collator_upload_2")
 def test_aligner_upload_2(constants, xtalforms_file, upload_2_dir):
