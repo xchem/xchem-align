@@ -13,7 +13,7 @@ def constants():
         CONFIG_1_FILE = "test-data/config_1.yaml"
         CONFIG_2_FILE = "test-data/config_2.yaml"
         ASSEMBLIES_FILE = "test-data/outputs/assemblies.yaml"
-        XTAFLORMS_FILE = "test-data/outputs/xtalforms.yaml"
+        XTAFLORMS_FILE = "test-data/outputs/crystalforms.yaml"
         TEST_DIR = "test-data/outputs"
         UPLOAD_1_DIR = "test-data/outputs/upload_1"
         UPLOAD_2_DIR = "test-data/outputs/upload_2"

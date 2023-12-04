@@ -181,7 +181,7 @@ class Aligner:
         if xtalforms:
             self.xtalforms_file = Path(xtalforms)
         else:
-            self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/xtalforms.yaml
+            self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/crystalforms.yaml
         if logger:
             self.logger = logger
         else:

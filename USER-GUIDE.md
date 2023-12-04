@@ -72,7 +72,7 @@ inputs:  # The datasources to collate
 
 ### 2.2. The assembly and xtalform Yamls
 
-An example can be found [here](test-data/outputs/xtalforms.yaml), and a guide for preparing this can be found
+An example can be found [here](test-data/outputs/crystalforms.yaml), and a guide for preparing this can be found
 [here](xtalforms_example.md).
 
 ## 4. Collating files
@@ -528,7 +528,7 @@ dimer:
 ```
 
 The crystal forms are defined in `xtalforms.yaml`, the default location being in the output dir.
-An example can be found [here](test-data/outputs/xtalforms.yaml) and a guide for preparing this can be found
+An example can be found [here](test-data/outputs/crystalforms.yaml) and a guide for preparing this can be found
 [here](xtalforms_example.md). Again you may only have a single crystal form, or you may have more than one.
 
 With those files created we can now run teh aligner.
