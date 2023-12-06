@@ -201,9 +201,9 @@ class Aligner:
         else:
             p = self.metadata_file
             if not p.exists():
-                self._log_error("metadata file {} does not exist".format(p))
+                self._log_error("metadata file {} does not exist. Did the collator step run successfully?".format(p))
             if not p.is_file():
-                self._log_error("metadata file {} is not a file".format(p))
+                self._log_error("metadata file {} is not a file. Did the collator step run successfully?".format(p))
 
             p = Path(self.xtalforms_file)
             if not p.exists():
