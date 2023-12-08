@@ -69,10 +69,11 @@ inputs:  # The datasources to collate
 
 ```
 
-### 2.2. The assembly and xtalform Yamls
+### 2.2. The crysatlforms Yamls
 
-An example can be found [here](test-data/outputs/crystalforms.yaml), and a guide for preparing this can be found
-[here](xtalforms_example.md).
+This is illustrated [here](https://dlsltd-my.sharepoint.com/:p:/g/personal/frank_von-delft_diamond_ac_uk/EX0rFXoIAX5IjY6UB2VwE98BR43bSWO6fD7aKMrWrpx8zQ?e=rqNGkB).
+~~An example can be found [here](test-data/outputs/crystalforms.yaml), and a guide for preparing this can be found
+[here](xtalforms_example.md).~~
 
 ## 4. Collating files
 
