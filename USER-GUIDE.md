@@ -35,10 +35,9 @@ conda activate /dls/science/groups/i04-1/conor_dev/xchem-align/env_xchem_align
 
 ## 2. Declaring things
 
-In order to run XChemAlign you will need to create three files:
+In order to run XChemAlign you will need to create two files:
 1. The config.yaml file
-2. The xtalforms.yaml file
-3. The assemblies.yaml file
+2. The crystalforms.yaml file
 
 ### 2.1. The Config Yaml
 
