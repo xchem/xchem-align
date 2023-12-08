@@ -93,7 +93,7 @@ python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your
 
 ## 5. Releasing to Fragalysis
 
-## Non-Diamond instructions
+# Non-Diamond instructions
 
 1. **Set up** _(only once)_ your runtime environment _(easy)_
 2. **Copy** relevant files from Diamond _(if not at Diamond)_
