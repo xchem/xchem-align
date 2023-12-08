@@ -10,17 +10,14 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 ## Overview
 
 There a few steps involved.
-1. **Enable** the XChemAlign environment
-1. **Declare** a few things about your data in two structured files in `yaml`[^1]
-2. **Collate** your files in a new (speicific) directory structure
-3. **Align** all binding sites to common origins
-4. **Release** the data to Fragalysis
-5. **Re-release** additional data by repeating (some or all) steps 1-6.
+1. [**Enable**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#1-enabling-the-xchemalign-environment) the XChemAlign environment
+1. [**Declare**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#2-declaring-things) a few things about your data in two structured files in `yaml`[^1]
+2. [**Collate**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#3-collating-files) your files in a new (speicific) directory structure
+3. [**Align**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#4-aligning-everything) all binding sites to common origins
+4. [**Release**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#5-releasing-to-fragalysis) the data to Fragalysis
+6. **Re-release** additional data by repeating (some or all) of steps 1-6.
 
-If you won't run this at Diamond, you will first have to:
-1. **Set up** _(only once)_ your runtime environment _(easy)_
-2. **Copy** relevant files from Diamond _(if not at Diamond)_
-
+If you won't run this at Diamond, you will first have to set up your environment and copy over files. See the [instructions below](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#non-diamond-instructions)
 
 [^1]: "yet another markup language"
 
@@ -77,7 +74,7 @@ This file specifies both the biological *assemblies* and *crystalforms* relative
 
 The example file can be found [here](test-data/outputs/xtalforms.yaml). The `biomol` and `chains` directives specify the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`). I.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains **C,E,A** in the **largecellpdb**.
 
-## 4. Collating files
+## 3. Collating files
 
 The first step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
 
@@ -86,7 +83,7 @@ mkdir <path to your output_dir>/upload_1
 python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <your upload config file>
 ```
 
-## 5. Aligning everything
+## 4. Aligning everything
 
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
@@ -94,11 +91,14 @@ The next step is performing local alignments of your ligand bound models and the
 python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -x <your xtalforms file> -a <your assemblies file>
 ```
 
-## 6. Releasing to Fragalysis
+## 5. Releasing to Fragalysis
 
+## Non-Diamond instructions
 
+1. **Set up** _(only once)_ your runtime environment _(easy)_
+2. **Copy** relevant files from Diamond _(if not at Diamond)_
 
-## 3. Setting up runtime environment _(only once)_
+## 1. Setting up runtime environment _(only once)_
 
 To run the XChemAlign tools you need to setup a Python environment.
 This is described in more detail in the [Developer guide](DEV-GUIDE.md), but just to run the tools do this:
@@ -112,7 +112,7 @@ Make sure you use Python 3.10. Earlier versions will not work, and later ones ha
 Those steps just install what you need to run the tools, not to develop them.
 You only need to set up this environment once.
 
-## 3. Copying files from Diamond _(if not at Diamond)_
+## 2. Copying files from Diamond _(if not at Diamond)_
 
 The next step (Collating) requires files  
 
