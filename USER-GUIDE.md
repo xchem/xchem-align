@@ -58,7 +58,8 @@ inputs:  # The datasources to collate
     type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
                           # which is an advanced topic not covered here.
     soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
-    exclude: [  # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
+    # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
+    exclude: [  
       Mpro-IBM0057,
     ]
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
