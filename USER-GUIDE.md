@@ -91,7 +91,9 @@ The next step is performing local alignments of your ligand bound models and the
 python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -x <your xtalforms file> -a <your assemblies file>
 ```
 
-## 5. Releasing to Fragalysis
+## 5. Upload to Fragalysis
+
+An automatic tool for Fragalysis upload has not yet been written. The XCA outputs should be zipped and uploaded to Fragalysis via the [/viewer/upload_tset/ page](https://fragalysis.diamond.ac.uk/viewer/upload_tset/)
 
 # Non-Diamond instructions
 
