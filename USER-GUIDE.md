@@ -28,6 +28,7 @@ If you are uploading your data from diamond light source then this is as simple 
 ```commandline
 source /dls/science/groups/i04-1/conor_dev/xchem-align/act
 conda activate /dls/science/groups/i04-1/conor_dev/xchem-align/env_xchem_align
+export PYTHONPATH=/dls/science/groups/i04-1/conor_dev/xchem-align/src:$PYTHONPATH
 ```
 
 ## 2. Declaring things
