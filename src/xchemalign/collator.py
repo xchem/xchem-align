@@ -533,11 +533,13 @@ class Collator:
         self.logger.info("running collator...")
 
         self.logger.info("coping files ...")
+        self._write_metadata(meta, suffix="_0")
         new_meta = self._copy_files(meta)
         self.logger.info("munging the history ...")
+        self._write_metadata(new_meta, suffix="_1")
         all_xtals, new_xtals = self._munge_history(meta)
         self.logger.info("writing metadata ...")
-        self._write_metadata(new_meta, all_xtals, new_xtals)
+        self._write_metadata(new_meta)
         self.logger.info("copying config ...")
         self._copy_config()
         self.logger.info("run complete")
@@ -921,16 +923,10 @@ class Collator:
         else:
             return Constants.META_STATUS_SUPERSEDES
 
-    def _write_metadata(self, meta, all_xtals, new_xtals):
-        f = self.output_path / self.version_dir / Constants.METADATA_XTAL_FILENAME
+    def _write_metadata(self, meta, suffix=""):
+        f = self.output_path / self.version_dir / Constants.METADATA_XTAL_FILENAME.format(suffix)
         with open(f, "w") as stream:
             yaml.dump(meta, stream, sort_keys=False)
-        # f = self.output_path / self.version_dir / "all_xtals.yaml"
-        # with open(f, "w") as stream:
-        #     yaml.dump(all_xtals, stream, sort_keys=False)
-        #     f = self.output_path / self.version_dir / "new_xtals.yaml"
-        # with open(f, "w") as stream:
-        #     yaml.dump(new_xtals, stream, sort_keys=False)
 
     def _copy_config(self):
         f = shutil.copy2(self.config_file, self.output_path / self.version_dir / 'config.yaml')

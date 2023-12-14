@@ -40,7 +40,7 @@ class Constants:
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4",
     ]
     XTALFORMS_FILENAME = "crystalforms.yaml"
-    METADATA_XTAL_FILENAME = "meta_collator.yaml"
+    METADATA_XTAL_FILENAME = "meta_collator{}.yaml"
     METADATA_ALIGN_FILENAME = "meta_aligner.yaml"
     VERSION_DIR_PREFIX = "upload_"
     DEFAULT_SOAKDB_PATH = "processing/database/soakDBDataFile.sqlite"
