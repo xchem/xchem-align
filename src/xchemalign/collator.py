@@ -98,7 +98,9 @@ class Input:
         if not self.input_dir_path:
             self.errors.append("input_dir_path is not defined")
         elif self.input_dir_path.is_absolute():
-            self.errors.append("input_path must be a path relative to base_path")
+            self.errors.append(
+                "inputs.dir must be a path relative to base_path. What was specified was", self.input_dir_path
+            )
         else:
             p = self.get_input_dir_path()
             self.logger.info("testing", p)
