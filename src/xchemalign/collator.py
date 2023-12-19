@@ -767,24 +767,26 @@ class Collator:
                                 Constants.META_PROT_INDEX: attested_ligand_event_data[4],
                                 Constants.META_PROT_BDC: attested_ligand_event_data[5],
                             }
+                            ligand_binding_events.append(data)
                         # Add binding events for permitted ligands without an event map
-                        elif ligand_key in unattested_ligand_events:
-                            data = {
-                                Constants.META_FILE: None,
-                                Constants.META_SHA256: None,
-                                Constants.META_PROT_MODEL: ligand_key[0],
-                                Constants.META_PROT_CHAIN: ligand_key[1],
-                                Constants.META_PROT_RES: ligand_key[2],
-                                Constants.META_PROT_INDEX: None,
-                                Constants.META_PROT_BDC: None,
-                            }
+                        # elif ligand_key in unattested_ligand_events:
+                        #     data = {
+                        #         Constants.META_FILE: None,
+                        #         Constants.META_SHA256: None,
+                        #         Constants.META_PROT_MODEL: ligand_key[0],
+                        #         Constants.META_PROT_CHAIN: ligand_key[1],
+                        #         Constants.META_PROT_RES: ligand_key[2],
+                        #         Constants.META_PROT_INDEX: None,
+                        #         Constants.META_PROT_BDC: None,
+                        #     }
                         # Skip if ligand key is not associated with a legal ligand
                         else:
                             continue
-                        ligand_binding_events.append(data)
+                        # ligand_binding_events.append(data)
 
                     # Add data on the ligand binding events to the new dataset to add
-                    data_to_add[Constants.META_BINDING_EVENT] = ligand_binding_events
+                    if ligand_binding_events:
+                        data_to_add[Constants.META_BINDING_EVENT] = ligand_binding_events
 
             new_xtal_data = {}
             for k, v in historical_xtal_data.items():
