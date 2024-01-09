@@ -526,7 +526,7 @@ class Collator:
 
     def read_metadata(self, version_dir):
         self.logger.info("reading metadata for version {}".format(version_dir))
-        meta_file = version_dir / Constants.METADATA_XTAL_FILENAME
+        meta_file = version_dir / Constants.METADATA_XTAL_FILENAME.format("")
 
         meta = utils.read_config_file(str(meta_file))
         return meta
