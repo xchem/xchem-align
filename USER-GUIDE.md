@@ -65,8 +65,13 @@ inputs:  # The datasources to collate
     ]
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
     - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+panddas_missing_ok: [
+  Mpro-x0089
+]
 
 ```
+
+
 
 ### 2.2. The crystalforms Yamls
 
@@ -242,3 +247,49 @@ The key difference is that `scp` mode is run remotely from your working environm
 first ssh to `ssh.diamond.ac.uk`, then run copier (having created a new working Python environment), then zip up the
 copied files and copy them back to your working environment.
 
+## 3. Debugging Errors
+
+### Missing PanDDA Event Files Warning When You Have Event Maps
+
+You may have missing datasets in your upload directory because the corresponding PanDDA event maps have not been found. The solution to this is to find the pandda_inspect_events.csv file corresponding to the PanDDA in which the structure was modelled and add it to the config.yaml.
+
+```yaml
+# config.yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+...
+inputs:  # The datasources to collate
+  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
+                                            # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
+    type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
+                          # which is an advanced topic not covered here.
+...
+    panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+    - processing/analysis/panddas_2/analyses/pandda_inspect_events.csv # Structures now come from more than one PanDDA so add additional csv!
+
+
+```
+
+### Missing PanDDAs Event Files Warning When No Event Maps Have Been Generated
+
+You may have refined structures that do not have PanDDA event maps, for example because you are working with follow up compounds for which the electron density is clear in conventional maps. By default XCA will warn you that this is a problem, however you can override this behaviour by setting the panddas_missing_ok key to the config.
+
+```yaml
+# config.yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+...
+    panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+panddas_missing_ok: [  # List the dataset names that are in your model building directory that you want to export refined
+  Mpro-x0089           # models for but that do not have corresponding PanDDA maps
+]
+
+```
