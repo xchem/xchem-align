@@ -542,7 +542,6 @@ class Collator:
         all_xtals, new_xtals = self._munge_history(meta)
         self.logger.info("writing metadata ...")
         self._write_metadata(new_meta)
-        self.logger.info("copying config ...")
         self._copy_config()
         self.logger.info("run complete")
         return new_meta
@@ -933,7 +932,9 @@ class Collator:
             yaml.dump(meta, stream, sort_keys=False)
 
     def _copy_config(self):
-        f = shutil.copy2(self.config_file, self.output_path / self.version_dir / 'config.yaml')
+        to_path = self.output_path / self.version_dir / 'config.yaml'
+        self.logger.info("copying config file", self.config_file, "to", to_path)
+        f = shutil.copy2(self.config_file, to_path)
         if not f:
             self.logger.warn("Failed to copy config file to {}".format((self.output_path / self.version_dir)))
             return False

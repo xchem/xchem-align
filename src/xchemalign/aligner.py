@@ -110,14 +110,17 @@ def get_datasets_from_crystals(crystals, output_path):
     reference_datasets = {}
     new_datasets = {}
     for dtag, crystal in crystals.items():
+        mtz_file = crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
+        if mtz_file is None:
+            mtz_path = "None"
+        else:
+            mtz_path = str(output_path / mtz_file)
+
         dataset = dt.Dataset(
             dtag=dtag,
             pdb=str(output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]),
             xmap="",
-            mtz=str(
-                output_path
-                / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
-            ),
+            mtz=mtz_path,
             # ligand_binding_events=LigandBindingEvents(
             #     ligand_ids=[
             #         LigandID(
