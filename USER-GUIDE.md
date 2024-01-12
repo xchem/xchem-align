@@ -341,7 +341,7 @@ inputs:  # The datasources to collate
     ]
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
     - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
-  - dir: /path/to/some/dir  # Folder containing directories which contain PDB structures (and possibly corresponding MTZs)
+  - dir: path/to/some/dir  # Folder containing directories which contain PDB structures (and possibly corresponding MTZs)
     type: manual
 
 ```
