@@ -9,7 +9,7 @@ def main():
     parser = argparse.ArgumentParser(description="aligner")
 
     parser.add_argument("-d", "--version-dir", required=True, help="Path to version dir")
-    parser.add_argument("-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME, help="Metadata YAML file")
+    parser.add_argument("-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME.format(""), help="Metadata YAML file")
     parser.add_argument("-x", "--xtalforms", help="Crystal forms YAML file")
     # parser.add_argument("-a", "--assemblies", help="Crystal forms YAML file")
 
