@@ -314,3 +314,34 @@ ref_datasets:  # A set of exemplar datasets that you want aligned to every ligan
 ...
 
 ```
+
+
+### Adding PDB Structures To The Alignment
+
+If you have structures from the PDB or some other, non-PanDDA, source to add, this can be managed by creating a "manual" minput directory, which is structures like a model_building directory (dataset names for folders which contain structures), and adding it to the config.
+
+```yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is
+                                             # NOT relative to base_dir.
+...
+inputs:  # The datasources to collate
+  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
+                                            # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
+    type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
+                          # which is an advanced topic not covered here.
+    soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
+    # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
+    exclude: [  
+      Mpro-IBM0057,
+    ]
+    panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+  - dir: /path/to/some/dir  # Folder containing directories which contain PDB structures (and possibly corresponding MTZs)
+    type: manual
+
+```
