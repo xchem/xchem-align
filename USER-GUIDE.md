@@ -293,3 +293,24 @@ panddas_missing_ok: [  # List the dataset names that are in your model building 
 ]
 
 ```
+
+### Multiple Reference Structures
+
+You may have multiple reference datasets, for example because there are two major conformations that are present. This can be easily handled by adding multiple reference datasets in the config.
+
+```yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is
+                                             # NOT relative to base_dir.
+ref_datasets:  # A set of exemplar datasets that you want aligned to every ligand binding site. If you have multiple
+              # major classes of conformations there should be at least one of each class.
+  - Mpro-IBM0045  # There are given with the dataset folder name/crystal id as it appears in the
+                  # model_building directory
+  - Mpro-x0089 # A second reference dataset which will be aligned to every site discovered
+...
+
+```
