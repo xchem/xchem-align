@@ -100,7 +100,22 @@ python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your
 
 ## 5. Upload to Fragalysis
 
-An automatic tool for Fragalysis upload has not yet been written. The XCA outputs should be zipped and uploaded to Fragalysis via the [/viewer/upload_tset/ page](https://fragalysis.diamond.ac.uk/viewer/upload_tset/)
+An automatic tool for Fragalysis upload has not yet been written.
+
+To generate the gzipped tar file needed to manually upload the data move into your output dir and run this command
+(updating it for the specific upload version and target name):
+
+```
+tar cvfz <target_name>.tgz upload_1
+```
+
+The Log in to Fragalysis and authenticate (for the staging server):
+https://fragalysis.xchem.diamond.ac.uk/viewer/react/landing
+
+The gzipped tar file can then be uploaded to Fragalysis via (for the staging Fragalysis server):
+[/viewer/upload_tset/ page](https://fragalysis.xchem.diamond.ac.uk/api/upload_target_experiments/)
+
+You will need to know your target access string to do this.
 
 # Non-Diamond instructions
 
