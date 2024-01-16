@@ -172,9 +172,11 @@ class Logger:
         self.errors = []
         if logfile:
             self.logfile = open(logfile, "w")
+            self.logfilename = logfile
             self.closed = False
         else:
             self.logfile = None
+            self.logfilename = None
             self.closed = True
         atexit.register(self.close)
         x = datetime.datetime.now()

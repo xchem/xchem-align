@@ -760,21 +760,34 @@ def main():
     parser.add_argument("--validate", action="store_true", help="Only perform validation")
 
     args = parser.parse_args()
-    print("aligner: ", args)
 
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    if args.log_file:
+        log = args.log_file
+    else:
+        log = Path(args.version_dir).parent / 'aligner.log'
+        print("Using {} for log file".format(str(log)))
+
+    logger = utils.Logger(logfile=log, level=args.log_level)
+    logger.info("aligner: ", args)
 
     a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, logger=logger)
     num_errors, num_warnings = a.validate()
 
     if not args.validate:
         if num_errors:
-            print("There are errors, cannot continue")
+            logger.error("There are errors, cannot continue")
             exit(1)
         else:
             a.run()
             # write a summary of errors and warnings
             logger.report()
+            logger.close()
+            if logger.logfilename:
+                to_path = a.version_dir / 'aligner.log'
+                print("copying log file", logger.logfilename, "to", to_path)
+                f = shutil.copy2(logger.logfilename, to_path)
+                if not f:
+                    print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
 
 
 if __name__ == "__main__":

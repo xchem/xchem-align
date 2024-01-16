@@ -125,7 +125,7 @@ class Input:
 
 
 class Collator:
-    def __init__(self, config_file, logger=None):
+    def __init__(self, config_file, log_file=None, log_level=0):
         self.errors = []
         self.warnings = []
         self.config_file = config_file
@@ -147,10 +147,10 @@ class Collator:
         self.all_xtals = None
         self.rejected_xtals = set()
         self.new_or_updated_xtals = None
-        if logger:
-            self.logger = logger
-        else:
-            self.logger = utils.Logger()
+        if not log_file:
+            log_file = self.output_path / 'collator.log'
+        self.logger = utils.Logger(logfile=log_file, level=log_level)
+        self.log_file = log_file
 
         self.inputs = []
         inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
@@ -1024,21 +1024,28 @@ def main():
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
 
     args = parser.parse_args()
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
-    logger.info("collator: ", str(args))
 
-    c = Collator(args.config_file, logger=logger)
+    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level)
+    logger = c.logger
+    logger.info("collator: ", str(args))
 
     meta, num_errors, num_warnings = c.validate()
 
     if not args.validate:
         if meta is None or num_errors:
-            print("There are errors, cannot continue")
+            logger.error("There are errors, cannot continue")
             exit(1)
         else:
             c.run(meta)
             # write a summary of errors and warnings
             logger.report()
+            logger.close()
+            if logger.logfilename:
+                to_path = c.output_path / c.version_dir / 'collator.log'
+                print("copying log file", logger.logfilename, "to", to_path)
+                f = shutil.copy2(logger.logfilename, to_path)
+                if not f:
+                    print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
 
 
 if __name__ == "__main__":
