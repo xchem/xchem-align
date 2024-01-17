@@ -17,13 +17,13 @@ def main():
     # logger.info("collator: ", args)
 
     c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level)
-    c.logger.info("collator: ", args)
-
+    logger = c.logger
+    logger.info("collator: ", args)
 
     meta = c.validate()
 
     if not args.validate:
-        if meta is None or num_errors:
+        if meta is None or len(logger.errors) > 0:
             print("There are errors, cannot continue")
             exit(1)
         else:
