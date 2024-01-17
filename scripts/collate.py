@@ -20,7 +20,7 @@ def main():
     c.logger.info("collator: ", args)
 
 
-    meta, num_errors, num_warnings = c.validate()
+    meta = c.validate()
 
     if not args.validate:
         if meta is None or num_errors:
