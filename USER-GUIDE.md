@@ -81,6 +81,30 @@ This file specifies both the biological *assemblies* and *crystalforms* relative
 
 The example file can be found [here](test-data/outputs/crystalforms.yaml). The `biomol` and `chains` directives specify the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`). I.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains **C,E,A** in the **largecellpdb**.
 
+### 2.3 Example configs
+
+Here are some example configs that you can look at and run to hel get your head round how all this works.
+
+#### 2.3.1 Minimal simple example.
+
+This example illustrates only the minimal required configuration.
+You will probably need to use additional configuration features, but this should help you understand the basics.
+
+The example is contained in the file `example-simple.tgz`. Expand this file using:
+
+```commandline
+tar xvfz example-simple.tgz
+```
+
+Take a look at the two configuration files which are:
+
+example-simple/work/config_1.yaml
+example-simple/work/crystalforms.yaml
+
+You can run XChemAlign with this data using the instructions in the example-simple/README.txt file.
+
+TODO - create a more complex example.
+
 ## 3. Collating files
 
 The first step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
