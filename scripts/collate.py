@@ -13,10 +13,12 @@ def main():
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
 
     args = parser.parse_args()
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    # logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    # logger.info("collator: ", args)
+
+    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level)
     logger.info("collator: ", args)
 
-    c = Collator(args.config_file, logger=logger)
 
     meta, num_errors, num_warnings = c.validate()
 
