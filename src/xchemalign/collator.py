@@ -217,15 +217,15 @@ class Collator:
         self.logger.info("Using version dir {}".format(v_dir))
 
         self.logger.info("validating paths")
-        num_errors, num_warnings = self.validate_paths()
+        self.validate_paths()
 
-        if num_errors == 0:
+        if len(self.logger.errors) == 0:
             self.logger.info("validating data")
             meta = self.validate_data()
         else:
             meta = {}
 
-        return meta, len(self.errors), len(self.warnings)
+        return meta
 
     def validate_paths(self):
         self.errors.clear()
@@ -260,8 +260,6 @@ class Collator:
                 for warning in input.warnings:
                     self.logger.warn(warning)
                     num_input_warnings += 1
-
-        return len(self.errors) + num_input_errors, len(self.warnings) + num_input_warnings
 
     def validate_data(self):
         """
@@ -1029,11 +1027,13 @@ def main():
     logger = c.logger
     logger.info("collator: ", str(args))
 
-    meta, num_errors, num_warnings = c.validate()
+    meta = c.validate()
 
     if not args.validate:
-        if meta is None or num_errors:
+        if meta is None or len(logger.errors) > 0:
             logger.error("There are errors, cannot continue")
+            logger.report()
+            logger.close()
             exit(1)
         else:
             c.run(meta)

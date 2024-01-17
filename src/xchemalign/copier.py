@@ -479,9 +479,16 @@ def main():
         errors, warnings = c.validate()
         if errors:
             logger.error("There are errors, cannot continue")
-            exit(1)
+            logger.report()
+            logger.close()
+            ex = 1
         else:
             c.copy_files()
+            ex = 0
+
+        logger.report()
+        logger.close()
+        exit(ex)
 
 
 if __name__ == "__main__":
