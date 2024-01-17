@@ -17,7 +17,7 @@ def main():
     # logger.info("collator: ", args)
 
     c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level)
-    logger.info("collator: ", args)
+    c.logger.info("collator: ", args)
 
 
     meta, num_errors, num_warnings = c.validate()
