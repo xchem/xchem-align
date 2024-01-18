@@ -307,6 +307,7 @@ class Collator:
         for index, row in df.iterrows():
             count += 1
             xtal_name = row[Constants.SOAKDB_XTAL_NAME]
+            cmpd_code = row[Constants.SOAKDB_COL_COMPOUND_CODE]
 
             # Exclude datasets
             if xtal_name in input.exclude:
@@ -430,6 +431,8 @@ class Collator:
                                 Constants.META_FILE: str(expanded_files[2]),
                                 Constants.META_SHA256: digest,
                             }
+                        if cmpd_code:
+                            data[Constants.META_CMPD_CODE] = cmpd_code
                         data[Constants.META_XTAL_FILES] = f_data
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
