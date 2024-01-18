@@ -97,6 +97,8 @@ def test_collator_upload_2(
         new_meta = yaml.safe_load(f)
     assert len(meta[Constants.META_XTALS]["Mpro-i0130"][Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})) != 0
 
+    assert "5rgs" in [x.name for x in (Path(upload_3_dir) / "crystallographic_files").glob("*")]
+
 
 @pytest.mark.order(after="test_collator_upload_3")
 def test_aligner_upload_2(constants, xtalforms_file, upload_3_dir):
