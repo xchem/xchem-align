@@ -110,3 +110,4 @@ def test_aligner_upload_2(constants, xtalforms_file, upload_3_dir):
         a.run()
 
     assert "5rgs" in [x.name for x in (Path(upload_3_dir) / "aligned_files").glob("*")]
+
