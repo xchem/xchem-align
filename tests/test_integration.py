@@ -101,7 +101,7 @@ def test_collator_upload_2(
 
 
 @pytest.mark.order(after="test_collator_upload_3")
-def test_aligner_upload_2(constants, xtalforms_file, upload_3_dir):
+def test_aligner_upload_3(constants, xtalforms_file, upload_3_dir):
     a = Aligner(upload_3_dir, constants.METADATA_FILE, xtalforms_file, )
     num_errors, num_warnings = a.validate()
 
