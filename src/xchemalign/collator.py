@@ -574,7 +574,9 @@ class Collator:
                     digest = utils.gen_sha256(pdb_input)
                     old_digest = historical_xtal_data.get(Constants.META_XTAL_PDB, {}).get(Constants.META_SHA256)
                     if digest != old_digest:
-                        # PDB is changed
+                        # PDB is new or changed
+                        if old_digest is not None:
+                            self.logger.info("PDB file for {} has changed".format(xtal_name))
                         pdb_name = xtal_name + ".pdb"
                         pdb_output = dir / pdb_name
                         files_to_copy[Constants.META_XTAL_PDB] = (pdb_input, pdb_output, digest)
@@ -588,6 +590,8 @@ class Collator:
                         digest = utils.gen_sha256(mtz_input)
                         old_digest = historical_xtal_data.get(Constants.META_XTAL_MTZ, {}).get(Constants.META_SHA256)
                         if digest != old_digest:
+                            if old_digest is not None:
+                                self.logger.info("MTZ file for {} has changed".format(xtal_name))
                             mtz_name = xtal_name + ".mtz"
                             mtz_output = dir / mtz_name
                             files_to_copy[Constants.META_XTAL_MTZ] = (mtz_input, mtz_output, digest)
@@ -605,13 +609,15 @@ class Collator:
                         digest = utils.gen_sha256(cif_input)
                         old_digest = historical_xtal_data.get(Constants.META_XTAL_CIF, {}).get(Constants.META_SHA256)
                         if digest != old_digest:
+                            if old_digest is not None:
+                                self.logger.info("CIF file for {} has changed".format(xtal_name))
                             cif_name = xtal_name + ".cif"
                             cif_output = dir / cif_name
                             files_to_copy[Constants.META_XTAL_CIF] = (cif_input, cif_output, digest)
                 elif type == Constants.CONFIG_TYPE_MODEL_BUILDING:
                     self.logger.warn("CIF entry missing for {}".format(xtal_name))
 
-                # Handle histroical ligand binding events (in particular pull up their event map SHA256s for comparing)
+                # Handle historical ligand binding events (in particular pull up their event map SHA256s for comparing)
                 hist_event_maps = {}
                 for ligand_binding_data in historical_xtal_data.get(Constants.META_BINDING_EVENT, []):
                     model = ligand_binding_data.get(Constants.META_PROT_MODEL)
@@ -654,8 +660,10 @@ class Collator:
                             if hist_data:
                                 if digest == hist_data.get(Constants.META_SHA256):
                                     identical_historical_event_maps[ligand_key] = True
+                                    self.logger.info("Event map {} for {} is unchanged".format(ligand_key, xtal_name))
                                 else:
                                     event_maps_to_copy[ligand_key] = True
+                                    self.logger.info("Event map {} for {} has changed".format(ligand_key, xtal_name))
                             else:
                                 event_maps_to_copy[ligand_key] = True
                     # Handle ligands that cannot be matched
@@ -730,7 +738,7 @@ class Collator:
                             except:
                                 self.logger.warn('failed to generate SMILES for ligand {}'.format(xtal_name))
 
-                    # copy event maps that do not differ in SHA from previously known ones
+                    # copy event maps that differ in SHA from previously known ones
                     unsucessfully_copied_event_maps = {}
                     if len(event_maps_to_copy) != 0:
                         for ligand_key in event_maps_to_copy:
@@ -755,15 +763,19 @@ class Collator:
                             if ligand_key in unsucessfully_copied_event_maps:
                                 continue
                             attested_ligand_event_data = attested_ligand_events[ligand_key]
-                            data = {
-                                Constants.META_FILE: str(attested_ligand_event_data[1]),
-                                Constants.META_SHA256: attested_ligand_event_data[2],
-                                Constants.META_PROT_MODEL: ligand_key[0],
-                                Constants.META_PROT_CHAIN: ligand_key[1],
-                                Constants.META_PROT_RES: ligand_key[2],
-                                Constants.META_PROT_INDEX: attested_ligand_event_data[4],
-                                Constants.META_PROT_BDC: attested_ligand_event_data[5],
-                            }
+
+                            if identical_historical_event_maps.get(ligand_key, False):
+                                data = hist_event_maps[ligand_key]
+                            else:
+                                data = {
+                                    Constants.META_FILE: str(attested_ligand_event_data[1]),
+                                    Constants.META_SHA256: attested_ligand_event_data[2],
+                                    Constants.META_PROT_MODEL: ligand_key[0],
+                                    Constants.META_PROT_CHAIN: ligand_key[1],
+                                    Constants.META_PROT_RES: ligand_key[2],
+                                    Constants.META_PROT_INDEX: attested_ligand_event_data[4],
+                                    Constants.META_PROT_BDC: attested_ligand_event_data[5],
+                                }
                             ligand_binding_events.append(data)
                         # Add binding events for permitted ligands without an event map
                         # elif ligand_key in unattested_ligand_events:
