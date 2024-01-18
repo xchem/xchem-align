@@ -159,6 +159,8 @@ def get_datasets_from_crystals(crystals, output_path):
         datasets[dtag] = dataset
         if crystal[Constants.META_STATUS] == Constants.META_STATUS_NEW:
             new_datasets[dtag] = dataset
+        if crystal[Constants.META_STATUS] == Constants.META_STATUS_SUPERSEDES:
+            new_datasets[dtag] = dataset
         if crystal.get(Constants.META_REFERENCE):
             reference_datasets[dtag] = dataset
 
