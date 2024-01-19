@@ -102,7 +102,11 @@ def _get_xmap_path_or_none(output_path, binding_event):
         return None
 
 
-def get_datasets_from_crystals(crystals, output_path):
+def get_datasets_from_crystals(
+        crystals,
+        fs_model,
+        output_path,
+):
     # dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
     # paths to files will be defined like this: upload_1/crystallographic_files/8dz1/8dz1.pdb
     # this is relative to the output_path variable that is defined from the metadata_file.yaml\
@@ -160,6 +164,8 @@ def get_datasets_from_crystals(crystals, output_path):
         if crystal[Constants.META_STATUS] == Constants.META_STATUS_NEW:
             new_datasets[dtag] = dataset
         if crystal[Constants.META_STATUS] == Constants.META_STATUS_SUPERSEDES:
+            new_datasets[dtag] = dataset
+        if dtag not in fs_model.alignments:
             new_datasets[dtag] = dataset
         if crystal.get(Constants.META_REFERENCE):
             reference_datasets[dtag] = dataset
@@ -319,7 +325,11 @@ class Aligner:
             os.mkdir(output_path)
 
         # Get the datasets
-        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, self.base_dir)
+        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(
+            crystals,
+            fs_model,
+            self.base_dir
+        )
 
         # Get assemblies
         if source_fs_model:
