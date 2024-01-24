@@ -35,7 +35,7 @@ export PYTHONPATH=/dls/science/groups/i04-1/conor_dev/xchem-align/src:$PYTHONPAT
 
 In order to run XChemAlign you will need to create two files:
 1. The config.yaml file
-2. The crystalforms.yaml file
+2. The assemblies.yaml file
 
 ### 2.1. The Config Yaml
 
@@ -73,13 +73,18 @@ panddas_missing_ok: [
 
 
 
-### 2.2. The crystalforms Yamls
+### 2.2. The assemblies YAML
 
-This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs. YAML has a strict formatting specification. Make sure to use spaces and not tabs for whitespace. The diagram below illustrates the format of the crystalforms file:
+This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs.
+YAML has a strict formatting specification. Make sure to use spaces and not tabs for whitespace.
+The diagram below illustrates the format of the assemblies.yaml file:
 
-![crystalforms-yaml-example](https://github.com/xchem/xchem-align/assets/36866506/5c3ad74e-b1ff-4f44-8adb-3a76fbdc42b3)
+![assemblies-yaml-example](https://github.com/xchem/xchem-align/assets/36866506/5c3ad74e-b1ff-4f44-8adb-3a76fbdc42b3)
 
-The example file can be found [here](test-data/outputs/crystalforms.yaml). The `biomol` and `chains` directives specify the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`). I.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains **C,E,A** in the **largecellpdb**.
+An example file can be found [here](test-data/outputs/assemblies.yaml). The `biomol` and `chains` directives specify
+the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`).
+i.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains
+**C,E,A** in the **largecellpdb**.
 
 ### 2.3 Example configs
 
@@ -99,7 +104,7 @@ tar xvfz example-simple.tgz
 Take a look at the two configuration files which are:
 
 example-simple/work/config_1.yaml
-example-simple/work/crystalforms.yaml
+example-simple/work/assemblies.yaml
 
 You can run XChemAlign with this data using the instructions in the example-simple/README.txt file.
 
@@ -119,9 +124,9 @@ python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <yo
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -x <your xtalforms file>
+python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies file>
 ```
-Note: the -x option is only needed if your crystalforms file is not named `crystalforms.yaml` and is not in `base_dir`.
+Note: the -a option is only needed if your assemblies file is not named `assemblies.yaml` and is not in `base_dir`.
 
 
 ## 5. Upload to Fragalysis
