@@ -1,6 +1,6 @@
 # _XChemAlign_ User Guide
 
-_XChemAlign_ is a small suite of tools for preparing PDB models for loading into into [Fragalysis](https://fragalysis.diamond.ac.uk/).
+_XChemAlign_ is a small suite of tools for preparing PDB models for loading into [Fragalysis](https://fragalysis.diamond.ac.uk/).
 
 * It formalises sites and packing artefacts across crystal forms and conformations, aligning models, maps and artefacts to common origins for each binding site.
 * It handles model updates and multiple repeat experiments (e.g. to resolve stereochemistry).
@@ -9,13 +9,13 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 
 ## Overview
 
-There a few steps involved.
+There are a few steps involved.
 1. [**Enable**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#1-enabling-the-xchemalign-environment) the XChemAlign environment
 1. [**Declare**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#2-declaring-things) a few things about your data in two structured files in `yaml`[^1]
-2. [**Collate**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#3-collating-files) your files in a new (speicific) directory structure
+2. [**Collate**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#3-collating-files) your files in a new (specific) directory structure
 3. [**Align**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#4-aligning-everything) all binding sites to common origins
 4. [**Release**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#5-releasing-to-fragalysis) the data to Fragalysis
-6. **Re-release** additional data by repeating (some or all) of steps 1-6.
+6. **Re-release** additional data by repeating (some or all of) steps 1-6.
 
 If you won't run this at Diamond, you will first have to set up your environment and copy over files. See the [instructions below](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#non-diamond-instructions)
 
@@ -39,7 +39,7 @@ In order to run XChemAlign you will need to create two files:
 
 ### 2.1. The Config Yaml
 
-The config yaml defines what data to collect for collation. This will include raw crystalographic data, PanDDA data and ligand information.
+The config yaml defines what data to collect for collation. This includes raw crystalographic data, PanDDA data and ligand information.
 
 ```yaml
 # DO NOT USE TABS FOR THE WHITESPACE!
