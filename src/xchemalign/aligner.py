@@ -771,7 +771,7 @@ def main():
     if args.log_file:
         log = args.log_file
     else:
-        log = Path(args.version_dir).parent / 'aligner.log'
+        log = str(Path(args.version_dir).parent / 'aligner.log')
         print("Using {} for log file".format(str(log)))
 
     logger = utils.Logger(logfile=log, level=args.log_level)
