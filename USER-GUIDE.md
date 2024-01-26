@@ -26,9 +26,8 @@ If you won't run this at Diamond, you will first have to set up your environment
 If you are uploading your data from diamond light source then this is as simple as running the commands:
 
 ```commandline
-source /dls/science/groups/i04-1/conor_dev/xchem-align/act
-conda activate /dls/science/groups/i04-1/conor_dev/xchem-align/env_xchem_align
-export PYTHONPATH=/dls/science/groups/i04-1/conor_dev/xchem-align/src:$PYTHONPATH
+source /dls/science/groups/i04-1/software/xchem-align/act
+conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
 ```
 
 ## 2. Declaring things
