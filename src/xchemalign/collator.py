@@ -23,6 +23,7 @@ import gemmi
 import numpy as np
 import pandas as pd
 
+from git import Repo
 
 from rdkit import Chem
 
@@ -214,7 +215,7 @@ class Collator:
         if not v_dir:
             self.logger.error("Error with version dir. Please fix and try again.")
             return None, None, None
-        self.logger.info("Using version dir {}".format(v_dir))
+        self.logger.info("using version dir {}".format(v_dir))
 
         self.logger.info("validating paths")
         self.validate_paths()
@@ -266,6 +267,32 @@ class Collator:
         Read info from the SoakDB database and verify that the necessary entries are present
         :return: The generated metadata
         """
+
+        repo_dir = os.environ.get(Constants.ENV_XCA_GIT_REPO)
+        if repo_dir:
+            if not Path(repo_dir).is_dir():
+                self._log_error("XCA_GIT_REPO environment variable is defined but the directory does not exist")
+        else:
+            repo_dir = "./"
+        self.logger.info("using GIT repo of", repo_dir)
+
+        repo_info = {}
+        try:
+            repo = Repo(repo_dir)
+            repo_info[Constants.META_GIT_INFO_URL] = repo.remote().url
+            repo_info[Constants.META_GIT_INFO_BRANCH] = repo.active_branch.name
+            repo_info[Constants.META_GIT_INFO_SHA] = repo.head.commit.hexsha
+            repo_info[Constants.META_GIT_INFO_TAG] = next(
+                (tag for tag in repo.tags if tag.commit == repo.head.commit), None
+            )
+            repo_info[Constants.META_GIT_INFO_DIRTY] = repo.is_dirty()
+        except:
+            self._log_error(
+                "cannot determine the status of the Git repo. "
+                + "Is the XCA_GIT_REPO environment variable defined correctly or if not defined is "
+                + "the current directory a Git repo?"
+            )
+
         crystals = {}
         input_dirs = []
         prev_version_dirs_str = [str(d) for d in self.previous_version_dirs]
@@ -276,6 +303,7 @@ class Collator:
             Constants.META_VERSION_NUM: self.version_number,
             Constants.META_VERSION_DIR: str(self.version_dir),
             Constants.META_PREV_VERSION_DIRS: prev_version_dirs_str,
+            Constants.META_GIT_INFO: repo_info,
             Constants.META_XTALS: crystals,
         }
 
@@ -311,7 +339,7 @@ class Collator:
 
             # Exclude datasets
             if xtal_name in input.exclude:
-                self._log_warning(f"Excluding dataset: {xtal_name}")
+                self._log_warning(f"excluding dataset: {xtal_name}")
                 continue
 
             status_str = str(row[Constants.SOAKDB_COL_REFINEMENT_OUTCOME])

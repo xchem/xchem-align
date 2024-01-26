@@ -130,6 +130,12 @@ class Constants:
     META_TRANSFORMS_CANON_SITES_TO_GLOBAL = "canon_to_global"
     META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID = "global_reference_canon_site_id"
     META_CMPD_CODE = "compound_code"
+    META_GIT_INFO = "xca_git_info"
+    META_GIT_INFO_URL = "origin_url"
+    META_GIT_INFO_BRANCH = "branch"
+    META_GIT_INFO_SHA = "sha"
+    META_GIT_INFO_TAG = "tag"
+    META_GIT_INFO_DIRTY = "dirty"
     SOAKDB_XTAL_NAME = "CrystalName"
     SOAKDB_COL_PDB = "RefinementBoundConformation"
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
@@ -140,6 +146,7 @@ class Constants:
     CRYSTAL_NEW = "crystal_new"
     ASSEMBLIES_FILENAME = "assemblies.yaml"
     PREVIOUS_OUTPUT_DIR = ""
+    ENV_XCA_GIT_REPO = "XCA_GIT_REPO"
 
 
 BOND_TYPES = {
