@@ -115,7 +115,7 @@ The first step is to collate your data. This process analyses your crystallograp
 
 ```commandline
 mkdir <path to your output_dir>/upload_1
-python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <your upload config file>
+python /dls/science/groups/i04-1/software/xchem-align/scripts/collate.py -c <your upload config file>
 ```
 
 ## 4. Aligning everything
@@ -123,7 +123,7 @@ python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <yo
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies file>
+python /dls/science/groups/i04-1/software/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies file>
 ```
 Note: the -a option is only needed if your assemblies file is not named `assemblies.yaml` and is not in `base_dir`.
 
