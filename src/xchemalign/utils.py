@@ -131,7 +131,7 @@ class Constants:
     META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID = "global_reference_canon_site_id"
     META_CMPD_CODE = "compound_code"
     SOAKDB_XTAL_NAME = "CrystalName"
-    SOAKDB_COL_PDB = "RefinementPDB_latest"
+    SOAKDB_COL_PDB = "RefinementBoundConformation"
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
     SOAKDB_COL_CIF = "RefinementCIF"
     SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
