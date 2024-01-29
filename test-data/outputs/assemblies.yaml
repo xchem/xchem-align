@@ -1,0 +1,12 @@
+assemblies:
+    dimer:
+        reference: Mpro-IBM0045
+        biomol: A,B
+        chains: A, A(-x,y,-z)
+xtalforms:
+    xtalform1:
+        reference: Mpro-IBM0045
+        assemblies:
+            1:
+                assembly: dimer
+                chains: A,A(-x,y,-z)

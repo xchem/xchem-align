@@ -104,9 +104,9 @@ def _get_xmap_path_or_none(output_path, binding_event):
 
 
 def get_datasets_from_crystals(
-        crystals,
-        fs_model,
-        output_path,
+    crystals,
+    fs_model,
+    output_path,
 ):
     # dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
     # paths to files will be defined like this: upload_1/crystallographic_files/8dz1/8dz1.pdb
@@ -184,16 +184,16 @@ def get_datasets_from_crystals(
 
 
 class Aligner:
-    def __init__(self, version_dir, metadata, xtalforms, logger=None):
+    def __init__(self, version_dir, metadata, assemblies, logger=None):
         self.version_dir = Path(version_dir)  # e.g. path/to/upload_1
         self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
         self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES  # e.g. path/to/upload_1/crystallographic_files
         self.metadata_file = self.version_dir / metadata  # e.g. path/to/upload_1/meta_collator.yaml
-        if xtalforms:
-            self.xtalforms_file = Path(xtalforms)
+        if assemblies:
+            self.assemblies_file = Path(assemblies)
         else:
-            self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/crystalforms.yaml
+            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME  # e.g. path/to/assemblies.yaml
         if logger:
             self.logger = logger
         else:
@@ -217,11 +217,11 @@ class Aligner:
             if not p.is_file():
                 self._log_error("metadata file {} is not a file. Did the collator step run successfully?".format(p))
 
-            p = Path(self.xtalforms_file)
+            p = Path(self.assemblies_file)
             if not p.exists():
-                self._log_error("xtalforms file {} does not exist".format(p))
+                self._log_error("assemblies.yaml file {} does not exist".format(p))
             elif not p.is_file():
-                self._log_error("xtalforms file {} is not a file".format(p))
+                self._log_error("assemblies.yaml file {} is not a file".format(p))
 
         return len(self.errors), len(self.warnings)
 
@@ -232,8 +232,8 @@ class Aligner:
         self._write_output(input_meta, new_meta)
 
     def _write_output(self, collator_dict, aligner_dict):
-        # keep a copy of the xtaforms and assemblies configs
-        self._copy_file_to_version_dir(self.xtalforms_file)
+        # keep a copy of the assemblies config
+        self._copy_file_to_version_dir(self.assemblies_file)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
@@ -311,7 +311,7 @@ class Aligner:
 
         # Load the fs model for the new output dir
         fs_model = dt.FSModel.from_dir(output_path)
-        fs_model.xtalforms = self.xtalforms_file
+        fs_model.xtalforms = self.assemblies_file  # TODO change the name in LNA
         if source_fs_model:
             fs_model.alignments = source_fs_model.alignments
             fs_model.reference_alignments = source_fs_model.reference_alignments
@@ -326,23 +326,19 @@ class Aligner:
             os.mkdir(output_path)
 
         # Get the datasets
-        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(
-            crystals,
-            fs_model,
-            self.base_dir
-        )
+        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, fs_model, self.base_dir)
 
         # Get assemblies
         if source_fs_model:
-            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.xtalforms_file)
+            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.assemblies_file)
         else:
-            assemblies = _load_assemblies(fs_model.xtalforms, self.xtalforms_file)
+            assemblies = _load_assemblies(fs_model.xtalforms, self.assemblies_file)
 
         # # Get xtalforms
         if source_fs_model:
-            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.xtalforms_file)
+            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.assemblies_file)
         else:
-            xtalforms = _load_xtalforms(fs_model.xtalforms, self.xtalforms_file)
+            xtalforms = _load_xtalforms(fs_model.xtalforms, self.assemblies_file)
 
         # Get the dataset assignments
         if source_fs_model:
@@ -574,7 +570,6 @@ class Aligner:
 
             new_meta[Constants.META_XTALS][dtag] = {}
             crystal_output = new_meta[Constants.META_XTALS][dtag] = {}
-            # aligned_files = crystal_output[Constants.META_ALIGNED_FILES]
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
@@ -774,7 +769,7 @@ def main():
     parser.add_argument(
         "-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME.format(""), help="Metadata YAML file"
     )
-    parser.add_argument("-x", "--xtalforms", help="Crystal forms YAML file")
+    parser.add_argument("-a", "--assemblies", help="Assemblies YAML file")
 
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
@@ -785,13 +780,13 @@ def main():
     if args.log_file:
         log = args.log_file
     else:
-        log = Path(args.version_dir).parent / 'aligner.log'
+        log = str(Path(args.version_dir).parent / 'aligner.log')
         print("Using {} for log file".format(str(log)))
 
     logger = utils.Logger(logfile=log, level=args.log_level)
     logger.info("aligner: ", args)
 
-    a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, logger=logger)
+    a = Aligner(args.version_dir, args.metadata_file, args.assemblies, logger=logger)
     num_errors, num_warnings = a.validate()
 
     if not args.validate:

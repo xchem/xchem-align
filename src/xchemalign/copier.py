@@ -177,7 +177,7 @@ class Copier:
             self.logger.info("processing {} {}".format(count, xtal_name))
             expected_path = self.base_path / self.input_path / Constants.DEFAULT_MODEL_BUILDING_DIR
 
-            file = row["RefinementPDB_latest"]
+            file = row[Constants.SOAKDB_COL_PDB]
             if file:
                 path = Path(file)
                 self.check_path(path, expected_path)
@@ -186,13 +186,13 @@ class Copier:
                     num_files += 1
                     datasets[xtal_name] = path
                     # if PDB is OK then continue with the other files
-                    file = row["RefinementMTZ_latest"]
+                    file = row[Constants.SOAKDB_COL_MTZ]
                     if file:
                         path = Path(file)
                         ok = self.copy_file(path, xtal_dir_path)
                         if ok:
                             num_files += 1
-                    file = row["RefinementCIF"]
+                    file = row[Constants.SOAKDB_COL_CIF]
                     if file:
                         path = Path(file)
                         ok = self.copy_file(path, xtal_dir_path)

@@ -1,6 +1,6 @@
 # _XChemAlign_ User Guide
 
-_XChemAlign_ is a small suite of tools for preparing PDB models for loading into into [Fragalysis](https://fragalysis.diamond.ac.uk/).
+_XChemAlign_ is a small suite of tools for preparing PDB models for loading into [Fragalysis](https://fragalysis.diamond.ac.uk/).
 
 * It formalises sites and packing artefacts across crystal forms and conformations, aligning models, maps and artefacts to common origins for each binding site.
 * It handles model updates and multiple repeat experiments (e.g. to resolve stereochemistry).
@@ -9,13 +9,13 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 
 ## Overview
 
-There a few steps involved.
+There are a few steps involved.
 1. [**Enable**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#1-enabling-the-xchemalign-environment) the XChemAlign environment
 1. [**Declare**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#2-declaring-things) a few things about your data in two structured files in `yaml`[^1]
-2. [**Collate**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#3-collating-files) your files in a new (speicific) directory structure
+2. [**Collate**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#3-collating-files) your files in a new (specific) directory structure
 3. [**Align**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#4-aligning-everything) all binding sites to common origins
 4. [**Release**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#5-releasing-to-fragalysis) the data to Fragalysis
-6. **Re-release** additional data by repeating (some or all) of steps 1-6.
+6. **Re-release** additional data by repeating (some or all of) steps 1-6.
 
 If you won't run this at Diamond, you will first have to set up your environment and copy over files. See the [instructions below](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#non-diamond-instructions)
 
@@ -26,20 +26,19 @@ If you won't run this at Diamond, you will first have to set up your environment
 If you are uploading your data from diamond light source then this is as simple as running the commands:
 
 ```commandline
-source /dls/science/groups/i04-1/conor_dev/xchem-align/act
-conda activate /dls/science/groups/i04-1/conor_dev/xchem-align/env_xchem_align
-export PYTHONPATH=/dls/science/groups/i04-1/conor_dev/xchem-align/src:$PYTHONPATH
+source /dls/science/groups/i04-1/software/xchem-align/act
+conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
 ```
 
 ## 2. Declaring things
 
 In order to run XChemAlign you will need to create two files:
 1. The config.yaml file
-2. The crystalforms.yaml file
+2. The assemblies.yaml file
 
 ### 2.1. The Config Yaml
 
-The config yaml defines what data to collect for collation. This will include raw crystalographic data, PanDDA data and ligand information.
+The config yaml defines what data to collect for collation. This includes raw crystalographic data, PanDDA data and ligand information.
 
 ```yaml
 # DO NOT USE TABS FOR THE WHITESPACE!
@@ -73,13 +72,18 @@ panddas_missing_ok: [
 
 
 
-### 2.2. The crystalforms Yamls
+### 2.2. The assemblies YAML
 
-This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs. YAML has a strict formatting specification. Make sure to use spaces and not tabs for whitespace. The diagram below illustrates the format of the crystalforms file:
+This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs.
+YAML has a strict formatting specification. Make sure to use spaces and not tabs for whitespace.
+The diagram below illustrates the format of the assemblies.yaml file:
 
-![crystalforms-yaml-example](https://github.com/xchem/xchem-align/assets/36866506/5c3ad74e-b1ff-4f44-8adb-3a76fbdc42b3)
+![assemblies-yaml-example](https://github.com/xchem/xchem-align/assets/36866506/5c3ad74e-b1ff-4f44-8adb-3a76fbdc42b3)
 
-The example file can be found [here](test-data/outputs/crystalforms.yaml). The `biomol` and `chains` directives specify the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`). I.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains **C,E,A** in the **largecellpdb**.
+An example file can be found [here](test-data/outputs/assemblies.yaml). The `biomol` and `chains` directives specify
+the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`).
+i.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains
+**C,E,A** in the **largecellpdb**.
 
 ### 2.3 Example configs
 
@@ -99,7 +103,7 @@ tar xvfz example-simple.tgz
 Take a look at the two configuration files which are:
 
 example-simple/work/config_1.yaml
-example-simple/work/crystalforms.yaml
+example-simple/work/assemblies.yaml
 
 You can run XChemAlign with this data using the instructions in the example-simple/README.txt file.
 
@@ -111,7 +115,7 @@ The first step is to collate your data. This process analyses your crystallograp
 
 ```commandline
 mkdir <path to your output_dir>/upload_1
-python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <your upload config file>
+python /dls/science/groups/i04-1/software/xchem-align/scripts/collate.py -c <your upload config file>
 ```
 
 ## 4. Aligning everything
@@ -119,8 +123,10 @@ python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <yo
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -x <your xtalforms file> -a <your assemblies file>
+python /dls/science/groups/i04-1/software/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies file>
 ```
+Note: the -a option is only needed if your assemblies file is not named `assemblies.yaml` and is not in `base_dir`.
+
 
 ## 5. Upload to Fragalysis
 
@@ -287,6 +293,20 @@ first ssh to `ssh.diamond.ac.uk`, then run copier (having created a new working 
 copied files and copy them back to your working environment.
 
 ## 3. Debugging Errors
+
+### Reporting version of the code.
+
+If you successfully ran *collator* then the file `meta_collator.yaml` in your upload directory will contain a section like this:
+```yaml
+xca_git_info:
+  origin_url: git@github.com:xchem/xchem-align.git
+  branch: master
+  sha: 4ba23bc73b89b6696d96baa80442122e975a0797
+  tag: null
+  dirty: false
+```
+This uniquely identifies the version of the code. Please report this if there is any doubt about the version being used.
+If you can't run *collator* then the same info can be generated using: `python -m xchemalign.repo_info`
 
 ### Missing PanDDA Event Files Warning When You Have Event Maps
 
