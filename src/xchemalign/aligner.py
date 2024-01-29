@@ -328,6 +328,8 @@ class Aligner:
         # Get the datasets
         datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, fs_model, self.base_dir)
         self.logger.info(f"Got {len(datasets)} datasets")
+        for dtag, dataset in datasets.items():
+            self.logger.info(f"Dataset {dtag} has {len(dataset.ligand_binding_events)} ligand binding events!")
         self.logger.info(f"Got {len(reference_datasets)} reference datasets")
         self.logger.info(f"Got {len(new_datasets)} new datasets")
 
