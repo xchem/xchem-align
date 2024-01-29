@@ -493,7 +493,6 @@ class Aligner:
         #         },
         #     }
 
-
         # Add the canonical sites
         canonical_sites = read_yaml(fs_model.canonical_sites)
         new_meta[Constants.META_CANONICAL_SITES] = canonical_sites
