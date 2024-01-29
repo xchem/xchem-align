@@ -47,6 +47,7 @@ from ligand_neighbourhood_alignment.cli import (
     _load_dataset_assignments,
     _load_ligand_neighbourhoods,
     _load_alignability_graph,
+    _load_connected_components,
     _load_ligand_neighbourhood_transforms,
     _load_conformer_sites,
     _load_conformer_site_transforms,
@@ -363,6 +364,13 @@ class Aligner:
         else:
             alignability_graph = _load_alignability_graph(fs_model.alignability_graph)
 
+        # Get the connected components
+        if source_fs_model:
+            connected_components = _load_connected_components(source_fs_model.connected_components)
+        else:
+            connected_components = _load_connected_components(fs_model.connected_components)
+
+
         #
         if source_fs_model:
             print(f"Have source fs model at {source_fs_model.ligand_neighbourhood_transforms}!")
@@ -430,6 +438,7 @@ class Aligner:
             dataset_assignments,
             ligand_neighbourhoods,
             alignability_graph,
+            connected_components,
             ligand_neighbourhood_transforms,
             conformer_sites,
             conformer_site_transforms,
