@@ -294,6 +294,20 @@ copied files and copy them back to your working environment.
 
 ## 3. Debugging Errors
 
+### Reporting version of the code.
+
+If you successfully ran *collator* then the file `meta_collator.yaml` in your upload directory will contain a section like this:
+```yaml
+xca_git_info:
+  origin_url: git@github.com:xchem/xchem-align.git
+  branch: master
+  sha: 4ba23bc73b89b6696d96baa80442122e975a0797
+  tag: null
+  dirty: false
+```
+This uniquely identifies the version of the code. Please report this if there is any doubt about the version being used.
+If you can't run *collator* then the same info can be generated using: `python -m xchemalign.repo_info`
+
 ### Missing PanDDA Event Files Warning When You Have Event Maps
 
 You may have missing datasets in your upload directory because the corresponding PanDDA event maps have not been found. The solution to this is to find the pandda_inspect_events.csv file corresponding to the PanDDA in which the structure was modelled and add it to the config.yaml.
