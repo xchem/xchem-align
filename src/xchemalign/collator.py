@@ -126,10 +126,11 @@ class Input:
 
 
 class Collator:
-    def __init__(self, config_file, log_file=None, log_level=0):
+    def __init__(self, config_file, log_file=None, log_level=0, include_git_info=False):
         self.errors = []
         self.warnings = []
         self.config_file = config_file
+        self.include_git_info = include_git_info
 
         config = utils.read_config_file(config_file)
         self.config = config
@@ -268,30 +269,32 @@ class Collator:
         :return: The generated metadata
         """
 
-        # repo_dir = os.environ.get(Constants.ENV_XCA_GIT_REPO)
-        # if repo_dir:
-        #     if not Path(repo_dir).is_dir():
-        #         self._log_error("XCA_GIT_REPO environment variable is defined but the directory does not exist")
-        # else:
-        #     repo_dir = "./"
-        # self.logger.info("using GIT repo of", repo_dir)
-        #
-        # repo_info = {}
-        # try:
-        #     repo = Repo(repo_dir)
-        #     repo_info[Constants.META_GIT_INFO_URL] = repo.remote().url
-        #     repo_info[Constants.META_GIT_INFO_BRANCH] = repo.active_branch.name
-        #     repo_info[Constants.META_GIT_INFO_SHA] = repo.head.commit.hexsha
-        #     repo_info[Constants.META_GIT_INFO_TAG] = next(
-        #         (tag for tag in repo.tags if tag.commit == repo.head.commit), None
-        #     )
-        #     repo_info[Constants.META_GIT_INFO_DIRTY] = repo.is_dirty()
-        # except:
-        #     self._log_error(
-        #         "cannot determine the status of the Git repo. "
-        #         + "Is the XCA_GIT_REPO environment variable defined correctly or if not defined is "
-        #         + "the current directory a Git repo?"
-        #     )
+        repo_info = {}
+
+        if self.include_git_info:
+            repo_dir = os.environ.get(Constants.ENV_XCA_GIT_REPO)
+            if repo_dir:
+                if not Path(repo_dir).is_dir():
+                    self._log_error("XCA_GIT_REPO environment variable is defined but the directory does not exist")
+            else:
+                repo_dir = "./"
+            self.logger.info("using GIT repo of", repo_dir)
+
+            try:
+                repo = Repo(repo_dir)
+                repo_info[Constants.META_GIT_INFO_URL] = repo.remote().url
+                repo_info[Constants.META_GIT_INFO_BRANCH] = repo.active_branch.name
+                repo_info[Constants.META_GIT_INFO_SHA] = repo.head.commit.hexsha
+                repo_info[Constants.META_GIT_INFO_TAG] = next(
+                    (tag for tag in repo.tags if tag.commit == repo.head.commit), None
+                )
+                repo_info[Constants.META_GIT_INFO_DIRTY] = repo.is_dirty()
+            except:
+                self._log_error(
+                    "cannot determine the status of the Git repo. "
+                    + "Is the XCA_GIT_REPO environment variable defined correctly or if not defined is "
+                    + "the current directory a Git repo?"
+                )
 
         crystals = {}
         input_dirs = []
@@ -303,7 +306,7 @@ class Collator:
             Constants.META_VERSION_NUM: self.version_number,
             Constants.META_VERSION_DIR: str(self.version_dir),
             Constants.META_PREV_VERSION_DIRS: prev_version_dirs_str,
-            # Constants.META_GIT_INFO: repo_info,
+            Constants.META_GIT_INFO: repo_info,
             Constants.META_XTALS: crystals,
         }
 
@@ -1063,10 +1066,11 @@ def main():
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
+    parser.add_argument("-g", "--git-info", action="store_true", help="Add GIT info to metadata")
 
     args = parser.parse_args()
 
-    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level)
+    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level, include_git_info=args.git_info)
     logger = c.logger
     logger.info("collator: ", str(args))
 
