@@ -1,10 +1,21 @@
+import os
+from pathlib import Path
 import yaml
+
 from git import Repo
 
 from xchemalign.utils import Constants
 
 
-repo = Repo("./")
+repo_dir = os.environ.get(Constants.ENV_XCA_GIT_REPO)
+if repo_dir:
+    if not Path(repo_dir).is_dir():
+        print("XCA_GIT_REPO environment variable is defined but the directory does not exist")
+else:
+    repo_dir = "./"
+print("using GIT repo of", repo_dir + "\n")
+
+repo = Repo(repo_dir)
 
 data = {}
 
