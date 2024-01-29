@@ -327,18 +327,23 @@ class Aligner:
 
         # Get the datasets
         datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, fs_model, self.base_dir)
+        self.logger.info(f"Got {len(datasets)} datasets")
+        self.logger.info(f"Got {len(reference_datasets)} reference datasets")
+        self.logger.info(f"Got {len(new_datasets)} new datasets")
 
         # Get assemblies
         if source_fs_model:
             assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.assemblies_file)
         else:
             assemblies = _load_assemblies(fs_model.xtalforms, self.assemblies_file)
+        self.logger.info(f"Got {len(assemblies)} assemblies")
 
         # # Get xtalforms
         if source_fs_model:
             xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.assemblies_file)
         else:
             xtalforms = _load_xtalforms(fs_model.xtalforms, self.assemblies_file)
+        self.logger.info(f"Got {len(xtalforms)} xtalforms")
 
         # Get the dataset assignments
         if source_fs_model:
@@ -353,6 +358,7 @@ class Aligner:
             )
         else:
             ligand_neighbourhoods = _load_ligand_neighbourhoods(fs_model.ligand_neighbourhoods)
+        self.logger.info(f"Got {len(ligand_neighbourhoods)} ligand neighbourhoods")
 
         # Get alignability graph
         if source_fs_model:
