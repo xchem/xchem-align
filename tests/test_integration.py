@@ -15,10 +15,11 @@ def test_collator_upload_1(
         config_1_file,
 ):
     c = Collator(str(config_1_file), )
+    logger = c.logger
 
-    meta, num_errors, num_warnings = c.validate()
+    meta = c.validate()
 
-    if meta is None or num_errors:
+    if meta is None or len(logger.errors)>0:
         print("There are errors, cannot continue")
         exit(1)
     else:
@@ -48,10 +49,11 @@ def test_collator_upload_2(
     config_2_file,
 ):
     c = Collator(str(config_2_file), )
+    logger = c.logger
 
-    meta, num_errors, num_warnings = c.validate()
+    meta = c.validate()
 
-    if meta is None or num_errors:
+    if meta is None or len(logger.errors)>0:
         print("There are errors, cannot continue")
         exit(1)
     else:
