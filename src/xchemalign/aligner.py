@@ -332,6 +332,8 @@ class Aligner:
             self.logger.info(f"Dataset {dtag} has {len(dataset.ligand_binding_events)} ligand binding events!")
         self.logger.info(f"Got {len(reference_datasets)} reference datasets")
         self.logger.info(f"Got {len(new_datasets)} new datasets")
+        for dtag, dataset in datasets.items():
+            self.logger.info(f"{dtag} : {dataset.mtz}")
 
         # Get assemblies
         if source_fs_model:
