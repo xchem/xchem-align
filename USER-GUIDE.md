@@ -23,7 +23,16 @@ If you won't run this at Diamond, you will first have to set up your environment
 
 ## 1. Enabling the XChemAlign environment
 
-If you are uploading your data from diamond light source then this is as simple as running the commands:
+If you are uploading your data from diamond light source then this is as simple as running a few commands.
+
+You need to run this the FIRST TIME you run things. It sets up you linux account so that it can read version info from
+the Git repository that contains the code.
+
+```commandline
+git config --global --add safe.directory /dls/science/groups/i04-1/software/xchem-align
+```
+
+You need to run these commands EVERY time you log in and plan to run the XChem Align tools:
 
 ```commandline
 source /dls/science/groups/i04-1/software/xchem-align/act
