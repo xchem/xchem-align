@@ -377,9 +377,11 @@ class Collator:
                         else:
                             expanded_files.append(None)
                             missing_files += 1
-                            self._log_warning(
-                                "PDB file for {} not found: {}. Skipping entry".format(xtal_name, full_inputpath)
+                            m = (
+                                "PDB file for {} not found: {}. "
+                                + "Add this to the inputs.exclude section of your config.yaml file if you want to continue"
                             )
+                            self._log_error(m.format(xtal_name, full_inputpath))
                             continue
 
                         # if we have a PDB file then continue to look for the others
