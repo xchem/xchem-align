@@ -45,7 +45,7 @@ def test_dir(constants):
     return path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def upload_1_dir(constants, test_dir):
     path = Path(constants.UPLOAD_1_DIR)
     if path.exists():
@@ -55,7 +55,7 @@ def upload_1_dir(constants, test_dir):
     return path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def upload_2_dir(constants, test_dir):
     path = Path(constants.UPLOAD_2_DIR)
     if path.exists():
@@ -65,7 +65,7 @@ def upload_2_dir(constants, test_dir):
     return path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def upload_3_dir(constants, test_dir):
     path = Path(constants.UPLOAD_3_DIR)
     if path.exists():
