@@ -29,6 +29,7 @@ from rdkit import Chem
 
 from xchemalign import dbreader
 from xchemalign import utils
+from xchemalign import repo_info
 from xchemalign.utils import Constants
 
 
@@ -269,7 +270,7 @@ class Collator:
         :return: The generated metadata
         """
 
-        repo_info = {}
+        git_info = None
 
         if self.include_git_info:
             repo_dir = os.environ.get(Constants.ENV_XCA_GIT_REPO)
@@ -281,14 +282,7 @@ class Collator:
             self.logger.info("using GIT repo of", repo_dir)
 
             try:
-                repo = Repo(repo_dir)
-                repo_info[Constants.META_GIT_INFO_URL] = repo.remote().url
-                repo_info[Constants.META_GIT_INFO_BRANCH] = repo.active_branch.name
-                repo_info[Constants.META_GIT_INFO_SHA] = repo.head.commit.hexsha
-                repo_info[Constants.META_GIT_INFO_TAG] = next(
-                    (tag for tag in repo.tags if tag.commit == repo.head.commit), None
-                )
-                repo_info[Constants.META_GIT_INFO_DIRTY] = repo.is_dirty()
+                git_info = repo_info.generate(repo_dir)
             except:
                 self._log_error(
                     "cannot determine the status of the Git repo. "
@@ -306,9 +300,10 @@ class Collator:
             Constants.META_VERSION_NUM: self.version_number,
             Constants.META_VERSION_DIR: str(self.version_dir),
             Constants.META_PREV_VERSION_DIRS: prev_version_dirs_str,
-            Constants.META_GIT_INFO: repo_info,
-            Constants.META_XTALS: crystals,
         }
+        if git_info:
+            meta[Constants.META_GIT_INFO] = git_info
+        meta[Constants.META_XTALS] = crystals
 
         for input in self.inputs:
             input_dirs.append(str(input.get_input_dir_path()))
