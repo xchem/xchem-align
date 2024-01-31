@@ -53,14 +53,11 @@ def test_collator_upload_2(
 
     meta = c.validate()
 
-    if meta is None or len(logger.errors)>0:
+    if meta is None or len(logger.errors) > 0:
         print("There are errors, cannot continue")
         exit(1)
     else:
         c.run(meta)
-
-    with open(Path(upload_2_dir) / "meta_collator.yaml", 'r') as f:
-        new_meta = yaml.safe_load(f)
     assert len(meta[Constants.META_XTALS]["Mpro-i0130"][Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})) != 0
 
 
