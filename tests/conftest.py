@@ -41,11 +41,15 @@ def test_dir(constants):
     if path.exists():
         shutil.rmtree(path)
 
+    path = Path(constants.UPLOAD_3_DIR)
+    if path.exists():
+        shutil.rmtree(path)
+
     path = Path(constants.TEST_DIR)
     return path
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def upload_1_dir(constants, test_dir):
     path = Path(constants.UPLOAD_1_DIR)
     if path.exists():
@@ -55,7 +59,7 @@ def upload_1_dir(constants, test_dir):
     return path
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def upload_2_dir(constants, test_dir):
     path = Path(constants.UPLOAD_2_DIR)
     if path.exists():
@@ -65,7 +69,7 @@ def upload_2_dir(constants, test_dir):
     return path
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def upload_3_dir(constants, test_dir):
     path = Path(constants.UPLOAD_3_DIR)
     if path.exists():
