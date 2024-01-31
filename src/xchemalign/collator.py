@@ -835,6 +835,8 @@ class Collator:
                                 Constants.META_PROT_INDEX: None,
                                 Constants.META_PROT_BDC: None,
                             }
+                            ligand_binding_events.append(data)
+
                         # Skip if ligand key is not associated with a legal ligand
                         else:
                             continue
