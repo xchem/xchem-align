@@ -41,6 +41,10 @@ def test_dir(constants):
     if path.exists():
         shutil.rmtree(path)
 
+    path = Path(constants.UPLOAD_3_DIR)
+    if path.exists():
+        shutil.rmtree(path)
+
     path = Path(constants.TEST_DIR)
     return path
 
@@ -64,6 +68,7 @@ def upload_2_dir(constants, test_dir):
 
     return path
 
+
 @pytest.fixture(scope="session")
 def upload_3_dir(constants, test_dir):
     path = Path(constants.UPLOAD_3_DIR)
@@ -84,6 +89,7 @@ def upload_1_data_dir(constants, test_dir):
 def upload_2_data_dir(constants, test_dir):
     path = Path(constants.INPUT_2_DIR)
     return path
+
 
 @pytest.fixture(scope="session")
 def upload_3_data_dir(constants, test_dir):

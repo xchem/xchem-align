@@ -53,14 +53,11 @@ def test_collator_upload_2(
 
     meta = c.validate()
 
-    if meta is None or len(logger.errors)>0:
+    if meta is None or len(logger.errors) > 0:
         print("There are errors, cannot continue")
         exit(1)
     else:
         c.run(meta)
-
-    with open(Path(upload_2_dir) / "meta_collator.yaml", 'r') as f:
-        new_meta = yaml.safe_load(f)
     assert len(meta[Constants.META_XTALS]["Mpro-i0130"][Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})) != 0
 
 
@@ -74,11 +71,10 @@ def test_aligner_upload_2(constants, xtalforms_file, upload_2_dir):
         exit(1)
     else:
         a.run()
-
     assert "Mpro-i0130" in [x.name for x in (Path(upload_2_dir) / "aligned_files").glob("*")]
 
 @pytest.mark.order(after="test_aligner_upload_2")
-def test_collator_upload_2(
+def test_collator_upload_3(
     constants,
     test_dir,
     upload_3_dir,
