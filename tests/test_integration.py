@@ -73,6 +73,7 @@ def test_aligner_upload_2(constants, xtalforms_file, upload_2_dir):
         a.run()
     assert "Mpro-i0130" in [x.name for x in (Path(upload_2_dir) / "aligned_files").glob("*")]
 
+
 # @pytest.mark.order(after="test_aligner_upload_2")
 # def test_collator_upload_3(
 #     constants,
