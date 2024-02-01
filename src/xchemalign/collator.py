@@ -29,6 +29,7 @@ from rdkit import Chem
 
 from xchemalign import dbreader
 from xchemalign import utils
+from xchemalign import repo_info
 from xchemalign.utils import Constants
 
 
@@ -269,7 +270,7 @@ class Collator:
         :return: The generated metadata
         """
 
-        repo_info = {}
+        git_info = None
 
         if self.include_git_info:
             repo_dir = os.environ.get(Constants.ENV_XCA_GIT_REPO)
@@ -281,14 +282,7 @@ class Collator:
             self.logger.info("using GIT repo of", repo_dir)
 
             try:
-                repo = Repo(repo_dir)
-                repo_info[Constants.META_GIT_INFO_URL] = repo.remote().url
-                repo_info[Constants.META_GIT_INFO_BRANCH] = repo.active_branch.name
-                repo_info[Constants.META_GIT_INFO_SHA] = repo.head.commit.hexsha
-                repo_info[Constants.META_GIT_INFO_TAG] = next(
-                    (tag for tag in repo.tags if tag.commit == repo.head.commit), None
-                )
-                repo_info[Constants.META_GIT_INFO_DIRTY] = repo.is_dirty()
+                git_info = repo_info.generate(repo_dir)
             except:
                 self._log_error(
                     "cannot determine the status of the Git repo. "
@@ -306,9 +300,10 @@ class Collator:
             Constants.META_VERSION_NUM: self.version_number,
             Constants.META_VERSION_DIR: str(self.version_dir),
             Constants.META_PREV_VERSION_DIRS: prev_version_dirs_str,
-            Constants.META_GIT_INFO: repo_info,
-            Constants.META_XTALS: crystals,
         }
+        if git_info:
+            meta[Constants.META_GIT_INFO] = git_info
+        meta[Constants.META_XTALS] = crystals
 
         for input in self.inputs:
             input_dirs.append(str(input.get_input_dir_path()))
@@ -346,6 +341,7 @@ class Collator:
         num_mtz_files = 0
         num_cif_files = 0
 
+        missing_pdbs = []
         for index, row in df.iterrows():
             count += 1
             xtal_name = row[Constants.SOAKDB_XTAL_NAME]
@@ -393,6 +389,7 @@ class Collator:
                                 + "Add this to the inputs.exclude section of your config.yaml file if you want to continue"
                             )
                             self._log_error(m.format(xtal_name, full_inputpath))
+                            missing_pdbs.append(xtal_name)
                             continue
 
                         # if we have a PDB file then continue to look for the others
@@ -487,6 +484,11 @@ class Collator:
         if num_cif_files < num_pdb_files:
             self.logger.warn(
                 "{} PDB files were found, but only {} had corresponding CIF files".format(num_pdb_files, num_cif_files)
+            )
+        if missing_pdbs:
+            self.logger.warn(
+                "PDB files for these crystals were missing. Add them to your inputs.exclude section: "
+                + ",".join(missing_pdbs)
             )
 
     def _validate_manual_input(self, input, crystals):
@@ -1081,11 +1083,11 @@ def main():
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
-    parser.add_argument("-g", "--git-info", action="store_true", help="Add GIT info to metadata")
+    parser.add_argument("--no-git-info", action="store_false", help="Don't add GIT info to metadata")
 
     args = parser.parse_args()
 
-    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level, include_git_info=args.git_info)
+    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
     logger = c.logger
     logger.info("collator: ", str(args))
 
