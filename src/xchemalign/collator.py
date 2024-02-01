@@ -341,6 +341,7 @@ class Collator:
         num_mtz_files = 0
         num_cif_files = 0
 
+        missing_pdbs = []
         for index, row in df.iterrows():
             count += 1
             xtal_name = row[Constants.SOAKDB_XTAL_NAME]
@@ -388,6 +389,7 @@ class Collator:
                                 + "Add this to the inputs.exclude section of your config.yaml file if you want to continue"
                             )
                             self._log_error(m.format(xtal_name, full_inputpath))
+                            missing_pdbs.append(xtal_name)
                             continue
 
                         # if we have a PDB file then continue to look for the others
@@ -482,6 +484,11 @@ class Collator:
         if num_cif_files < num_pdb_files:
             self.logger.warn(
                 "{} PDB files were found, but only {} had corresponding CIF files".format(num_pdb_files, num_cif_files)
+            )
+        if missing_pdbs:
+            self.logger.warn(
+                "PDB files for these crystals were missing. Add them to your inputs.exclude section: "
+                + ",".join(missing_pdbs)
             )
 
     def _validate_manual_input(self, input, crystals):
@@ -1076,11 +1083,11 @@ def main():
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
-    parser.add_argument("-g", "--git-info", action="store_true", help="Add GIT info to metadata")
+    parser.add_argument("--no-git-info", action="store_false", help="Don't add GIT info to metadata")
 
     args = parser.parse_args()
 
-    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level, include_git_info=args.git_info)
+    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
     logger = c.logger
     logger.info("collator: ", str(args))
 
