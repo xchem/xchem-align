@@ -452,6 +452,7 @@ class Aligner:
             canonical_sites,
             xtalform_sites,
             reference_structure_transforms,
+            version=self.version_dir[8:]
         )
 
         # Update the metadata_file with aligned file locations and site information
