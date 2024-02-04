@@ -26,8 +26,8 @@ If you won't run this at Diamond, you will first have to set up your environment
 If you are uploading your data from diamond light source then this is as simple as running the commands:
 
 ```commandline
-source /dls/science/groups/i04-1/conor_dev/xchem-align/act
-conda activate /dls/science/groups/i04-1/conor_dev/xchem-align/env_xchem_align
+source /dls/science/groups/i04-1/softare/xchem-align/act
+conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
 ```
 
 ## 2. Declaring things
@@ -80,7 +80,7 @@ The first step is to collate your data. This process analyses your crystallograp
 
 ```commandline
 mkdir <path to your output_dir>/upload_1
-python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <your upload config file>
+python /dls/science/groups/i04-1/software/xchem-align/scripts/collate.py -c <your upload config file>
 ```
 
 ## 4. Aligning everything
@@ -88,7 +88,7 @@ python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/collate.py -c <yo
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-python /dls/science/groups/i04-1/conor_dev/xchem-align/scripts/align.py -d <your upload directory> -x <your xtalforms file> -a <your assemblies file>
+python /dls/science/groups/i04-1/software/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies.yaml>
 ```
 
 ## 5. Upload to Fragalysis
