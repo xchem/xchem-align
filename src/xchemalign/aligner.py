@@ -121,7 +121,6 @@ def get_datasets_from_crystals(
         else:
             mtz_path = str(output_path / mtz_file)
 
-
         dataset = dt.Dataset(
             dtag=dtag,
             pdb=str(output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]),
@@ -377,7 +376,6 @@ class Aligner:
         else:
             connected_components = _load_connected_components(fs_model.connected_components)
 
-
         #
         if source_fs_model:
             print(f"Have source fs model at {source_fs_model.ligand_neighbourhood_transforms}!")
@@ -452,7 +450,7 @@ class Aligner:
             canonical_sites,
             xtalform_sites,
             reference_structure_transforms,
-            version=self.version_dir.name[7:]
+            version=self.version_dir.name[7:],
         )
 
         # Update the metadata_file with aligned file locations and site information
@@ -461,8 +459,8 @@ class Aligner:
         # Add the xtalform information
         meta_xtalforms = {}
         xtalforms = read_yaml(updated_fs_model.xtalforms)
-        for xtalform_id, xtalform in xtalforms['xtalforms'].items():
-            xtalform_reference = xtalform["reference"]
+        for xtalform_id, xtalform in xtalforms[Constants.META_XTALFORMS].items():
+            xtalform_reference = xtalform[Constants.META_REFERENCE]
             reference_structure = gemmi.read_structure(datasets[xtalform_reference].pdb)  # (xtalform_reference).pdb)
             reference_spacegroup = reference_structure.spacegroup_hm
             reference_unit_cell = reference_structure.cell

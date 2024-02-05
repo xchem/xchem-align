@@ -4,6 +4,7 @@ import shutil
 
 import pytest
 
+
 @pytest.fixture(scope="session")
 def constants():
     class Constants:
@@ -15,7 +16,6 @@ def constants():
         CONFIG_2_FILE = "test-data/config_2.yaml"
         CONFIG_3_FILE = "test-data/config_3.yaml"
         ASSEMBLIES_FILE = "test-data/outputs/assemblies.yaml"
-        XTAFLORMS_FILE = "test-data/outputs/crystalforms.yaml"
         TEST_DIR = "test-data/outputs"
         UPLOAD_1_DIR = "test-data/outputs/upload_1"
         UPLOAD_2_DIR = "test-data/outputs/upload_2"
@@ -28,7 +28,6 @@ def constants():
 @pytest.fixture(scope="session")
 def test_data_dir(constants):
     return Path(constants.TEST_DATA_DIR)
-
 
 
 @pytest.fixture(scope="session")
@@ -98,30 +97,40 @@ def upload_3_data_dir(constants, test_dir):
 
 
 @pytest.fixture(scope="session")
-def config_1_file(constants, ):
+def config_1_file(
+    constants,
+):
     path = Path(constants.CONFIG_1_FILE)
     return path
 
+
 @pytest.fixture(scope="session")
-def config_2_file(constants, ):
+def config_2_file(
+    constants,
+):
     path = Path(constants.CONFIG_2_FILE)
     return path
 
+
 @pytest.fixture(scope="session")
-def config_3_file(constants, ):
+def config_3_file(
+    constants,
+):
     path = Path(constants.CONFIG_3_FILE)
     return path
 
 
-
 @pytest.fixture(scope="session")
-def assemblies_file(constants, ):
+def assemblies_file(
+    constants,
+):
     path = Path(constants.ASSEMBLIES_FILE)
     return path
 
+
 @pytest.fixture(scope="session")
-def xtalforms_file(constants, ):
+def xtalforms_file(
+    constants,
+):
     path = Path(constants.XTAFLORMS_FILE)
     return path
-
-
