@@ -47,6 +47,7 @@ from ligand_neighbourhood_alignment.cli import (
     _load_dataset_assignments,
     _load_ligand_neighbourhoods,
     _load_alignability_graph,
+    _load_connected_components,
     _load_ligand_neighbourhood_transforms,
     _load_conformer_sites,
     _load_conformer_site_transforms,
@@ -102,7 +103,11 @@ def _get_xmap_path_or_none(output_path, binding_event):
         return None
 
 
-def get_datasets_from_crystals(crystals, output_path):
+def get_datasets_from_crystals(
+    crystals,
+    fs_model,
+    output_path,
+):
     # dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
     # paths to files will be defined like this: upload_1/crystallographic_files/8dz1/8dz1.pdb
     # this is relative to the output_path variable that is defined from the metadata_file.yaml\
@@ -110,14 +115,18 @@ def get_datasets_from_crystals(crystals, output_path):
     reference_datasets = {}
     new_datasets = {}
     for dtag, crystal in crystals.items():
+        mtz_file = crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
+        if mtz_file is None:
+            mtz_path = "None"
+        else:
+            mtz_path = str(output_path / mtz_file)
+
+
         dataset = dt.Dataset(
             dtag=dtag,
             pdb=str(output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]),
             xmap="",
-            mtz=str(
-                output_path
-                / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
-            ),
+            mtz=mtz_path,
             # ligand_binding_events=LigandBindingEvents(
             #     ligand_ids=[
             #         LigandID(
@@ -156,6 +165,10 @@ def get_datasets_from_crystals(crystals, output_path):
         datasets[dtag] = dataset
         if crystal[Constants.META_STATUS] == Constants.META_STATUS_NEW:
             new_datasets[dtag] = dataset
+        if crystal[Constants.META_STATUS] == Constants.META_STATUS_SUPERSEDES:
+            new_datasets[dtag] = dataset
+        if dtag not in fs_model.alignments:
+            new_datasets[dtag] = dataset
         if crystal.get(Constants.META_REFERENCE):
             reference_datasets[dtag] = dataset
 
@@ -172,16 +185,16 @@ def get_datasets_from_crystals(crystals, output_path):
 
 
 class Aligner:
-    def __init__(self, version_dir, metadata, xtalforms, logger=None):
+    def __init__(self, version_dir, metadata, assemblies, logger=None):
         self.version_dir = Path(version_dir)  # e.g. path/to/upload_1
         self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
         self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES  # e.g. path/to/upload_1/crystallographic_files
         self.metadata_file = self.version_dir / metadata  # e.g. path/to/upload_1/meta_collator.yaml
-        if xtalforms:
-            self.xtalforms_file = Path(xtalforms)
+        if assemblies:
+            self.assemblies_file = Path(assemblies)
         else:
-            self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/crystalforms.yaml
+            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME  # e.g. path/to/assemblies.yaml
         if logger:
             self.logger = logger
         else:
@@ -201,15 +214,15 @@ class Aligner:
         else:
             p = self.metadata_file
             if not p.exists():
-                self._log_error("metadata file {} does not exist".format(p))
+                self._log_error("metadata file {} does not exist. Did the collator step run successfully?".format(p))
             if not p.is_file():
-                self._log_error("metadata file {} is not a file".format(p))
+                self._log_error("metadata file {} is not a file. Did the collator step run successfully?".format(p))
 
-            p = Path(self.xtalforms_file)
+            p = Path(self.assemblies_file)
             if not p.exists():
-                self._log_error("xtalforms file {} does not exist".format(p))
+                self._log_error("assemblies.yaml file {} does not exist".format(p))
             elif not p.is_file():
-                self._log_error("xtalforms file {} is not a file".format(p))
+                self._log_error("assemblies.yaml file {} is not a file".format(p))
 
         return len(self.errors), len(self.warnings)
 
@@ -220,8 +233,8 @@ class Aligner:
         self._write_output(input_meta, new_meta)
 
     def _write_output(self, collator_dict, aligner_dict):
-        # keep a copy of the xtaforms and assemblies configs
-        self._copy_file_to_version_dir(self.xtalforms_file)
+        # keep a copy of the assemblies config
+        self._copy_file_to_version_dir(self.assemblies_file)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
@@ -299,7 +312,7 @@ class Aligner:
 
         # Load the fs model for the new output dir
         fs_model = dt.FSModel.from_dir(output_path)
-        fs_model.xtalforms = self.xtalforms_file
+        fs_model.xtalforms = self.assemblies_file  # TODO change the name in LNA
         if source_fs_model:
             fs_model.alignments = source_fs_model.alignments
             fs_model.reference_alignments = source_fs_model.reference_alignments
@@ -314,19 +327,28 @@ class Aligner:
             os.mkdir(output_path)
 
         # Get the datasets
-        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, self.base_dir)
+        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, fs_model, self.base_dir)
+        self.logger.info(f"Got {len(datasets)} datasets")
+        for dtag, dataset in datasets.items():
+            self.logger.info(f"Dataset {dtag} has {len(dataset.ligand_binding_events)} ligand binding events!")
+        self.logger.info(f"Got {len(reference_datasets)} reference datasets")
+        self.logger.info(f"Got {len(new_datasets)} new datasets")
+        for dtag, dataset in datasets.items():
+            self.logger.info(f"{dtag} : {dataset.mtz}")
 
         # Get assemblies
         if source_fs_model:
-            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.xtalforms_file)
+            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.assemblies_file)
         else:
-            assemblies = _load_assemblies(fs_model.xtalforms, self.xtalforms_file)
+            assemblies = _load_assemblies(fs_model.xtalforms, self.assemblies_file)
+        self.logger.info(f"Got {len(assemblies)} assemblies")
 
         # # Get xtalforms
         if source_fs_model:
-            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.xtalforms_file)
+            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.assemblies_file)
         else:
-            xtalforms = _load_xtalforms(fs_model.xtalforms, self.xtalforms_file)
+            xtalforms = _load_xtalforms(fs_model.xtalforms, self.assemblies_file)
+        self.logger.info(f"Got {len(xtalforms)} xtalforms")
 
         # Get the dataset assignments
         if source_fs_model:
@@ -341,12 +363,20 @@ class Aligner:
             )
         else:
             ligand_neighbourhoods = _load_ligand_neighbourhoods(fs_model.ligand_neighbourhoods)
+        self.logger.info(f"Got {len(ligand_neighbourhoods)} ligand neighbourhoods")
 
         # Get alignability graph
         if source_fs_model:
             alignability_graph = _load_alignability_graph(source_fs_model.alignability_graph)
         else:
             alignability_graph = _load_alignability_graph(fs_model.alignability_graph)
+
+        # Get the connected components
+        if source_fs_model:
+            connected_components = _load_connected_components(source_fs_model.connected_components)
+        else:
+            connected_components = _load_connected_components(fs_model.connected_components)
+
 
         #
         if source_fs_model:
@@ -415,12 +445,14 @@ class Aligner:
             dataset_assignments,
             ligand_neighbourhoods,
             alignability_graph,
+            connected_components,
             ligand_neighbourhood_transforms,
             conformer_sites,
             conformer_site_transforms,
             canonical_sites,
             xtalform_sites,
             reference_structure_transforms,
+            version=self.version_dir.name[7:]
         )
 
         # Update the metadata_file with aligned file locations and site information
@@ -550,7 +582,6 @@ class Aligner:
 
             new_meta[Constants.META_XTALS][dtag] = {}
             crystal_output = new_meta[Constants.META_XTALS][dtag] = {}
-            # aligned_files = crystal_output[Constants.META_ALIGNED_FILES]
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
@@ -570,7 +601,7 @@ class Aligner:
                         aligned_diff_map_path = ligand_output.aligned_diff_maps[site_id]
                         aligned_ligand_output[site_id] = {
                             Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
-                            Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
+                            # Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
                             Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
                             Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                             Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
@@ -747,29 +778,44 @@ def main():
     parser = argparse.ArgumentParser(description="aligner")
 
     parser.add_argument("-d", "--version-dir", required=True, help="Path to version dir")
-    parser.add_argument("-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME, help="Metadata YAML file")
-    parser.add_argument("-x", "--xtalforms", help="Crystal forms YAML file")
+    parser.add_argument(
+        "-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME.format(""), help="Metadata YAML file"
+    )
+    parser.add_argument("-a", "--assemblies", help="Assemblies YAML file")
 
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("--validate", action="store_true", help="Only perform validation")
 
     args = parser.parse_args()
-    print("aligner: ", args)
 
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    if args.log_file:
+        log = args.log_file
+    else:
+        log = str(Path(args.version_dir).parent / 'aligner.log')
+        print("Using {} for log file".format(str(log)))
 
-    a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, logger=logger)
+    logger = utils.Logger(logfile=log, level=args.log_level)
+    logger.info("aligner: ", args)
+
+    a = Aligner(args.version_dir, args.metadata_file, args.assemblies, logger=logger)
     num_errors, num_warnings = a.validate()
 
     if not args.validate:
         if num_errors:
-            print("There are errors, cannot continue")
+            logger.error("There are errors, cannot continue")
             exit(1)
         else:
             a.run()
             # write a summary of errors and warnings
             logger.report()
+            logger.close()
+            if logger.logfilename:
+                to_path = a.version_dir / 'aligner.log'
+                print("copying log file", logger.logfilename, "to", to_path)
+                f = shutil.copy2(logger.logfilename, to_path)
+                if not f:
+                    print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
 
 
 if __name__ == "__main__":

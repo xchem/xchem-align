@@ -23,11 +23,13 @@ import gemmi
 import numpy as np
 import pandas as pd
 
+from git import Repo
 
 from rdkit import Chem
 
 from xchemalign import dbreader
 from xchemalign import utils
+from xchemalign import repo_info
 from xchemalign.utils import Constants
 
 
@@ -98,7 +100,9 @@ class Input:
         if not self.input_dir_path:
             self.errors.append("input_dir_path is not defined")
         elif self.input_dir_path.is_absolute():
-            self.errors.append("input_path must be a path relative to base_path")
+            self.errors.append(
+                "inputs.dir must be a path relative to base_path. What was specified was", self.input_dir_path
+            )
         else:
             p = self.get_input_dir_path()
             self.logger.info("testing", p)
@@ -123,10 +127,11 @@ class Input:
 
 
 class Collator:
-    def __init__(self, config_file, logger=None):
+    def __init__(self, config_file, log_file=None, log_level=0, include_git_info=False):
         self.errors = []
         self.warnings = []
         self.config_file = config_file
+        self.include_git_info = include_git_info
 
         config = utils.read_config_file(config_file)
         self.config = config
@@ -145,10 +150,10 @@ class Collator:
         self.all_xtals = None
         self.rejected_xtals = set()
         self.new_or_updated_xtals = None
-        if logger:
-            self.logger = logger
-        else:
-            self.logger = utils.Logger()
+        if not log_file:
+            log_file = self.output_path / 'collator.log'
+        self.logger = utils.Logger(logfile=log_file, level=log_level)
+        self.log_file = log_file
 
         self.inputs = []
         inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
@@ -212,18 +217,18 @@ class Collator:
         if not v_dir:
             self.logger.error("Error with version dir. Please fix and try again.")
             return None, None, None
-        self.logger.info("Using version dir {}".format(v_dir))
+        self.logger.info("using version dir {}".format(v_dir))
 
         self.logger.info("validating paths")
-        num_errors, num_warnings = self.validate_paths()
+        self.validate_paths()
 
-        if num_errors == 0:
+        if len(self.logger.errors) == 0:
             self.logger.info("validating data")
             meta = self.validate_data()
         else:
             meta = {}
 
-        return meta, len(self.errors), len(self.warnings)
+        return meta
 
     def validate_paths(self):
         self.errors.clear()
@@ -259,13 +264,32 @@ class Collator:
                     self.logger.warn(warning)
                     num_input_warnings += 1
 
-        return len(self.errors) + num_input_errors, len(self.warnings) + num_input_warnings
-
     def validate_data(self):
         """
         Read info from the SoakDB database and verify that the necessary entries are present
         :return: The generated metadata
         """
+
+        git_info = None
+
+        if self.include_git_info:
+            repo_dir = os.environ.get(Constants.ENV_XCA_GIT_REPO)
+            if repo_dir:
+                if not Path(repo_dir).is_dir():
+                    self._log_error("XCA_GIT_REPO environment variable is defined but the directory does not exist")
+            else:
+                repo_dir = "./"
+            self.logger.info("using GIT repo of", repo_dir)
+
+            try:
+                git_info = repo_info.generate(repo_dir)
+            except:
+                self._log_error(
+                    "cannot determine the status of the Git repo. "
+                    + "Is the XCA_GIT_REPO environment variable defined correctly or if not defined is "
+                    + "the current directory a Git repo?"
+                )
+
         crystals = {}
         input_dirs = []
         prev_version_dirs_str = [str(d) for d in self.previous_version_dirs]
@@ -276,14 +300,27 @@ class Collator:
             Constants.META_VERSION_NUM: self.version_number,
             Constants.META_VERSION_DIR: str(self.version_dir),
             Constants.META_PREV_VERSION_DIRS: prev_version_dirs_str,
-            Constants.META_XTALS: crystals,
         }
+        if git_info:
+            meta[Constants.META_GIT_INFO] = git_info
+        meta[Constants.META_XTALS] = crystals
 
         for input in self.inputs:
             input_dirs.append(str(input.get_input_dir_path()))
             self._validate_input(input, crystals)
 
+        self._validate_references(crystals)
+
         return meta
+
+    def _validate_references(self, crystals):
+        refs = utils.find_property(self.config, Constants.CONFIG_REF_DATASETS)
+        if refs is None or len(refs) == 0:
+            self._log_error("no references are defined. Use the ref_datasets section of the config to define these")
+        else:
+            for ref in refs:
+                if crystals.get(ref) is None:
+                    self._log_error("reference {} is not in the set of crystals to be processed".format(ref))
 
     def _validate_input(self, input, crystals):
         if input.type == Constants.CONFIG_TYPE_MODEL_BUILDING:
@@ -304,13 +341,15 @@ class Collator:
         num_mtz_files = 0
         num_cif_files = 0
 
+        missing_pdbs = []
         for index, row in df.iterrows():
             count += 1
             xtal_name = row[Constants.SOAKDB_XTAL_NAME]
+            cmpd_code = row[Constants.SOAKDB_COL_COMPOUND_CODE]
 
             # Exclude datasets
             if xtal_name in input.exclude:
-                self._log_warning(f"Excluding dataset: {xtal_name}")
+                self._log_warning(f"excluding dataset: {xtal_name}")
                 continue
 
             status_str = str(row[Constants.SOAKDB_COL_REFINEMENT_OUTCOME])
@@ -345,9 +384,12 @@ class Collator:
                         else:
                             expanded_files.append(None)
                             missing_files += 1
-                            self._log_warning(
-                                "PDB file for {} not found: {}. Skipping entry".format(xtal_name, full_inputpath)
+                            m = (
+                                "PDB file for {} not found: {}. "
+                                + "Add this to the inputs.exclude section of your config.yaml file if you want to continue"
                             )
+                            self._log_error(m.format(xtal_name, full_inputpath))
+                            missing_pdbs.append(xtal_name)
                             continue
 
                         # if we have a PDB file then continue to look for the others
@@ -430,6 +472,8 @@ class Collator:
                                 Constants.META_FILE: str(expanded_files[2]),
                                 Constants.META_SHA256: digest,
                             }
+                        if cmpd_code:
+                            data[Constants.META_CMPD_CODE] = cmpd_code
                         data[Constants.META_XTAL_FILES] = f_data
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
@@ -440,6 +484,11 @@ class Collator:
         if num_cif_files < num_pdb_files:
             self.logger.warn(
                 "{} PDB files were found, but only {} had corresponding CIF files".format(num_pdb_files, num_cif_files)
+            )
+        if missing_pdbs:
+            self.logger.warn(
+                "PDB files for these crystals were missing. Add them to your inputs.exclude section: "
+                + ",".join(missing_pdbs)
             )
 
     def _validate_manual_input(self, input, crystals):
@@ -524,7 +573,7 @@ class Collator:
 
     def read_metadata(self, version_dir):
         self.logger.info("reading metadata for version {}".format(version_dir))
-        meta_file = version_dir / Constants.METADATA_XTAL_FILENAME
+        meta_file = version_dir / Constants.METADATA_XTAL_FILENAME.format("")
 
         meta = utils.read_config_file(str(meta_file))
         return meta
@@ -533,12 +582,13 @@ class Collator:
         self.logger.info("running collator...")
 
         self.logger.info("coping files ...")
+        self._write_metadata(meta, suffix="_0")
         new_meta = self._copy_files(meta)
         self.logger.info("munging the history ...")
+        self._write_metadata(new_meta, suffix="_1")
         all_xtals, new_xtals = self._munge_history(meta)
         self.logger.info("writing metadata ...")
-        self._write_metadata(new_meta, all_xtals, new_xtals)
-        self.logger.info("copying config ...")
+        self._write_metadata(new_meta)
         self._copy_config()
         self.logger.info("run complete")
         return new_meta
@@ -573,7 +623,9 @@ class Collator:
                     digest = utils.gen_sha256(pdb_input)
                     old_digest = historical_xtal_data.get(Constants.META_XTAL_PDB, {}).get(Constants.META_SHA256)
                     if digest != old_digest:
-                        # PDB is changed
+                        # PDB is new or changed
+                        if old_digest is not None:
+                            self.logger.info("PDB file for {} has changed".format(xtal_name))
                         pdb_name = xtal_name + ".pdb"
                         pdb_output = dir / pdb_name
                         files_to_copy[Constants.META_XTAL_PDB] = (pdb_input, pdb_output, digest)
@@ -587,6 +639,8 @@ class Collator:
                         digest = utils.gen_sha256(mtz_input)
                         old_digest = historical_xtal_data.get(Constants.META_XTAL_MTZ, {}).get(Constants.META_SHA256)
                         if digest != old_digest:
+                            if old_digest is not None:
+                                self.logger.info("MTZ file for {} has changed".format(xtal_name))
                             mtz_name = xtal_name + ".mtz"
                             mtz_output = dir / mtz_name
                             files_to_copy[Constants.META_XTAL_MTZ] = (mtz_input, mtz_output, digest)
@@ -604,13 +658,15 @@ class Collator:
                         digest = utils.gen_sha256(cif_input)
                         old_digest = historical_xtal_data.get(Constants.META_XTAL_CIF, {}).get(Constants.META_SHA256)
                         if digest != old_digest:
+                            if old_digest is not None:
+                                self.logger.info("CIF file for {} has changed".format(xtal_name))
                             cif_name = xtal_name + ".cif"
                             cif_output = dir / cif_name
                             files_to_copy[Constants.META_XTAL_CIF] = (cif_input, cif_output, digest)
                 elif type == Constants.CONFIG_TYPE_MODEL_BUILDING:
                     self.logger.warn("CIF entry missing for {}".format(xtal_name))
 
-                # Handle histroical ligand binding events (in particular pull up their event map SHA256s for comparing)
+                # Handle historical ligand binding events (in particular pull up their event map SHA256s for comparing)
                 hist_event_maps = {}
                 for ligand_binding_data in historical_xtal_data.get(Constants.META_BINDING_EVENT, []):
                     model = ligand_binding_data.get(Constants.META_PROT_MODEL)
@@ -653,8 +709,10 @@ class Collator:
                             if hist_data:
                                 if digest == hist_data.get(Constants.META_SHA256):
                                     identical_historical_event_maps[ligand_key] = True
+                                    self.logger.info("Event map {} for {} is unchanged".format(ligand_key, xtal_name))
                                 else:
                                     event_maps_to_copy[ligand_key] = True
+                                    self.logger.info("Event map {} for {} has changed".format(ligand_key, xtal_name))
                             else:
                                 event_maps_to_copy[ligand_key] = True
                     # Handle ligands that cannot be matched
@@ -729,7 +787,7 @@ class Collator:
                             except:
                                 self.logger.warn('failed to generate SMILES for ligand {}'.format(xtal_name))
 
-                    # copy event maps that do not differ in SHA from previously known ones
+                    # copy event maps that differ in SHA from previously known ones
                     unsucessfully_copied_event_maps = {}
                     if len(event_maps_to_copy) != 0:
                         for ligand_key in event_maps_to_copy:
@@ -754,15 +812,20 @@ class Collator:
                             if ligand_key in unsucessfully_copied_event_maps:
                                 continue
                             attested_ligand_event_data = attested_ligand_events[ligand_key]
-                            data = {
-                                Constants.META_FILE: str(attested_ligand_event_data[1]),
-                                Constants.META_SHA256: attested_ligand_event_data[2],
-                                Constants.META_PROT_MODEL: ligand_key[0],
-                                Constants.META_PROT_CHAIN: ligand_key[1],
-                                Constants.META_PROT_RES: ligand_key[2],
-                                Constants.META_PROT_INDEX: attested_ligand_event_data[4],
-                                Constants.META_PROT_BDC: attested_ligand_event_data[5],
-                            }
+
+                            if identical_historical_event_maps.get(ligand_key, False):
+                                data = hist_event_maps[ligand_key]
+                            else:
+                                data = {
+                                    Constants.META_FILE: str(attested_ligand_event_data[1]),
+                                    Constants.META_SHA256: attested_ligand_event_data[2],
+                                    Constants.META_PROT_MODEL: ligand_key[0],
+                                    Constants.META_PROT_CHAIN: ligand_key[1],
+                                    Constants.META_PROT_RES: ligand_key[2],
+                                    Constants.META_PROT_INDEX: attested_ligand_event_data[4],
+                                    Constants.META_PROT_BDC: attested_ligand_event_data[5],
+                                }
+                            ligand_binding_events.append(data)
                         # Add binding events for permitted ligands without an event map
                         elif ligand_key in unattested_ligand_events:
                             data = {
@@ -774,13 +837,16 @@ class Collator:
                                 Constants.META_PROT_INDEX: None,
                                 Constants.META_PROT_BDC: None,
                             }
+                            ligand_binding_events.append(data)
+
                         # Skip if ligand key is not associated with a legal ligand
                         else:
                             continue
-                        ligand_binding_events.append(data)
+                        # ligand_binding_events.append(data)
 
                     # Add data on the ligand binding events to the new dataset to add
-                    data_to_add[Constants.META_BINDING_EVENT] = ligand_binding_events
+                    if ligand_binding_events:
+                        data_to_add[Constants.META_BINDING_EVENT] = ligand_binding_events
 
             new_xtal_data = {}
             for k, v in historical_xtal_data.items():
@@ -921,19 +987,15 @@ class Collator:
         else:
             return Constants.META_STATUS_SUPERSEDES
 
-    def _write_metadata(self, meta, all_xtals, new_xtals):
-        f = self.output_path / self.version_dir / Constants.METADATA_XTAL_FILENAME
+    def _write_metadata(self, meta, suffix=""):
+        f = self.output_path / self.version_dir / Constants.METADATA_XTAL_FILENAME.format(suffix)
         with open(f, "w") as stream:
             yaml.dump(meta, stream, sort_keys=False)
-        # f = self.output_path / self.version_dir / "all_xtals.yaml"
-        # with open(f, "w") as stream:
-        #     yaml.dump(all_xtals, stream, sort_keys=False)
-        #     f = self.output_path / self.version_dir / "new_xtals.yaml"
-        # with open(f, "w") as stream:
-        #     yaml.dump(new_xtals, stream, sort_keys=False)
 
     def _copy_config(self):
-        f = shutil.copy2(self.config_file, self.output_path / self.version_dir / 'config.yaml')
+        to_path = self.output_path / self.version_dir / 'config.yaml'
+        self.logger.info("copying config file", self.config_file, "to", to_path)
+        f = shutil.copy2(self.config_file, to_path)
         if not f:
             self.logger.warn("Failed to copy config file to {}".format((self.output_path / self.version_dir)))
             return False
@@ -1021,23 +1083,33 @@ def main():
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
+    parser.add_argument("--no-git-info", action="store_false", help="Don't add GIT info to metadata")
 
     args = parser.parse_args()
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+
+    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
+    logger = c.logger
     logger.info("collator: ", str(args))
 
-    c = Collator(args.config_file, logger=logger)
-
-    meta, num_errors, num_warnings = c.validate()
+    meta = c.validate()
 
     if not args.validate:
-        if meta is None or num_errors:
-            print("There are errors, cannot continue")
+        if meta is None or len(logger.errors) > 0:
+            logger.error("There are errors, cannot continue")
+            logger.report()
+            logger.close()
             exit(1)
         else:
             c.run(meta)
             # write a summary of errors and warnings
             logger.report()
+            logger.close()
+            if logger.logfilename:
+                to_path = c.output_path / c.version_dir / 'collator.log'
+                print("copying log file", logger.logfilename, "to", to_path)
+                f = shutil.copy2(logger.logfilename, to_path)
+                if not f:
+                    print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
 
 
 if __name__ == "__main__":

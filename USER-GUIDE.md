@@ -1,6 +1,6 @@
 # _XChemAlign_ User Guide
 
-_XChemAlign_ is a small suite of tools for preparing PDB models for loading into into [Fragalysis](https://fragalysis.diamond.ac.uk/).
+_XChemAlign_ is a small suite of tools for preparing PDB models for loading into [Fragalysis](https://fragalysis.diamond.ac.uk/).
 
 * It formalises sites and packing artefacts across crystal forms and conformations, aligning models, maps and artefacts to common origins for each binding site.
 * It handles model updates and multiple repeat experiments (e.g. to resolve stereochemistry).
@@ -9,13 +9,13 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 
 ## Overview
 
-There a few steps involved.
+There are a few steps involved.
 1. [**Enable**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#1-enabling-the-xchemalign-environment) the XChemAlign environment
 1. [**Declare**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#2-declaring-things) a few things about your data in two structured files in `yaml`[^1]
-2. [**Collate**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#3-collating-files) your files in a new (speicific) directory structure
+2. [**Collate**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#3-collating-files) your files in a new (specific) directory structure
 3. [**Align**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#4-aligning-everything) all binding sites to common origins
 4. [**Release**](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#5-releasing-to-fragalysis) the data to Fragalysis
-6. **Re-release** additional data by repeating (some or all) of steps 1-6.
+6. **Re-release** additional data by repeating (some or all of) steps 1-6.
 
 If you won't run this at Diamond, you will first have to set up your environment and copy over files. See the [instructions below](https://github.com/mwinokan/xchem-align/blob/master/USER-GUIDE.md#non-diamond-instructions)
 
@@ -23,10 +23,19 @@ If you won't run this at Diamond, you will first have to set up your environment
 
 ## 1. Enabling the XChemAlign environment
 
-If you are uploading your data from diamond light source then this is as simple as running the commands:
+If you are uploading your data from diamond light source then this is as simple as running a few commands.
+
+You need to run this the FIRST TIME you run things. It sets up you linux account so that it can read version info from
+the Git repository that contains the code.
 
 ```commandline
-source /dls/science/groups/i04-1/softare/xchem-align/act
+git config --global --add safe.directory /dls/science/groups/i04-1/software/xchem-align
+```
+
+You need to run these commands EVERY time you log in and plan to run the XChem Align tools:
+
+```commandline
+source /dls/science/groups/i04-1/software/xchem-align/act
 conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
 ```
 
@@ -34,11 +43,11 @@ conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
 
 In order to run XChemAlign you will need to create two files:
 1. The config.yaml file
-2. The crystalforms.yaml file
+2. The assemblies.yaml file
 
 ### 2.1. The Config Yaml
 
-The config yaml defines what data to collect for collation. This will include raw crystalographic data, PanDDA data and ligand information.
+The config yaml defines what data to collect for collation. This includes raw crystalographic data, PanDDA data and ligand information.
 
 ```yaml
 # DO NOT USE TABS FOR THE WHITESPACE!
@@ -58,21 +67,56 @@ inputs:  # The datasources to collate
     type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
                           # which is an advanced topic not covered here.
     soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
-    exclude: [  # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
+    # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
+    exclude: [  
       Mpro-IBM0057,
     ]
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
     - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+panddas_missing_ok: [
+  Mpro-x0089
+]
 
 ```
 
-### 2.2. The crystalforms Yamls
 
-This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs. YAML has a strict formatting specification. Make sure to use spaces and not tabs for whitespace. The diagram below illustrates the format of the crystalforms file:
 
-![crystalforms-yaml-example](https://github.com/xchem/xchem-align/assets/36866506/5c3ad74e-b1ff-4f44-8adb-3a76fbdc42b3)
+### 2.2. The assemblies YAML
 
-The example file can be found [here](test-data/outputs/xtalforms.yaml). The `biomol` and `chains` directives specify the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`). I.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains **C,E,A** in the **largecellpdb**.
+This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs.
+YAML has a strict formatting specification. Make sure to use spaces and not tabs for whitespace.
+The diagram below illustrates the format of the assemblies.yaml file:
+
+![assemblies-yaml-example](https://github.com/xchem/xchem-align/assets/36866506/5c3ad74e-b1ff-4f44-8adb-3a76fbdc42b3)
+
+An example file can be found [here](test-data/outputs/assemblies.yaml). The `biomol` and `chains` directives specify
+the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`).
+i.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains
+**C,E,A** in the **largecellpdb**.
+
+### 2.3 Example configs
+
+Here are some example configs that you can look at and run to hel get your head round how all this works.
+
+#### 2.3.1 Minimal simple example.
+
+This example illustrates only the minimal required configuration.
+You will probably need to use additional configuration features, but this should help you understand the basics.
+
+The example is contained in the file `example-simple.tgz`. Expand this file using:
+
+```commandline
+tar xvfz example-simple.tgz
+```
+
+Take a look at the two configuration files which are:
+
+example-simple/work/config_1.yaml
+example-simple/work/assemblies.yaml
+
+You can run XChemAlign with this data using the instructions in the example-simple/README.txt file.
+
+TODO - create a more complex example.
 
 ## 3. Collating files
 
@@ -88,12 +132,29 @@ python /dls/science/groups/i04-1/software/xchem-align/scripts/collate.py -c <you
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-python /dls/science/groups/i04-1/software/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies.yaml>
+python /dls/science/groups/i04-1/software/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies file>
 ```
+Note: the -a option is only needed if your assemblies file is not named `assemblies.yaml` and is not in `base_dir`.
+
 
 ## 5. Upload to Fragalysis
 
-An automatic tool for Fragalysis upload has not yet been written. The XCA outputs should be zipped and uploaded to Fragalysis via the [/viewer/upload_tset/ page](https://fragalysis.diamond.ac.uk/viewer/upload_tset/)
+An automatic tool for Fragalysis upload has not yet been written.
+
+To generate the gzipped tar file needed to manually upload the data move into your output dir and run this command
+(updating it for the specific upload version and target name):
+
+```
+tar cvfz <target_name>.tgz upload_1
+```
+
+The Log in to Fragalysis and authenticate (for the staging server):
+https://fragalysis.xchem.diamond.ac.uk/viewer/react/landing
+
+The gzipped tar file can then be uploaded to Fragalysis via (for the staging Fragalysis server):
+[/viewer/upload_tset/ page](https://fragalysis.xchem.diamond.ac.uk/api/upload_target_experiments/)
+
+You will need to know your target access string to do this.
 
 # Non-Diamond instructions
 
@@ -240,3 +301,115 @@ The key difference is that `scp` mode is run remotely from your working environm
 first ssh to `ssh.diamond.ac.uk`, then run copier (having created a new working Python environment), then zip up the
 copied files and copy them back to your working environment.
 
+## 3. Debugging Errors
+
+### Reporting version of the code.
+
+If you successfully ran *collator* then the file `meta_collator.yaml` in your upload directory will contain a section like this:
+```yaml
+xca_git_info:
+  origin_url: git@github.com:xchem/xchem-align.git
+  branch: master
+  sha: 4ba23bc73b89b6696d96baa80442122e975a0797
+  tag: null
+  dirty: false
+```
+This uniquely identifies the version of the code. Please report this if there is any doubt about the version being used.
+If you can't run *collator* then the same info can be generated using: `python -m xchemalign.repo_info`
+
+### Missing PanDDA Event Files Warning When You Have Event Maps
+
+You may have missing datasets in your upload directory because the corresponding PanDDA event maps have not been found. The solution to this is to find the pandda_inspect_events.csv file corresponding to the PanDDA in which the structure was modelled and add it to the config.yaml.
+
+```yaml
+# config.yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+...
+inputs:  # The datasources to collate
+  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
+                                            # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
+    type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
+                          # which is an advanced topic not covered here.
+...
+    panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+    - processing/analysis/panddas_2/analyses/pandda_inspect_events.csv # Structures now come from more than one PanDDA so add additional csv!
+
+
+```
+
+### Missing PanDDAs Event Files Warning When No Event Maps Have Been Generated
+
+You may have refined structures that do not have PanDDA event maps, for example because you are working with follow up compounds for which the electron density is clear in conventional maps. By default XCA will warn you that this is a problem, however you can override this behaviour by setting the panddas_missing_ok key to the config.
+
+```yaml
+# config.yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+...
+    panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+panddas_missing_ok: [  # List the dataset names that are in your model building directory that you want to export refined
+  Mpro-x0089           # models for but that do not have corresponding PanDDA maps
+]
+
+```
+
+### Multiple Reference Structures
+
+You may have multiple reference datasets, for example because there are two major conformations that are present. This can be easily handled by adding multiple reference datasets in the config.
+
+```yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is
+                                             # NOT relative to base_dir.
+ref_datasets:  # A set of exemplar datasets that you want aligned to every ligand binding site. If you have multiple
+              # major classes of conformations there should be at least one of each class.
+  - Mpro-IBM0045  # There are given with the dataset folder name/crystal id as it appears in the
+                  # model_building directory
+  - Mpro-x0089 # A second reference dataset which will be aligned to every site discovered
+...
+
+```
+
+
+### Adding PDB Structures To The Alignment
+
+If you have structures from the PDB or some other, non-PanDDA, source to add, this can be managed by creating a "manual" minput directory, which is structures like a model_building directory (dataset names for folders which contain structures), and adding it to the config.
+
+```yaml
+# DO NOT USE TABS FOR THE WHITESPACE!
+target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
+                   # it appears under
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+                                            # Diamond this should be set to '/'
+output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is
+                                             # NOT relative to base_dir.
+...
+inputs:  # The datasources to collate
+  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
+                                            # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
+    type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
+                          # which is an advanced topic not covered here.
+    soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
+    # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
+    exclude: [  
+      Mpro-IBM0057,
+    ]
+    panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
+  - dir: path/to/some/dir  # Folder containing directories which contain PDB structures (and possibly corresponding MTZs)
+    type: manual
+
+```

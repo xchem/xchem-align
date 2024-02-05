@@ -39,8 +39,8 @@ class Constants:
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4",
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4",
     ]
-    XTALFORMS_FILENAME = "crystalforms.yaml"
-    METADATA_XTAL_FILENAME = "meta_collator.yaml"
+    ASSEMBLIES_FILENAME = "assemblies.yaml"
+    METADATA_XTAL_FILENAME = "meta_collator{}.yaml"
     METADATA_ALIGN_FILENAME = "meta_aligner.yaml"
     VERSION_DIR_PREFIX = "upload_"
     DEFAULT_SOAKDB_PATH = "processing/database/soakDBDataFile.sqlite"
@@ -90,8 +90,8 @@ class Constants:
     META_AIGNED_STRUCTURE = "structure"
     META_AIGNED_ARTEFACTS = "artefacts"
     META_AIGNED_EVENT_MAP = "event_map"
-    META_AIGNED_X_MAP = "2Fo-Fc_map"
-    META_AIGNED_DIFF_MAP = "Fo-Fc_map"
+    META_AIGNED_X_MAP = "sigmaa_map"
+    META_AIGNED_DIFF_MAP = "diff_map"
     META_CONFORMER_SITES = "conformer_sites"
     META_CONFORMER_SITE_NAME = "name"
     META_CONFORMER_SITE_REFERENCE_LIG = "lig_ref"
@@ -129,15 +129,24 @@ class Constants:
     META_TRANSFORMS_CONFORMER_SITES_TO_CANON = "conformer_to_canon"
     META_TRANSFORMS_CANON_SITES_TO_GLOBAL = "canon_to_global"
     META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID = "global_reference_canon_site_id"
+    META_CMPD_CODE = "compound_code"
+    META_GIT_INFO = "xca_git_info"
+    META_GIT_INFO_URL = "origin_url"
+    META_GIT_INFO_BRANCH = "branch"
+    META_GIT_INFO_SHA = "sha"
+    META_GIT_INFO_TAG = "tag"
+    META_GIT_INFO_DIRTY = "dirty"
     SOAKDB_XTAL_NAME = "CrystalName"
-    SOAKDB_COL_PDB = "RefinementPDB_latest"
+    SOAKDB_COL_PDB = "RefinementBoundConformation"
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
     SOAKDB_COL_CIF = "RefinementCIF"
     SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
     SOAKDB_COL_REFINEMENT_OUTCOME = "RefinementOutcome"
+    SOAKDB_COL_COMPOUND_CODE = "CompoundCode"
     CRYSTAL_NEW = "crystal_new"
     ASSEMBLIES_FILENAME = "assemblies.yaml"
     PREVIOUS_OUTPUT_DIR = ""
+    ENV_XCA_GIT_REPO = "XCA_GIT_REPO"
 
 
 BOND_TYPES = {
@@ -172,9 +181,11 @@ class Logger:
         self.errors = []
         if logfile:
             self.logfile = open(logfile, "w")
+            self.logfilename = logfile
             self.closed = False
         else:
             self.logfile = None
+            self.logfilename = None
             self.closed = True
         atexit.register(self.close)
         x = datetime.datetime.now()
