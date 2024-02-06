@@ -117,10 +117,9 @@ def get_datasets_from_crystals(
     for dtag, crystal in crystals.items():
         mtz_file = crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
         if mtz_file is None:
-            mtz_path = "None"
+            mtz_path = None
         else:
             mtz_path = str(output_path / mtz_file)
-
 
         dataset = dt.Dataset(
             dtag=dtag,
