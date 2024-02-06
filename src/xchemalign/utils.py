@@ -115,7 +115,7 @@ class Constants:
     META_XTALFORM_SPACEGROUP = "xtalform_space_group"
     META_XTALFORM_CELL = "xtalform_cell"
     META_ASSEMBLIES_XTALFORMS = "assemblies_xtalforms"
-    META_XTALFORMS = "xtalforms"
+    META_XTALFORMS = "crystalforms"
     META_ASSEMBLIES = "assemblies"
     META_ASSEMBLIES_CHAINS = "chains"
     META_PDB_APO = "pdb_apo"

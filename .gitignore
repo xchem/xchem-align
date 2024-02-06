@@ -9,3 +9,5 @@ venv/
 xchemalign/xchem_align.egg-info/
 xchemalign/_version.py
 test-data/outputs/upload_*
+example-simple
+build

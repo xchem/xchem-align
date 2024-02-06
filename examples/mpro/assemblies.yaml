@@ -1,4 +1,0 @@
-1:
-    reference: 5rgs
-    biomol: A,B
-    chains: A, A(-x,y,-z)
