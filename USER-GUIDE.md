@@ -154,7 +154,27 @@ https://fragalysis.xchem.diamond.ac.uk/viewer/react/landing
 The gzipped tar file can then be uploaded to Fragalysis via (for the staging Fragalysis server):
 [/viewer/upload_tset/ page](https://fragalysis.xchem.diamond.ac.uk/api/upload_target_experiments/)
 
-You will need to know your target access string to do this.
+## 6. Creating subsequent versions
+
+When you have new or updated data you need to create a new version of the upload.
+The data in `upload_1` must remain. Create a new directory named `upload_2` in the same place, update your
+`config.yaml` to reflect the changes (or alternatively use names like `config_1.yaml` and `config_2.yaml`)
+and then re-run *collator* and *aligner*. The commands will look like this:
+
+```commandline
+mkdir <path to your output_dir>/upload_2
+python /dls/science/groups/i04-1/software/xchem-align/scripts/collate.py -c <your upload config file>
+python /dls/science/groups/i04-1/software/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies file>
+```
+
+For a third version it's the same, just create and use a directory named `upload_3`.
+
+Collator will automatically find and use the most recent version of the `upload_?` directory.
+These must be named in sequence `upload_1`, `upload_2`, `upload_3` ...
+
+When complete tar gzip the relevant `upload_?` dir and load into Fragalysis as before.
+Fragalysis also only accepts uploads in the strict sequence described.
+
 
 # Non-Diamond instructions
 
