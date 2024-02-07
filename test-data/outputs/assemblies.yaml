@@ -1,12 +1,12 @@
 assemblies:
-    dimer:
+    dimer:                          # Useful name recommended, e.g. oligomer name
         reference: Mpro-IBM0045
         biomol: A,B
-        chains: A, A(-x,y,-z)
+        chains: A, A(-x,y,-z)       # Use coot click-on-atom to get symmetry operation
 crystalforms:
-    xtalform1:
+    P4small:                        # Useful name recommended, e.g. include pointgroup
         reference: Mpro-IBM0045
         assemblies:
-            1:
+            AA*:                    # Useful name recommended, e.g. the chain names (* = symm)
                 assembly: dimer
                 chains: A,A(-x,y,-z)
