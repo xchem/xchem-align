@@ -10,22 +10,22 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 ## Overview
 
 There are a few steps involved.
-1. [**Enable**](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#1-enabling-the-xchemalign-environment) the XChemAlign environment
-2. [**Declare**](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#2-declaring-things) a few things about your data in two structured files in `yaml`[^1]
-3. [**Collate**](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#3-collating-files) your files in a new (specific) directory structure
-4. [**Align**](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#4-aligning-everything) all binding sites to common origins
-5. [**Release**](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#5-upload-to-fragalysis) the data to Fragalysis
-6. [**Re-release**](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#6-creating-subsequent-versions) additional data
+1. [**Enable**](#1-enabling-the-xchemalign-environment) the XChemAlign environment
+2. [**Declare**](#2-declaring-things) a few things about your data in two structured files in `yaml`[^1]
+3. [**Collate**](#3-collating-files) your files in a new (specific) directory structure
+4. [**Align**](#4-aligning-everything) all binding sites to common origins
+5. [**Release**](#5-upload-to-fragalysis) the data to Fragalysis
+6. [**Re-release**](#6-creating-subsequent-versions) additional data
 
-If you won't run this at Diamond, you will first have to set up your environment and copy over files. See the [instructions here](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#non-diamond-instructions)
+If you won't run this at Diamond, you will first have to set up your environment and copy over files. See the [instructions here](#non-diamond-instructions)
 
 ### Debugging common errors
 
-* [Reporting version of the code](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#reporting-version-of-the-code)
-* [Missing PanDDA Event Files Warning When You Have Event Maps](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#missing-pandda-event-files-warning-when-you-have-event-maps)
-* [Missing PanDDAs Event Files Warning When No Event Maps Have Been Generated](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#missing-panddas-event-files-warning-when-no-event-maps-have-been-generated)
-* [Multiple Reference Structures](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#missing-panddas-event-files-warning-when-no-event-maps-have-been-generated)
-* [Adding PDB Structures To The Alignment](https://github.com/xchem/xchem-align/blob/master/USER-GUIDE.md#adding-pdb-structures-to-the-alignment)
+* [Reporting version of the code](#reporting-version-of-the-code)
+* [Missing PanDDA Event Files Warning When You Have Event Maps](#missing-pandda-event-files-warning-when-you-have-event-maps)
+* [Missing PanDDAs Event Files Warning When No Event Maps Have Been Generated](#missing-panddas-event-files-warning-when-no-event-maps-have-been-generated)
+* [Multiple Reference Structures](#missing-panddas-event-files-warning-when-no-event-maps-have-been-generated)
+* [Adding PDB Structures To The Alignment](#adding-pdb-structures-to-the-alignment)
 
 [^1]: "yet another markup language"
 
