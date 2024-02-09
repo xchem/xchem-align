@@ -88,7 +88,7 @@ inputs:        # The datasources to collate
 
        exclude: [Mpro-IBM0057, Mpro-IBM0108]   # Datasets to be ignored (e.g. if buggy)
 
-       panddas_event_files:           # Tables written out by pandda_inspect; list here all pandda runs (XCA will figure it out from there)
+       panddas_event_files:         # List tables written by pandda_inspect, for all pandda runs (XCA figures out the rest)
          - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # relative path, starting from 'dir'.
 
        panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
