@@ -62,34 +62,42 @@ The config yaml defines what data to collect for collation. This includes raw cr
 
 ```yaml
 # DO NOT USE TABS FOR THE WHITESPACE!
-target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
-                   # it appears under
-base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
-                                            # Diamond this should be set to '/'
-output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is
-                                             # NOT relative to base_dir.
-ref_datasets:  # A set of exemplar datasets that you want aligned to every ligand binding site. If you have multiple
-              # major classes of conformations there should be at least one of each class.
-  - Mpro-IBM0045  # There are given with the dataset folder name/crystal id as it appears in the
-                  # model_building directory
-inputs:  # The datasources to collate
-  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
-                                            # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
-    type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
-                          # which is an advanced topic not covered here.
-    soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
-    # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
-    exclude: [  
-      Mpro-IBM0057,
-    ]
-    panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
-    - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
-panddas_missing_ok: [
-  Mpro-x0089
-]
+
+target_name: Mpro        # The name of your target.
+                         # ??~~If adding to data already on Fragalysis, use that 'target' name~~??
+
+base_dir: /some/path/to/test-data/inputs_1   # All _inputs_ are relative to this directory.
+                                             # This is usually '/', certainly at Diamond
+
+output_dir: /some/path/to/test-data/outputs  # Directory where ALL uploads folders go.
+                                             # Must be an absolute path, NOT relative to base_dir
+                                             
+ref_datasets:        # List of datasets with reference conformations; these get aligned to every ligand binding site.
+                     # You generally want at least one for each major class of conformation
+  - Mpro-IBM0045        # Provide here the crystal ids as they appears in the model_building directory
+  - Mpro-IBM0175
+
+inputs:        # The datasources to collate
+
+  - dir: dls/labxchem/data/2020/lb27995-1   # The visit directory; assumes processing/analysis/model_building is present
+                                            # Path is _relative_ to 'base_dir'.
+
+       type: model_building             # "model_building" means: XChem data
+
+       soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
+
+       exclude: [Mpro-IBM0057, Mpro-IBM0108]   # Datasets to be ignored (e.g. if buggy)
+
+       panddas_event_files:           # Tables written out by pandda_inspect; list here all pandda runs (XCA will figure it out from there)
+         - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # relative path, starting from 'dir'.
+
+       panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
+
+
+  - dir: dls/labxchem/data/lb32633/lb32633-6/processing/analysis/additional_pdbs_forXCA
+    type: manual       # each downloaded pdb file (cif!) goes in sub-directory.
 
 ```
-
 
 
 ### 2.2. The assemblies YAML
