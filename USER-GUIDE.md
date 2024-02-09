@@ -71,11 +71,12 @@ base_dir: /some/path/to/test-data/inputs_1   # All _inputs_ are relative to this
 
 output_dir: /some/path/to/test-data/outputs  # Directory where ALL uploads folders go.
                                              # Must be an absolute path, NOT relative to base_dir
-                                             
+extra_files_dir: path/to/extra_files         # Optional directory where your extra files are located
+                                             # Defaults to extra_files in the output_dir
 ref_datasets:        # List of datasets with reference conformations; these get aligned to every ligand binding site.
                      # You generally want at least one for each major class of conformation
-  - Mpro-IBM0045        # Provide here the crystal ids as they appears in the model_building directory
-  - Mpro-IBM0175
+- Mpro-IBM0045       # Provide here the crystal ids as they appears in the model_building directory
+- Mpro-IBM0175
 
 inputs:        # The datasources to collate
 
@@ -84,7 +85,8 @@ inputs:        # The datasources to collate
 
        type: model_building             # "model_building" means: XChem data
 
-       soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
+       soakdb: processing/database/soakDBDataFile.sqlite    # Optional path to the soakdb database relative to 'dir'.
+                                                            # Defaults to processing/database/soakDBDataFile.sqlite
 
        exclude: [Mpro-IBM0057, Mpro-IBM0108]   # Datasets to be ignored (e.g. if buggy)
 
@@ -96,9 +98,19 @@ inputs:        # The datasources to collate
 
   - dir: dls/labxchem/data/lb32633/lb32633-6/processing/analysis/additional_pdbs_forXCA
     type: manual       # each downloaded pdb file (cif!) goes in sub-directory.
-
 ```
 
+Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either 
+having sensible default values or not necessarily needing values.
+
+#### Extra files
+
+There is support for adding arbitrary extra files to the upload. These files are not used by Fragalysis but
+will be added to any downloads from Fragalysis.
+
+To add these either create a `extra_files` directory in your `output_dir` or if they are located elsewhere
+specify this location with the `extra_files_dir` option in the config file. These files will be copied to your
+`upload_?` dir and included in the upload.
 
 ### 2.2. The assemblies YAML
 

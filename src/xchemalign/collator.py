@@ -17,13 +17,11 @@ import shutil
 import datetime
 import re
 import yaml
-
+from distutils import dir_util
 
 import gemmi
 import numpy as np
 import pandas as pd
-
-from git import Repo
 
 from rdkit import Chem
 
@@ -589,9 +587,27 @@ class Collator:
         all_xtals, new_xtals = self._munge_history(meta)
         self.logger.info("writing metadata ...")
         self._write_metadata(new_meta)
+        self._copy_extra_files()
+        self.logger.info("copying config.yaml")
         self._copy_config()
         self.logger.info("run complete")
         return new_meta
+
+    def _copy_extra_files(self):
+        extra_files_dir = self.config.get('extra_files_dir')
+        if extra_files_dir is None:
+            extra_files_path = self.output_path / 'extra_files'
+        else:
+            extra_files_path = Path(extra_files_dir)
+
+        if not extra_files_path.is_dir():
+            self._log_warning('extra_files dir {} not found'.format(extra_files_path))
+        else:
+            src = str(extra_files_path)
+            dst = str(self.output_path / self.version_dir / 'extra_files')
+            self.logger.info('copying extra_files from {} to {}'.format(src, dst))
+            copied = dir_util.copy_tree(src, dst)
+            self.logger.info('copied {} extra_files files'.format(len(copied)))
 
     def _copy_files(self, meta):
         cryst_path = self.version_dir / Constants.META_XTAL_FILES
@@ -745,7 +761,7 @@ class Collator:
             data_to_add = {}
             if fdata:
                 os.makedirs(self.output_path / dir)
-                f = shutil.copy2(fdata[0], self.output_path / fdata[1], follow_symlinks=True)
+                f = shutil.copy2(fdata[0], self.output_path / fdata[1])
                 if not f:
                     self.logger.error("Failed to copy PDB file {} to {}".format(fdata[0], self.output_path / fdata[1]))
                 else:
@@ -756,7 +772,7 @@ class Collator:
                     # copy MTZ file
                     fdata = files_to_copy.get(Constants.META_XTAL_MTZ)
                     if fdata:
-                        f = shutil.copy2(fdata[0], self.output_path / fdata[1], follow_symlinks=True)
+                        f = shutil.copy2(fdata[0], self.output_path / fdata[1])
                         if not f:
                             self.logger.error(
                                 "Failed to copy MTZ file {} to {}".format(fdata[0], self.output_path / fdata[1])
@@ -770,7 +786,7 @@ class Collator:
 
                     # copy CIF file
                     if fdata:
-                        f = shutil.copy2(fdata[0], self.output_path / fdata[1], follow_symlinks=True)
+                        f = shutil.copy2(fdata[0], self.output_path / fdata[1])
                         if not f:
                             self.logger.error(
                                 "Failed to copy CIF file {} to {}".format(fdata[0], self.output_path / fdata[1])
@@ -793,7 +809,7 @@ class Collator:
                         for ligand_key in event_maps_to_copy:
                             source = attested_ligand_events[ligand_key][0]
                             destination = attested_ligand_events[ligand_key][1]
-                            f = shutil.copy2(source, self.output_path / destination, follow_symlinks=True)
+                            f = shutil.copy2(source, self.output_path / destination)
                             if not f:
                                 self.logger.error(
                                     "Failed to copy Panddas file {} to {}".format(
