@@ -314,7 +314,7 @@ class Collator:
     def _validate_references(self, crystals):
         refs = utils.find_property(self.config, Constants.CONFIG_REF_DATASETS)
         if refs is None or len(refs) == 0:
-            self._log_error("no references are defined. Use the ref_datasets section of the config to define these")
+            self.logger.info("no references are defined. Use the ref_datasets section of the config if you want to define these")
         else:
             for ref in refs:
                 if crystals.get(ref) is None:
