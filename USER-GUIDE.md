@@ -85,6 +85,9 @@ inputs:        # The datasources to collate
 
        type: model_building             # "model_building" means: XChem data
 
+       code_prefix: "m"                           # prepend "m" to the code, e.g. mx0325a (instead of x0325a)  (ignored by XCA)
+       code_prefix_tooltip:  "MERS structures"    # for fragalysis to display in the tooltip for short code (ignored by XCA)
+
        soakdb: processing/database/soakDBDataFile.sqlite    # Optional path to the soakdb database relative to 'dir'.
                                                             # Defaults to processing/database/soakDBDataFile.sqlite
 
