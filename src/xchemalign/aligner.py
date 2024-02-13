@@ -121,7 +121,6 @@ def get_datasets_from_crystals(
         else:
             mtz_path = str(output_path / mtz_file)
 
-
         dataset = dt.Dataset(
             dtag=dtag,
             pdb=str(output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]),
@@ -333,8 +332,8 @@ class Aligner:
             self.logger.info(f"Dataset {dtag} has {len(dataset.ligand_binding_events)} ligand binding events!")
         self.logger.info(f"Got {len(reference_datasets)} reference datasets")
         self.logger.info(f"Got {len(new_datasets)} new datasets")
-        for dtag, dataset in datasets.items():
-            self.logger.info(f"{dtag} : {dataset.mtz}")
+        # for dtag, dataset in datasets.items():
+        #     self.logger.info(f"{dtag} : {dataset.mtz}")
 
         # Get assemblies
         if source_fs_model:

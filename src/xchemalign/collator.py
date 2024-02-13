@@ -16,8 +16,8 @@ from pathlib import Path
 import shutil
 import datetime
 import re
-import yaml
 from distutils import dir_util
+import yaml
 
 import gemmi
 import numpy as np
@@ -58,6 +58,8 @@ class Input:
         soakdb_file_path,
         panddas_event_file_paths: list[Path],
         exclude: list[str],
+        code_prefix=None,
+        code_prefix_tooltip=None,
         reference=False,
         logger=None,
     ):
@@ -69,6 +71,8 @@ class Input:
         self.exclude = exclude
         self.errors = []
         self.warnings = []
+        self.code_prefix = code_prefix
+        self.code_prefix_tooltip = code_prefix_tooltip
         self.reference = reference
         if logger:
             self.logger = logger
@@ -166,6 +170,9 @@ class Collator:
 
                 input_path = utils.find_path(input, Constants.CONFIG_DIR)
                 type = utils.find_property(input, Constants.CONFIG_TYPE)
+                code_prefix = utils.find_property(input, Constants.CONFIG_CODE_PREFIX)
+                print("CODE PREFIX", code_prefix)
+                code_prefix_tooltip = utils.find_property(input, Constants.CONFIG_CODE_PREFIX_TOOLTIP)
                 if type == Constants.CONFIG_TYPE_MODEL_BUILDING:
                     soakdb_path = utils.find_path(
                         input, Constants.CONFIG_SOAKDB, default=Constants.DEFAULT_SOAKDB_PATH
@@ -185,6 +192,8 @@ class Collator:
                             soakdb_path,
                             panddas_paths,
                             excluded_datasets,
+                            code_prefix=code_prefix,
+                            code_prefix_tooltip=code_prefix_tooltip,
                             logger=self.logger,
                         )
                     )
@@ -197,7 +206,17 @@ class Collator:
 
                     self.logger.info("adding input", input_path)
                     self.inputs.append(
-                        Input(self.base_path, input_path, type, None, [], excluded_datasets, logger=self.logger)
+                        Input(
+                            self.base_path,
+                            input_path,
+                            type,
+                            None,
+                            [],
+                            excluded_datasets,
+                            code_prefix=code_prefix,
+                            code_prefix_tooltip=code_prefix_tooltip,
+                            logger=self.logger,
+                        )
                     )
                 else:
                     raise ValueError("unexpected input type:", type)
@@ -301,6 +320,16 @@ class Collator:
         }
         if git_info:
             meta[Constants.META_GIT_INFO] = git_info
+
+        tooltips = {}
+        for input in self.inputs:
+            code_prefix = input.code_prefix
+            code_prefix_tooltip = input.code_prefix_tooltip
+            if code_prefix and code_prefix_tooltip:
+                tooltips[code_prefix] = code_prefix_tooltip
+        if tooltips:
+            meta[Constants.META_CODE_PREFIX_TOOLTIPS] = tooltips
+
         meta[Constants.META_XTALS] = crystals
 
         for input in self.inputs:
@@ -314,7 +343,9 @@ class Collator:
     def _validate_references(self, crystals):
         refs = utils.find_property(self.config, Constants.CONFIG_REF_DATASETS)
         if refs is None or len(refs) == 0:
-            self.logger.info("no references are defined. Use the ref_datasets section of the config if you want to define these")
+            self.logger.info(
+                "no references are defined. Use the ref_datasets section of the config if you want to define these"
+            )
         else:
             for ref in refs:
                 if crystals.get(ref) is None:
@@ -421,7 +452,6 @@ class Collator:
                             else:
                                 inputpath = xtal_dir / file
                             full_inputpath = self.base_path / inputpath
-                            # print('generated', full_inputpath)
                             ok = full_inputpath.exists()
                             if ok:
                                 num_cif_files += 1
@@ -472,6 +502,8 @@ class Collator:
                             }
                         if cmpd_code:
                             data[Constants.META_CMPD_CODE] = cmpd_code
+                        if input.code_prefix:
+                            data[Constants.META_CODE_PREFIX] = input.code_prefix
                         data[Constants.META_XTAL_FILES] = f_data
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
@@ -522,6 +554,8 @@ class Collator:
                     crystals[child.name] = {}
                     if child.name in ref_datasets:
                         crystals[child.name][Constants.META_REFERENCE] = True
+                    if input.code_prefix:
+                        crystals[child.name][Constants.META_CODE_PREFIX] = input.code_prefix
                     crystals[child.name][Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MANUAL
                     crystals[child.name][Constants.META_XTAL_FILES] = data
 

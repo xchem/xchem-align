@@ -56,6 +56,8 @@ class Constants:
     CONFIG_TARGET_NAME = "target_name"
     CONFIG_REF_DATASETS = "ref_datasets"
     CONFIG_EXCLUDE = 'exclude'
+    CONFIG_CODE_PREFIX = 'code_prefix'
+    CONFIG_CODE_PREFIX_TOOLTIP = 'code_prefix_tooltip'
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
     META_VERSION_NUM = "version_number"
@@ -136,6 +138,8 @@ class Constants:
     META_GIT_INFO_SHA = "sha"
     META_GIT_INFO_TAG = "tag"
     META_GIT_INFO_DIRTY = "dirty"
+    META_CODE_PREFIX = "code_prefix"
+    META_CODE_PREFIX_TOOLTIPS = "code_prefix_tooltips"
     SOAKDB_XTAL_NAME = "CrystalName"
     SOAKDB_COL_PDB = "RefinementBoundConformation"
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
