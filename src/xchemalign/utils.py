@@ -297,7 +297,12 @@ def read_config_file(filename):
 
 def find_property(my_dict, key, default=None):
     if key in my_dict:
-        return my_dict[key]
+        v = my_dict[key]
+        # value can be None if the YAML tag is defined but has no values
+        if v is None:
+            return default
+        else:
+            return v
     else:
         return default
 
