@@ -125,6 +125,11 @@ class Input:
                 elif not p.is_file():
                     self.errors.append("soakdb_file_path is not a file: {}".format(p))
 
+        if not self.code_prefix:
+            self.errors.append("code_prefix property is not defined")
+        if not self.code_prefix_tooltip:
+            self.errors.append("code_prefix_tooltip property is not defined")
+
         return len(self.errors), len(self.warnings)
 
 
