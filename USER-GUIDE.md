@@ -35,7 +35,7 @@ If you won't run this at Diamond, you will first have to set up your environment
 
 Uploading data from Diamond Light Source is as simple as running a few commands.
 
-**EVERY TIME** you log in to run any XChemAlign tools: 
+**EVERY TIME** you log in to run any XChemAlign tools:
 
 ```commandline
 source /dls/science/groups/i04-1/software/xchem-align/act
@@ -103,7 +103,7 @@ inputs:        # The datasources to collate
     type: manual       # each downloaded pdb file (cif!) goes in sub-directory.
 ```
 
-Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either 
+Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either
 having sensible default values or not necessarily needing values.
 
 #### Extra files
@@ -210,6 +210,39 @@ When complete tar gzip the relevant `upload_?` dir and load into Fragalysis as b
 Fragalysis also only accepts uploads in the strict sequence described.
 
 ## 3. Debugging Errors
+
+### Look at the logs
+
+The log files created by these tools contain valuable information that you should look at.
+Information is written at 3 different levels:
+1. INFO - this tells you what is happening, and that it is happening as expected.
+2. WARN - something you need to investigate and decide if it's a problem. It's OK to accept warnings, but not OK to ignore them.
+3. ERROR - something serious went wrong, and you **must** fix this before continuing.
+
+This is reported while running the tools but it passes through so quickly that you probably don't see them. That's why:
+1. The WARN and ERROR messages are repeated at the end of the run so that you have no excuse not to look at them!
+2. The log file is copied into the `upload_?` dir so that it's a permanent record of what happened (and is copied into
+   Fragalysis when you load the data).
+
+So, **DO** look at the logs after each run. Doing so will save time because it will prevent downstream errors in the
+*target loader* and in *Fragalyis*.
+
+As an example, you might see a warnings like this:
+```
+WARN: CIF entry RefinementCIF for <target-name>-x1234 not defined in SoakDB
+```
+
+Followed closely by:
+```
+WARN: 100 PDB files were found, but only 93 had corresponding CIF files
+```
+
+In this case the warnings are pretty self-explanatory, but that may not always the case (if so then let us know).
+
+The consequence of this particular warning is that you will not get ligand files (.cif, .mol, .sdf) in your XCA output.
+Is that a concern? That's for you to decide. That's why it's a **warning** not an **error**.
+But to ignore it completely is an error on your part!
+
 
 ### Reporting version of the code.
 
