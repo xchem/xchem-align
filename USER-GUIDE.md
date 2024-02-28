@@ -225,7 +225,7 @@ This is reported while running the tools but it passes through so quickly that y
    Fragalysis when you load the data).
 
 So, **DO** look at the logs after each run. Doing so will save time because it will prevent downstream errors in the
-*target loader* and in *Fragalyis*.
+*target loader* and in *Fragalysis*.
 
 As an example, you might see a warnings like this:
 ```
