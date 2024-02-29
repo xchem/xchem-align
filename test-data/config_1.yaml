@@ -6,6 +6,8 @@ ref_datasets:
 inputs:
   - dir: dls/labxchem/data/2020/lb27995-1
     type: model_building
+    code_prefix: "m"
+    code_prefix_tooltip: "MERS structures"
     soakdb: processing/database/soakDBDataFile.sqlite
     panddas_event_files:
     - processing/analysis/panddas/analyses/pandda_inspect_events.csv
