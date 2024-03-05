@@ -125,9 +125,9 @@ class Input:
                 elif not p.is_file():
                     self.errors.append("soakdb_file_path is not a file: {}".format(p))
 
-        if not self.code_prefix:
+        if self.code_prefix is None:
             self.errors.append("code_prefix property is not defined")
-        if not self.code_prefix_tooltip:
+        if self.code_prefix_tooltip is None:
             self.errors.append("code_prefix_tooltip property is not defined")
 
         return len(self.errors), len(self.warnings)
@@ -176,7 +176,6 @@ class Collator:
                 input_path = utils.find_path(input, Constants.CONFIG_DIR)
                 type = utils.find_property(input, Constants.CONFIG_TYPE)
                 code_prefix = utils.find_property(input, Constants.CONFIG_CODE_PREFIX)
-                print("CODE PREFIX", code_prefix)
                 code_prefix_tooltip = utils.find_property(input, Constants.CONFIG_CODE_PREFIX_TOOLTIP)
                 if type == Constants.CONFIG_TYPE_MODEL_BUILDING:
                     soakdb_path = utils.find_path(
@@ -507,7 +506,7 @@ class Collator:
                             }
                         if cmpd_code:
                             data[Constants.META_CMPD_CODE] = cmpd_code
-                        if input.code_prefix:
+                        if input.code_prefix is not None:
                             data[Constants.META_CODE_PREFIX] = input.code_prefix
                         data[Constants.META_XTAL_FILES] = f_data
 
@@ -559,7 +558,7 @@ class Collator:
                     crystals[child.name] = {}
                     if child.name in ref_datasets:
                         crystals[child.name][Constants.META_REFERENCE] = True
-                    if input.code_prefix:
+                    if input.code_prefix is not None:
                         crystals[child.name][Constants.META_CODE_PREFIX] = input.code_prefix
                     crystals[child.name][Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MANUAL
                     crystals[child.name][Constants.META_XTAL_FILES] = data
