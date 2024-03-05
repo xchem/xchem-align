@@ -89,15 +89,29 @@ class PDBXtal:
             include = ["CONECT", "REMARK", "CRYST", "SEQRES", "HEADER", "TITLE", "ANISOU"]
 
         with open(self.pdbfile, "r") as pdb:
+            # for line in pdb:
+            #     if (
+            #         line.startswith("HETATM")
+            #         and line.split()[3] not in self.non_ligs
+            #         or any([line.startswith(x) for x in include])
+            #     ):
+            #         continue
+            #     else:
+            #         lines += line
+
+            found_atoms = False
+            num_lig_lines = 0
             for line in pdb:
-                if (
-                    line.startswith("HETATM")
-                    and line.split()[3] not in self.non_ligs
-                    or any([line.startswith(x) for x in include])
-                ):
-                    continue
+                if found_atoms:
+                    if line[17:20] == "LIG":
+                        num_lig_lines += 1
+                    else:
+                        lines += line
                 else:
+                    if line.startswith("ATOM"):
+                        found_atoms = True
                     lines += line
+            print("Removed {} LIG lines".format(num_lig_lines))
 
         self.apo_file = self.output_dir / (self.filebase + "_apo.pdb")
         f = open(self.apo_file, "w")
