@@ -48,6 +48,8 @@ class Constants:
     CONFIG_INPUTS = "inputs"
     CONFIG_TYPE = "type"
     CONFIG_DIR = "dir"
+    CONFIG_CWD = "collator_cwd"
+    CONFIG_CONFIG_FILE = "collator_config_file"
     CONFIG_SOAKDB = "soakdb"
     CONFIG_TYPE_MODEL_BUILDING = "model_building"
     CONFIG_TYPE_MANUAL = "manual"

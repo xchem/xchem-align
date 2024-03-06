@@ -314,8 +314,12 @@ class Collator:
         crystals = {}
         input_dirs = []
         prev_version_dirs_str = [str(d) for d in self.previous_version_dirs]
+        cwd = os.getcwd()
+
         meta = {
             Constants.META_RUN_ON: str(datetime.datetime.now()),
+            Constants.CONFIG_CWD: cwd,
+            Constants.CONFIG_CONFIG_FILE: self.config_file,
             Constants.META_INPUT_DIRS: input_dirs,
             Constants.CONFIG_OUTPUT_DIR: str(self.output_path),
             Constants.META_VERSION_NUM: self.version_number,
