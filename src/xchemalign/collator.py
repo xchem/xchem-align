@@ -334,6 +334,12 @@ class Collator:
             code_prefix = input.code_prefix
             code_prefix_tooltip = input.code_prefix_tooltip
             if code_prefix and code_prefix_tooltip:
+                if code_prefix in tooltips and tooltips[code_prefix] != code_prefix_tooltip:
+                    self._log_warning(
+                        'code_prefix_tooltip for "{}" is being redefined from "{}" to "{}". To avoid this use unique values for code_prefix.'.format(
+                            code_prefix, tooltips[code_prefix], code_prefix_tooltip
+                        )
+                    )
                 tooltips[code_prefix] = code_prefix_tooltip
         if tooltips:
             meta[Constants.META_CODE_PREFIX_TOOLTIPS] = tooltips
