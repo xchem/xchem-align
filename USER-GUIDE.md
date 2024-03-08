@@ -78,6 +78,8 @@ ref_datasets:        # List of datasets with reference conformations; these get 
 - Mpro-IBM0045       # Provide here the crystal ids as they appears in the model_building directory
 - Mpro-IBM0175
 
+panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
+
 inputs:        # The datasources to collate
 
   - dir: dls/labxchem/data/2020/lb27995-1   # The visit directory; assumes processing/analysis/model_building is present
@@ -95,8 +97,6 @@ inputs:        # The datasources to collate
 
        panddas_event_files:         # List tables written by pandda_inspect, for all pandda runs (XCA figures out the rest)
          - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # relative path, starting from 'dir'.
-
-       panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
 
 
   - dir: dls/labxchem/data/lb32633/lb32633-6/processing/analysis/additional_pdbs_forXCA
