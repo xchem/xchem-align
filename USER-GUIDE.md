@@ -87,8 +87,8 @@ inputs:        # The datasources to collate
 
        type: model_building             # "model_building" means: XChem data
 
-       code_prefix: "m"                           # prepend "m" to the code, e.g. mx0325a (instead of x0325a)  (ignored by XCA)
-       code_prefix_tooltip:  "MERS structures"    # for fragalysis to display in the tooltip for short code (ignored by XCA)
+       code_prefix: m                            # prepend "m" to the code, e.g. mx0325a (instead of x0325a)  (ignored by XCA)
+       code_prefix_tooltip: MERS structures      # for fragalysis to display in the tooltip for short code (ignored by XCA)
 
        soakdb: processing/database/soakDBDataFile.sqlite    # Optional path to the soakdb database relative to 'dir'.
                                                             # Defaults to processing/database/soakDBDataFile.sqlite
@@ -162,8 +162,8 @@ tar xvfz example-simple.tgz
 
 Take a look at the two configuration files which are:
 
-example-simple/work/config_1.yaml
-example-simple/work/assemblies.yaml
+* example-simple/work/config_1.yaml
+* example-simple/work/assemblies.yaml
 
 You can run XChemAlign with this data using the instructions in the example-simple/README.txt file.
 
@@ -288,10 +288,12 @@ base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not out
                                             # Diamond this should be set to '/'
 ...
 inputs:  # The datasources to collate
-  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
+  - dir: dls/labxchem/data/2020/lb27995-1   # The target directory. This will pull data from
                                             # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
     type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
                           # which is an advanced topic not covered here.
+    code_prefix: m                          # prepend "m" to the code, e.g. mx0325a (instead of x0325a)  (ignored by XCA)
+    code_prefix_tooltip: MPro structures
 ...
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
     - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
@@ -360,6 +362,8 @@ inputs:  # The datasources to collate
                                             # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
     type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
                           # which is an advanced topic not covered here.
+    code_prefix: m
+    code_prefix_tooltip: Mpro structures
     soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
     # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
     exclude: [  
@@ -430,6 +434,8 @@ scp:
 inputs:
 - dir: dls/labxchem/data/2020/lb18145-153
   type: model_building
+  code_prefix: m
+  code_prefix_tooltip: Mpro structures
   soakdb: processing/database/soakDBDataFile.sqlite
   panddas_event_files:
     - processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv
