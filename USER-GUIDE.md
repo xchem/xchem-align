@@ -106,6 +106,19 @@ inputs:        # The datasources to collate
 Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either
 having sensible default values or not necessarily needing values.
 
+#### Datasets
+
+For the inputs that are of type `model_building` (e.g. come from Diamond) the corresponding soakdb file is inspected
+and crystals of the following status are considered:
+
+* 4 - CompChem ready
+* 5 - Deposition ready
+* 6 - Deposited
+
+Also, this status is considered so that crystals in previous upload versions can be deperecated:
+
+* 7 - Analysed & Rejected
+
 #### Extra files
 
 There is support for adding arbitrary extra files to the upload. These files are not used by Fragalysis but
