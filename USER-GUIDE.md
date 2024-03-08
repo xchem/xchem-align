@@ -78,6 +78,8 @@ ref_datasets:        # List of datasets with reference conformations; these get 
 - Mpro-IBM0045       # Provide here the crystal ids as they appears in the model_building directory
 - Mpro-IBM0175
 
+panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
+
 inputs:        # The datasources to collate
 
   - dir: dls/labxchem/data/2020/lb27995-1   # The visit directory; assumes processing/analysis/model_building is present
@@ -96,8 +98,6 @@ inputs:        # The datasources to collate
        panddas_event_files:         # List tables written by pandda_inspect, for all pandda runs (XCA figures out the rest)
          - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # relative path, starting from 'dir'.
 
-       panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
-
 
   - dir: dls/labxchem/data/lb32633/lb32633-6/processing/analysis/additional_pdbs_forXCA
     type: manual       # each downloaded pdb file (cif!) goes in sub-directory.
@@ -114,6 +114,10 @@ will be added to any downloads from Fragalysis.
 To add these either create a `extra_files` directory in your `output_dir` or if they are located elsewhere
 specify this location with the `extra_files_dir` option in the config file. These files will be copied to your
 `upload_?` dir and included in the upload.
+
+#### Code Prefix
+
+`code_prefix` and `code_prefix_tooltip` are fields that allow you to distinguish this uploaded dataset. For example you may use `code_prefix` to specify a crystal construct. `code_prefix_tooltip` should be a string explaining the meaning of the prefix, this will be displayed in Fragalysis. `code_prefix` is necessary, but can be an empty string: `""`.
 
 ### 2.2. The assemblies YAML
 
