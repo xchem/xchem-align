@@ -115,6 +115,10 @@ To add these either create a `extra_files` directory in your `output_dir` or if 
 specify this location with the `extra_files_dir` option in the config file. These files will be copied to your
 `upload_?` dir and included in the upload.
 
+#### Code Prefix
+
+`code_prefix` and `code_prefix_tooltip` are fields that allow you to distinguish this uploaded dataset. For example you may use `code_prefix` to specify a crystal construct. `code_prefix_tooltip` should be a string explaining the meaning of the prefix, this will be displayed in Fragalysis. `code_prefix` is necessary, but can be an empty string: `""`.
+
 ### 2.2. The assemblies YAML
 
 This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs.
