@@ -78,6 +78,8 @@ ref_datasets:        # List of datasets with reference conformations; these get 
 - Mpro-IBM0045       # Provide here the crystal ids as they appears in the model_building directory
 - Mpro-IBM0175
 
+panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
+
 inputs:        # The datasources to collate
 
   - dir: dls/labxchem/data/2020/lb27995-1   # The visit directory; assumes processing/analysis/model_building is present
@@ -85,8 +87,8 @@ inputs:        # The datasources to collate
 
        type: model_building             # "model_building" means: XChem data
 
-       code_prefix: "m"                           # prepend "m" to the code, e.g. mx0325a (instead of x0325a)  (ignored by XCA)
-       code_prefix_tooltip:  "MERS structures"    # for fragalysis to display in the tooltip for short code (ignored by XCA)
+       code_prefix: m                            # prepend "m" to the code, e.g. mx0325a (instead of x0325a)  (ignored by XCA)
+       code_prefix_tooltip: MERS structures      # for fragalysis to display in the tooltip for short code (ignored by XCA)
 
        soakdb: processing/database/soakDBDataFile.sqlite    # Optional path to the soakdb database relative to 'dir'.
                                                             # Defaults to processing/database/soakDBDataFile.sqlite
@@ -96,8 +98,6 @@ inputs:        # The datasources to collate
        panddas_event_files:         # List tables written by pandda_inspect, for all pandda runs (XCA figures out the rest)
          - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # relative path, starting from 'dir'.
 
-       panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
-
 
   - dir: dls/labxchem/data/lb32633/lb32633-6/processing/analysis/additional_pdbs_forXCA
     type: manual       # each downloaded pdb file (cif!) goes in sub-directory.
@@ -105,6 +105,19 @@ inputs:        # The datasources to collate
 
 Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either
 having sensible default values or not necessarily needing values.
+
+#### Datasets
+
+For the inputs that are of type `model_building` (e.g. come from Diamond) the corresponding soakdb file is inspected
+and crystals of the following status are considered:
+
+* 4 - CompChem ready
+* 5 - Deposition ready
+* 6 - Deposited
+
+Also, this status is considered so that crystals in previous upload versions can be deperecated:
+
+* 7 - Analysed & Rejected
 
 #### Extra files
 
@@ -114,6 +127,10 @@ will be added to any downloads from Fragalysis.
 To add these either create a `extra_files` directory in your `output_dir` or if they are located elsewhere
 specify this location with the `extra_files_dir` option in the config file. These files will be copied to your
 `upload_?` dir and included in the upload.
+
+#### Code Prefix
+
+`code_prefix` and `code_prefix_tooltip` are fields that allow you to distinguish this uploaded dataset. For example you may use `code_prefix` to specify a crystal construct. `code_prefix_tooltip` should be a string explaining the meaning of the prefix, this will be displayed in Fragalysis. `code_prefix` is necessary, but can be an empty string: `""`.
 
 ### 2.2. The assemblies YAML
 
@@ -145,8 +162,8 @@ tar xvfz example-simple.tgz
 
 Take a look at the two configuration files which are:
 
-example-simple/work/config_1.yaml
-example-simple/work/assemblies.yaml
+* example-simple/work/config_1.yaml
+* example-simple/work/assemblies.yaml
 
 You can run XChemAlign with this data using the instructions in the example-simple/README.txt file.
 
@@ -271,10 +288,12 @@ base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not out
                                             # Diamond this should be set to '/'
 ...
 inputs:  # The datasources to collate
-  - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
+  - dir: dls/labxchem/data/2020/lb27995-1   # The target directory. This will pull data from
                                             # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
     type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
                           # which is an advanced topic not covered here.
+    code_prefix: m                          # prepend "m" to the code, e.g. mx0325a (instead of x0325a)  (ignored by XCA)
+    code_prefix_tooltip: MPro structures
 ...
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
     - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # Again these are relative to 'dir'.
@@ -343,6 +362,8 @@ inputs:  # The datasources to collate
                                             # 'dir/processing/analysis/modeL_building'. This is relative to 'base_dir'.
     type: model_building  # This will always be model_building unless you have datasets from the pdb you want to align
                           # which is an advanced topic not covered here.
+    code_prefix: m
+    code_prefix_tooltip: Mpro structures
     soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
     # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
     exclude: [  
@@ -413,6 +434,8 @@ scp:
 inputs:
 - dir: dls/labxchem/data/2020/lb18145-153
   type: model_building
+  code_prefix: m
+  code_prefix_tooltip: Mpro structures
   soakdb: processing/database/soakDBDataFile.sqlite
   panddas_event_files:
     - processing/analysis/pandda_2_2020_04_25/analyses/pandda_inspect_events.csv
