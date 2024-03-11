@@ -759,7 +759,10 @@ class Aligner:
                                             v4[Constants.META_LIGAND_PDB] = (
                                                 str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.pdb'
                                             )
-                                            v4[Constants.META_LIGAND_SMILES] = pdbxtal.smiles
+                                            v4[Constants.META_LIGAND_SMILES] = (
+                                                str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.smi'
+                                            )
+                                            v4[Constants.META_LIGAND_SMILES_STRING] = pdbxtal.smiles
                                         except:
                                             num_errors += 1
                                             self.logger.warn(
