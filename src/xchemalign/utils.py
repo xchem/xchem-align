@@ -380,11 +380,16 @@ def gen_mol_from_cif(cif_file):
 
 
 def main():
-    log = Logger(logfile="logfile.log", level=1)
+    # log = Logger(logfile="logfile.log", level=1)
+    #
+    # log.log("a", "b", "c", level=0)
+    # log.log("foo", "bar", "baz")
+    # log.log("foo", 99, "apples", level=2)
 
-    log.log("a", "b", "c", level=0)
-    log.log("foo", "bar", "baz")
-    log.log("foo", 99, "apples", level=2)
+    mol = gen_mol_from_cif('data/Zx1674a.cif')
+    molfile = Chem.MolToMolBlock(mol)
+
+    print(molfile)
 
 
 if __name__ == "__main__":

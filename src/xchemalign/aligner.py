@@ -734,7 +734,7 @@ class Aligner:
                                 self.logger.error("can't find file", pth)
                                 num_errors += 1
                             else:
-                                pdbxtal = PDBXtal(pth, pth.parent)
+                                pdbxtal = PDBXtal(pth, pth.parent, logger=self.logger)
                                 errs = pdbxtal.validate()
                                 if errs:
                                     self.logger.error("validation errors - can't extract components")

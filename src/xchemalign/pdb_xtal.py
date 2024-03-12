@@ -22,11 +22,12 @@ from xchemalign import utils
 
 
 class PDBXtal:
-    def __init__(self, pdbfile, output_dir, biomol=None):
+    def __init__(self, pdbfile, output_dir, biomol=None, logger=None):
         self.pdbfile = pdbfile
         self.filebase = Path(pdbfile).stem
         self.output_dir = Path(output_dir)
         self.biomol = biomol
+        self.logger = logger
         self.non_ligs = json.load(open(os.path.join(os.path.dirname(__file__), "non_ligs.json"), "r"))
         self.apo_file = None
         self.apo_solv_file = None
@@ -37,13 +38,13 @@ class PDBXtal:
     def validate(self):
         errors = 0
         if not self.pdbfile:
-            print("PDB file not defined:")
+            self.log("PDB file not defined:", level=2)
             errors += 1
         if not os.path.isfile(self.pdbfile):
-            print("PDB file not found:", self.pdbfile)
+            self.log("PDB file not found:", self.pdbfile, level=2)
             errors += 1
         if self.biomol and not os.path.isfile(self.biomol):
-            print("Biomol file not found:", self.biomol)
+            self.log("Biomol file not found:", self.biomol, level=2)
             errors += 1
 
         return errors
@@ -111,7 +112,7 @@ class PDBXtal:
                     if line.startswith("ATOM"):
                         found_atoms = True
                     lines += line
-            print("Removed {} LIG lines".format(num_lig_lines))
+            self.log("Removed {} LIG lines".format(num_lig_lines))
 
         self.apo_file = self.output_dir / (self.filebase + "_apo.pdb")
         f = open(self.apo_file, "w")
@@ -119,7 +120,7 @@ class PDBXtal:
         f.close()
 
         if self.biomol is not None:
-            print("Attaching biomol headers")
+            self.log("Attaching biomol headers")
             self.add_biomol_remark()
 
     def create_apo_solv_desolv(self):
@@ -132,7 +133,7 @@ class PDBXtal:
         """
 
         if not self.apo_file:
-            print("Apo file has not been created. Use pdb_apo().make_apo_file()")
+            self.log("Apo file has not been created. Use pdb_apo().make_apo_file()")
             exit(1)
 
         prot_file_name = self.output_dir / (self.filebase + "_apo-desolv.pdb")
@@ -213,10 +214,7 @@ class PDBXtal:
         for atom_id, pos in coords.items():
             found = False
             for atom in mol.GetAtoms():
-                if atom.GetProp('atom_id') == atom_id:
-                    # res_info = Chem.AtomPDBResidueInfo(atom_id, chainId=chain, insertionCode=str(res_id),
-                    #                                    isHeteroAtom=True, residueName='LIG')
-                    # atom.SetPDBResidueInfo(res_info)
+                if atom.GetProp('atom_id').upper() == atom_id.upper():
                     idx = atom.GetIdx()
                     point = Geometry.Point3D(pos[0], pos[1], pos[2])
                     conf.SetAtomPosition(idx, point)
@@ -225,7 +223,7 @@ class PDBXtal:
             if not found:
                 missing.append(atom_id)
         if missing:
-            print('atoms not present in cif molecule:', missing)
+            self.log('atoms not present in cif molecule:', missing, level=1)
 
         mol.AddConformer(conf)
         Chem.AssignStereochemistryFrom3D(mol)
@@ -266,6 +264,12 @@ class PDBXtal:
                         curr_resno = resno
                         curr_seq.seq.append(code)
             return seqs
+
+    def log(self, *args, level=0):
+        if self.logger:
+            self.logger.log(args, level=level)
+        else:
+            print(args)
 
 
 class ProteinSeq:
