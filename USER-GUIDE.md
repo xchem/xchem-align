@@ -199,11 +199,13 @@ To generate the gzipped tar file needed to manually upload the data move into yo
 tar cvfz <target_name>.tgz upload_1
 ```
 
-First to log in to Fragalysis and authenticate (for the staging server) and log in with your FedID:
-https://fragalysis.xchem.diamond.ac.uk/viewer/react/landing
+First to log in to Fragalysis and authenticate and log in with your FedID:
+* Staging: https://fragalysis.xchem.diamond.ac.uk/viewer/react/landing
+* Production: https://fragalysis.diamond.ac.uk/viewer/react/landing
 
-The gzipped tar file can then be uploaded to Fragalysis via (for the staging Fragalysis server):
-[/viewer/upload_tset/ page](https://fragalysis.xchem.diamond.ac.uk/api/upload_target_experiments/)
+The gzipped tar file can then be uploaded to Fragalysis via:
+* Staging: https://fragalysis.xchem.diamond.ac.uk/api/upload_target_experiments/
+* Production: https://fragalysis.diamond.ac.uk/api/upload_target_experiments
 
 ## 6. Creating subsequent versions
 
