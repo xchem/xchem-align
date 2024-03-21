@@ -125,10 +125,11 @@ class Input:
                 elif not p.is_file():
                     self.errors.append("soakdb_file_path is not a file: {}".format(p))
 
-        if self.code_prefix is None:
-            self.errors.append("code_prefix property is not defined")
-        if self.code_prefix_tooltip is None:
-            self.errors.append("code_prefix_tooltip property is not defined")
+        if self.type == Constants.CONFIG_TYPE_MODEL_BUILDING:
+            if self.code_prefix is None:
+                self.errors.append("code_prefix property is not defined")
+            if self.code_prefix_tooltip is None:
+                self.errors.append("code_prefix_tooltip property is not defined")
 
         return len(self.errors), len(self.warnings)
 
@@ -539,44 +540,62 @@ class Collator:
         num_pdb_files = 0
         num_mtz_files = 0
         ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
-        for child in (self.base_path / input.input_dir_path).iterdir():
-            pdb = None
-            mtz = None
-            if child.is_dir():
-                for file in child.iterdir():
-                    if file.suffix == ".pdb":
-                        pdb = file
-                    if file.suffix == ".mtz":
-                        mtz = file
-                if pdb:
-                    self.logger.info("adding crystal (manual)", child.name)
-                    num_pdb_files += 1
-                    digest = utils.gen_sha256(pdb)
-                    data = {
-                        Constants.META_XTAL_PDB: {
-                            Constants.META_FILE: pdb.relative_to(self.base_path),
-                            Constants.META_SHA256: digest,
-                        }
-                    }
-                    if mtz:
-                        digest = utils.gen_sha256(mtz)
-                        data[Constants.META_XTAL_MTZ] = {
-                            Constants.META_FILE: mtz.relative_to(self.base_path),
-                            Constants.META_SHA256: digest,
-                        }
-                        num_mtz_files += 1
-                    crystals[child.name] = {}
-                    if child.name in ref_datasets:
-                        crystals[child.name][Constants.META_REFERENCE] = True
-                    if input.code_prefix is not None:
-                        crystals[child.name][Constants.META_CODE_PREFIX] = input.code_prefix
-                    crystals[child.name][Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MANUAL
-                    crystals[child.name][Constants.META_XTAL_FILES] = data
+        items = self._collect_manual_files(self.base_path / input.input_dir_path)
+        self.logger.info("found {} manual inputs".format(len(items)))
+
+        for key, item in items.items():
+            pdb = item[0]
+            mtz = item[1]
+
+            self.logger.info("adding crystal (manual)", pdb.name)
+            num_pdb_files += 1
+            digest = utils.gen_sha256(pdb)
+            data = {
+                Constants.META_XTAL_PDB: {
+                    Constants.META_FILE: pdb.relative_to(self.base_path),
+                    Constants.META_SHA256: digest,
+                }
+            }
+            if mtz:
+                digest = utils.gen_sha256(mtz)
+                data[Constants.META_XTAL_MTZ] = {
+                    Constants.META_FILE: mtz.relative_to(self.base_path),
+                    Constants.META_SHA256: digest,
+                }
+                num_mtz_files += 1
+            crystals[key] = {}
+            if key in ref_datasets:
+                crystals[key][Constants.META_REFERENCE] = True
+            if input.code_prefix is not None:
+                crystals[key][Constants.META_CODE_PREFIX] = input.code_prefix
+            crystals[key][Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MANUAL
+            crystals[key][Constants.META_XTAL_FILES] = data
 
         if num_mtz_files < num_pdb_files:
             self.logger.warn(
                 "{} PDB files were found, but only {} had corresponding MTZ files".format(num_pdb_files, num_mtz_files)
             )
+
+    def _collect_manual_files(self, manual_input_path: Path):
+        data = {}
+        for child in manual_input_path.iterdir():
+            if child.is_file():
+                key = child.stem
+                if key in data:
+                    t = data[key]
+                else:
+                    t = [None, None]
+                    data[key] = t
+                if child.suffix == ".pdb":
+                    t[0] = child
+                if child.suffix == ".mtz":
+                    t[1] = child
+
+        for k in list(data.keys()):
+            if data[k][0] is None:
+                del data[k]
+        self.logger.info(len(data), 'manual PDBs found for', manual_input_path)
+        return data
 
     def read_versions(self):
         # find out which version dirs exist

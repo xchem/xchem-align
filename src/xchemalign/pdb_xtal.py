@@ -112,7 +112,6 @@ class PDBXtal:
                     if line.startswith("ATOM"):
                         found_atoms = True
                     lines += line
-            self.log("Removed {} LIG lines".format(num_lig_lines))
 
         self.apo_file = self.output_dir / (self.filebase + "_apo.pdb")
         f = open(self.apo_file, "w")
