@@ -100,13 +100,13 @@ inputs:        # The datasources to collate
 
 
   - dir: dls/labxchem/data/lb32633/lb32633-6/processing/analysis/additional_pdbs_forXCA
-    type: manual       # each downloaded pdb file (cif!) goes in sub-directory.
+    type: manual       # each downloaded pdb file (cif!) and corresponding .mtz file are put in this dir.
 ```
 
 Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either
 having sensible default values or not necessarily needing values.
 
-#### Datasets
+#### Diamond Datasets
 
 For the inputs that are of type `model_building` (e.g. come from Diamond) the corresponding soakdb file is inspected
 and crystals of the following status are considered:
@@ -119,6 +119,23 @@ Also, this status is considered so that crystals in previous upload versions can
 
 * 7 - Analysed & Rejected
 
+#### Non-Diamond datasets
+
+Additional PDB files can be specified as an input of type `manual`. See the end of the above example.
+The dir specified is relative to `base_dir`. In that directory you place the PDB file, and any corresponding MTZ file,
+with the same base name and the .pdb and .mtz extensions. The base name is used for the name of the crystal (and is the
+name that will be used in Fragalysis, so choose sensible names here).  
+
+For instance, of your directory contains this:
+
+* 1ABC.pdb
+* 1ABC.mtz
+* 5XYZ.pdb
+* random.txt
+
+then 2 crystals will be processed and given the names 1ABC and 5XYZ. The second will not have a MTZ file and the file
+`random.txt` and any subdirectories are ignored.
+
 #### Extra files
 
 There is support for adding arbitrary extra files to the upload. These files are not used by Fragalysis but
@@ -130,7 +147,11 @@ specify this location with the `extra_files_dir` option in the config file. Thes
 
 #### Code Prefix
 
-`code_prefix` and `code_prefix_tooltip` are fields that allow you to distinguish this uploaded dataset. For example you may use `code_prefix` to specify a crystal construct. `code_prefix_tooltip` should be a string explaining the meaning of the prefix, this will be displayed in Fragalysis. `code_prefix` is necessary, but can be an empty string: `""`.
+`code_prefix` and `code_prefix_tooltip` are fields that allow you to distinguish this uploaded dataset.
+For example you may use `code_prefix` to specify a crystal construct. `code_prefix_tooltip` should be a string
+explaining the meaning of the prefix, this will be displayed in Fragalysis.
+`code_prefix` is necessary for inpputs or type `model_building`, but can be an empty string: `""`.
+For inputs of type `manual` it is not needed as the names of the PDB files are used for display in Fragalysis.
 
 ### 2.2. The assemblies YAML
 
