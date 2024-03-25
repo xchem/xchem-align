@@ -574,9 +574,7 @@ class Aligner:
         for dtag, crystal in crystals.items():
             self.logger.info('looking at', dtag)
             # Skip if no output for this dataset
-            if dtag not in fs_model.alignments:
-                self.logger.warn('skipping {} as aligned structures not found'.format(dtag))
-                continue
+
 
             new_meta[Constants.META_XTALS][dtag] = {}
             crystal_output = new_meta[Constants.META_XTALS][dtag] = {}
@@ -585,6 +583,10 @@ class Aligner:
             # artefacts, xmaps and event maps to the metadata_file
             assigned_xtalform = assigned_xtalforms[dtag]
             crystal_output[Constants.META_ASSIGNED_XTALFORM] = assigned_xtalform
+
+            if dtag not in fs_model.alignments:
+                self.logger.warn('skipping {} as aligned structures not found'.format(dtag))
+                continue
 
             aligned_output = crystal_output[Constants.META_ALIGNED_FILES] = {}
             dataset_output = fs_model.alignments[dtag]
