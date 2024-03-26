@@ -126,7 +126,7 @@ The dir specified is relative to `base_dir`. In that directory you place the PDB
 with the same base name and the .pdb and .mtz extensions. The base name is used for the name of the crystal (and is the
 name that will be used in Fragalysis, so choose sensible names here).  
 
-For instance, of your directory contains this:
+For instance, if your directory contains this:
 
 * 1ABC.pdb
 * 1ABC.mtz
