@@ -575,7 +575,7 @@ class Aligner:
             self.logger.info('looking at', dtag)
 
             new_meta[Constants.META_XTALS][dtag] = {}
-            crystal_output = new_meta[Constants.META_XTALS][dtag] = {}
+            crystal_output = new_meta[Constants.META_XTALS][dtag]
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
@@ -588,7 +588,8 @@ class Aligner:
                 self.logger.warn('skipping {} as aligned structures not found'.format(dtag))
                 continue
 
-            aligned_output = crystal_output[Constants.META_ALIGNED_FILES] = {}
+            crystal_output[Constants.META_ALIGNED_FILES] = {}
+            aligned_output = crystal_output[Constants.META_ALIGNED_FILES]
             dataset_output = fs_model.alignments[dtag]
             for chain_name, chain_output in dataset_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
