@@ -246,7 +246,7 @@ class Aligner:
             if k in xtals:
                 xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
 
-            if Constants.META_ASSIGNED_XTALFORM in v:
+            if Constants.META_ALIGNED_FILES in v:
                 if k in xtals:
                     xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
                     # print(f"TRAVERSING!")
