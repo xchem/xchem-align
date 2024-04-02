@@ -164,7 +164,7 @@ def get_datasets_from_crystals(
         datasets[dtag] = dataset
         if crystal[Constants.META_STATUS] == Constants.META_STATUS_NEW:
             new_datasets[dtag] = dataset
-        if crystal[Constants.META_STATUS] == Constants.META_STATUS_SUPERSEDES:
+        if crystal[Constants.META_STATUS] == Constants.META_STATUS_SUPERSEDED:
             new_datasets[dtag] = dataset
         if dtag not in fs_model.alignments:
             new_datasets[dtag] = dataset

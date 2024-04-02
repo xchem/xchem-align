@@ -68,7 +68,7 @@ class Constants:
     META_LAST_UPDATED = "last_updated"
     META_REFINEMENT_OUTCOME = "refinement_outcome"
     META_STATUS = "status"
-    META_STATUS_SUPERSEDES = "supersedes"
+    META_STATUS_SUPERSEDED = "superseded"
     META_STATUS_UNCHANGED = "unchanged"
     META_STATUS_NEW = "new"
     META_STATUS_DEPRECATED = "deprecated"

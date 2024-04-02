@@ -1068,7 +1068,7 @@ class Collator:
         if old_sha256 == new_sha256:
             return Constants.META_STATUS_UNCHANGED
         else:
-            return Constants.META_STATUS_SUPERSEDES
+            return Constants.META_STATUS_SUPERSEDED
 
     def _write_metadata(self, meta, suffix=""):
         f = self.output_path / self.version_dir / Constants.METADATA_XTAL_FILENAME.format(suffix)
