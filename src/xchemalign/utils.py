@@ -374,7 +374,7 @@ def gen_mol_from_cif(cif_file):
     Chem.SanitizeMol(mol)
     mol.AddConformer(conf)
     Chem.AssignStereochemistryFrom3D(mol)
-    mol = Chem.RemoveHs(mol)
+    mol = Chem.RemoveAllHs(mol)
 
     return mol
 
