@@ -539,6 +539,7 @@ class Collator:
     def _validate_manual_input(self, input, crystals):
         num_pdb_files = 0
         num_mtz_files = 0
+        num_cif_files = 0
         ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
         items = self._collect_manual_files(self.base_path / input.input_dir_path)
         self.logger.info("found {} manual inputs".format(len(items)))
@@ -546,6 +547,7 @@ class Collator:
         for key, item in items.items():
             pdb = item[0]
             mtz = item[1]
+            cif = item[2]
 
             self.logger.info("adding crystal (manual)", pdb.name)
             num_pdb_files += 1
@@ -563,6 +565,13 @@ class Collator:
                     Constants.META_SHA256: digest,
                 }
                 num_mtz_files += 1
+            if cif:
+                digest = utils.gen_sha256(cif)
+                data[Constants.META_XTAL_CIF] = {
+                    Constants.META_FILE: cif.relative_to(self.base_path),
+                    Constants.META_SHA256: digest,
+                }
+                num_cif_files += 1
             crystals[key] = {}
             if key in ref_datasets:
                 crystals[key][Constants.META_REFERENCE] = True
@@ -584,12 +593,14 @@ class Collator:
                 if key in data:
                     t = data[key]
                 else:
-                    t = [None, None]
+                    t = [None, None, None]
                     data[key] = t
                 if child.suffix == ".pdb":
                     t[0] = child
                 if child.suffix == ".mtz":
                     t[1] = child
+                if child.suffix == ".cif":
+                    t[2] = child
 
         for k in list(data.keys()):
             if data[k][0] is None:
@@ -769,9 +780,11 @@ class Collator:
                 event_maps_to_copy = {}
 
                 for ligand_key in dataset_ligands:
+                    print("LIG KEY", ligand_key)
                     if ligand_key in best_event_map_paths:
                         ligand_event_map_data = best_event_map_paths[ligand_key]
                         path = ligand_event_map_data[0]
+                        print("PATH", path)
                         if path:
                             digest = utils.gen_sha256(path)
                             ccp4_output = (
@@ -908,6 +921,7 @@ class Collator:
                                     Constants.META_PROT_INDEX: attested_ligand_event_data[4],
                                     Constants.META_PROT_BDC: attested_ligand_event_data[5],
                                 }
+                            # if data[Constants.META_FILE]:
                             ligand_binding_events.append(data)
                         # Add binding events for permitted ligands without an event map
                         elif ligand_key in unattested_ligand_events:
