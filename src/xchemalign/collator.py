@@ -926,13 +926,9 @@ class Collator:
                         # Add binding events for permitted ligands without an event map
                         elif ligand_key in unattested_ligand_events:
                             data = {
-                                Constants.META_FILE: None,
-                                Constants.META_SHA256: None,
                                 Constants.META_PROT_MODEL: ligand_key[0],
                                 Constants.META_PROT_CHAIN: ligand_key[1],
-                                Constants.META_PROT_RES: ligand_key[2],
-                                Constants.META_PROT_INDEX: None,
-                                Constants.META_PROT_BDC: None,
+                                Constants.META_PROT_RES: ligand_key[2]
                             }
                             ligand_binding_events.append(data)
 
