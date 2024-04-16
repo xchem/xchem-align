@@ -30,6 +30,7 @@ class PDBXtal:
         self.logger = logger
         self.non_ligs = json.load(open(os.path.join(os.path.dirname(__file__), "non_ligs.json"), "r"))
         self.apo_file = None
+        self.ligand_file = None
         self.apo_solv_file = None
         self.apo_desolv_file = None
         self.ligand_base_file = None
@@ -84,28 +85,24 @@ class PDBXtal:
         :returns: created XXX_apo.pdb file
         """
         lines = ""
+        ligand = ""
+        conect_lines = ""
         if keep_headers:
             include = ["CONECT", "SEQRES", "TITLE", "ANISOU"]
         else:
             include = ["CONECT", "REMARK", "CRYST", "SEQRES", "HEADER", "TITLE", "ANISOU"]
 
         with open(self.pdbfile, "r") as pdb:
-            # for line in pdb:
-            #     if (
-            #         line.startswith("HETATM")
-            #         and line.split()[3] not in self.non_ligs
-            #         or any([line.startswith(x) for x in include])
-            #     ):
-            #         continue
-            #     else:
-            #         lines += line
-
             found_atoms = False
             num_lig_lines = 0
+
             for line in pdb:
                 if found_atoms:
+                    if line.startswith("CONECT"):
+                        conect_lines += line
                     if line[17:20] == "LIG":
                         num_lig_lines += 1
+                        ligand += line
                     else:
                         lines += line
                 else:
@@ -113,10 +110,33 @@ class PDBXtal:
                         found_atoms = True
                     lines += line
 
+        # prune the conect records to only include those from the LIG
+        lig_atom_nums = set()
+        conect_to_keep = ""
+        for line in ligand:
+            tokens = line.split()
+            if line.startswith("HETATM"):
+                lig_atom_nums.add(int(tokens[1]))
+        for line in conect_lines:
+            tokens = line.split()
+            missing = False
+            for token in tokens[1:]:
+                if int(token) not in lig_atom_nums:
+                    missing = True
+                    continue
+            if missing:
+                print("discarding", line)
+            else:
+                conect_to_keep += line
+
         self.apo_file = self.output_dir / (self.filebase + "_apo.pdb")
-        f = open(self.apo_file, "w")
-        f.write(str(lines))
-        f.close()
+        self.ligand_file = self.output_dir / (self.filebase + "_ligand_0.pdb")
+        self.ligand_file = self.output_dir / (self.filebase + "_ligand_0.pdb")
+        with open(self.apo_file, "w") as f:
+            f.write(str(lines))
+        with open(self.ligand_file, "w") as f:
+            f.write(str(ligand))
+            f.write(str(conect_lines))
 
         if self.biomol is not None:
             self.log("Attaching biomol headers")
@@ -326,9 +346,9 @@ def main():
     if args.residue and args.cif:
         lig_mol = p.create_ligands(args.chain, args.residue, args.cif)
         print(lig_mol)
-    seqs = p.extract_sequences()
-    for seq in seqs:
-        print(seq.create_seqres_header())
+    # seqs = p.extract_sequences()
+    # for seq in seqs:
+    #     print(seq.create_seqres_header())
     print("Done")
 
 

@@ -337,12 +337,26 @@ def gen_mol_from_cif(cif_file):
     conf = Chem.Conformer()
 
     doc = cif.read(cif_file)
-    block = doc.find_block('comp_LIG')
+    # Diamond CIFs have two blocks, but the one we want will be named data_comp_LIG
+    block = doc.find_block("comp_LIG")
+    # Other CIFs have unpredictable block names, so let's hope there is only one
+    if not block:
+        block = doc.sole_block()
+    if not block:
+        print("sole block not found")
+        return None
     atom_ids = block.find_loop('_chem_comp_atom.atom_id')
     atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
+    # coordinates are sometimes called "x" and sometimes "model_Cartn_x" etc.
     x = block.find_loop('_chem_comp_atom.x')
+    if not x:
+        x = block.find_loop('_chem_comp_atom.model_Cartn_x')
     y = block.find_loop('_chem_comp_atom.y')
+    if not y:
+        y = block.find_loop('_chem_comp_atom.model_Cartn_y')
     z = block.find_loop('_chem_comp_atom.z')
+    if not z:
+        z = block.find_loop('_chem_comp_atom.model_Cartn_z')
     charges = [0] * len(atom_ids)
     if block.find_loop('_chem_comp_atom.charge'):
         charges = list(block.find_loop('_chem_comp_atom.charge'))
@@ -350,16 +364,22 @@ def gen_mol_from_cif(cif_file):
         charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
 
     atoms = {}
-    for s, i, px, py, pz, charge in zip(atom_symbols, atom_ids, x, y, z, charges):
+    for s, id, px, py, pz, charge in zip(atom_symbols, atom_ids, x, y, z, charges):
+        # sometimes that atom ids are wrapped in double quotes
+        if id[0] == '"':
+            id = id[1:]
+        if id[-1] == '"':
+            id = id[:-1]
+
         if len(s) == 2:
             s = s[0] + s[1].lower()
 
         atom = Chem.Atom(s)
         atom.SetFormalCharge(round(float(charge)))
-        atom.SetProp('atom_id', i)
+        atom.SetProp('atom_id', id)
         idx = mol.AddAtom(atom)
         atom.SetIntProp('idx', idx)
-        atoms[i] = atom
+        atoms[id] = atom
 
         point = Geometry.Point3D(float(px), float(py), float(pz))
         conf.SetAtomPosition(idx, point)

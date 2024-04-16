@@ -780,11 +780,9 @@ class Collator:
                 event_maps_to_copy = {}
 
                 for ligand_key in dataset_ligands:
-                    print("LIG KEY", ligand_key)
                     if ligand_key in best_event_map_paths:
                         ligand_event_map_data = best_event_map_paths[ligand_key]
                         path = ligand_event_map_data[0]
-                        print("PATH", path)
                         if path:
                             digest = utils.gen_sha256(path)
                             ccp4_output = (
@@ -928,7 +926,7 @@ class Collator:
                             data = {
                                 Constants.META_PROT_MODEL: ligand_key[0],
                                 Constants.META_PROT_CHAIN: ligand_key[1],
-                                Constants.META_PROT_RES: ligand_key[2]
+                                Constants.META_PROT_RES: ligand_key[2],
                             }
                             ligand_binding_events.append(data)
 
