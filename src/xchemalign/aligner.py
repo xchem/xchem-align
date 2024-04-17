@@ -596,17 +596,19 @@ class Aligner:
             crystal_output[Constants.META_ALIGNED_FILES] = {}
             aligned_output = crystal_output[Constants.META_ALIGNED_FILES]
             dataset_output = updated_fs_model.alignments[dtag]
+            print()
             for chain_name, chain_output in dataset_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
                 for ligand_residue, ligand_output in chain_output.items():
                     aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
                     for version, version_output in ligand_output.items():
+                        aligned_version_output = aligned_ligand_output[version] = {}
                         for site_id, aligned_structure_path in version_output.aligned_structures.items():
                             aligned_artefacts_path = version_output.aligned_artefacts[site_id]
                             aligned_event_map_path = version_output.aligned_event_maps[site_id]
                             aligned_xmap_path = version_output.aligned_xmaps[site_id]
                             aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
-                            aligned_ligand_output[site_id] = {
+                            aligned_version_output[site_id] = {
                                 Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
                                 # Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
                                 Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
