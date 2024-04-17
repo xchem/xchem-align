@@ -738,7 +738,7 @@ class Aligner:
 
                             for k5, v5 in v4.items():# conf site
                                 pdb = v5[Constants.META_AIGNED_STRUCTURE]
-                                self.logger.info("extracting components", k1, k2, k3, k4,, k5, pdb)
+                                self.logger.info("extracting components", k1, k2, k3, k4, k5, pdb)
                                 # pth = self.version_dir / pdb
                                 pth = Path(pdb)
                                 if not pth.is_file():
