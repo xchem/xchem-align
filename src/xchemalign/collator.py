@@ -385,6 +385,8 @@ class Collator:
         num_mtz_files = 0
         num_cif_files = 0
 
+        extra_data = {}
+
         missing_pdbs = []
         for index, row in df.iterrows():
             count += 1
@@ -486,6 +488,8 @@ class Collator:
                             )
 
                         data = {}
+                        extra_data_items = []
+                        extra_data[xtal_name] = extra_data_items
                         if xtal_name in ref_datasets:
                             data[Constants.META_REFERENCE] = True
                         data[Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MODEL_BUILDING
@@ -517,9 +521,27 @@ class Collator:
                             }
                         if cmpd_code:
                             data[Constants.META_CMPD_CODE] = cmpd_code
+                            extra_data_items.append(cmpd_code)
+                        else:
+                            extra_data_items.append("")
+
                         if input.code_prefix is not None:
                             data[Constants.META_CODE_PREFIX] = input.code_prefix
                         data[Constants.META_XTAL_FILES] = f_data
+
+        extra_files_path = self.output_path / self.version_dir / 'extra_files'
+        if not extra_files_path.is_dir():
+            os.mkdir(extra_files_path)
+
+        compound_path = extra_files_path / 'compounds_auto.csv'
+        self.logger.info("writing compound data to " + str(compound_path))
+        with open(compound_path, 'wt') as compounds:
+            compounds.write("xtal," + Constants.META_CMPD_CODE + "\n")
+            for xtal, data in extra_data.items():
+                s = xtal
+                for item in data:
+                    s += "," + item
+                compounds.write(s + "\n")
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
         if num_mtz_files < num_pdb_files:
