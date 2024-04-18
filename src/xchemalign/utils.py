@@ -165,6 +165,9 @@ BOND_TYPES = {
     'TRIPLE': Chem.rdchem.BondType.TRIPLE,
     'aromatic': Chem.rdchem.BondType.AROMATIC,
     'deloc': Chem.rdchem.BondType.SINGLE,
+    'SING': Chem.rdchem.BondType.SINGLE,
+    'DOUB': Chem.rdchem.BondType.DOUBLE,
+    'TRIP': Chem.rdchem.BondType.TRIPLE,
 }
 
 
@@ -366,10 +369,7 @@ def gen_mol_from_cif(cif_file):
     atoms = {}
     for s, id, px, py, pz, charge in zip(atom_symbols, atom_ids, x, y, z, charges):
         # sometimes that atom ids are wrapped in double quotes
-        if id[0] == '"':
-            id = id[1:]
-        if id[-1] == '"':
-            id = id[:-1]
+        id = strip_quotes(id)
 
         if len(s) == 2:
             s = s[0] + s[1].lower()
@@ -387,9 +387,13 @@ def gen_mol_from_cif(cif_file):
     atom1 = block.find_loop('_chem_comp_bond.atom_id_1')
     atom2 = block.find_loop('_chem_comp_bond.atom_id_2')
     bond_type = block.find_loop('_chem_comp_bond.type')
+    if not bond_type:
+        bond_type = block.find_loop('_chem_comp_bond.value_order')
 
     for a1, a2, bt in zip(atom1, atom2, bond_type):
-        mol.AddBond(atoms[a1].GetIntProp('idx'), atoms[a2].GetIntProp('idx'), BOND_TYPES[bt])
+        mol.AddBond(
+            atoms[strip_quotes(a1)].GetIntProp('idx'), atoms[strip_quotes(a2)].GetIntProp('idx'), BOND_TYPES[bt]
+        )
 
     Chem.SanitizeMol(mol)
     mol.AddConformer(conf)
@@ -397,6 +401,14 @@ def gen_mol_from_cif(cif_file):
     mol = Chem.RemoveAllHs(mol)
 
     return mol
+
+
+def strip_quotes(val):
+    if val[0] == '"':
+        val = val[1:]
+    if val[-1] == '"':
+        val = val[:-1]
+    return val
 
 
 def main():
