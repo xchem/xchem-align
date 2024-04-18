@@ -145,6 +145,32 @@ To add these either create a `extra_files` directory in your `output_dir` or if 
 specify this location with the `extra_files_dir` option in the config file. These files will be copied to your
 `upload_?` dir and included in the upload.
 
+Some `extra_files` are generated automatically for you. These comprise:
+
+##### compounds_auto.csv
+
+This contains compound identifiers for each crystal (same as the `compound_code` property in the output metadata).
+Current data looks like this:
+
+```
+xtal,compound_code
+Target-x0270,Z100643660
+Target-x0281,Z1041785508
+Target-x0289,Z104492884
+Target-x0294,Z1079168976
+```
+
+Additional identifiers might be added in the future if they can be made accessible.
+
+The expectation is that you can create a corresponding `compounds_manual.csv` file that contains identifiers that you
+curate. The `compounds_auto.csv` file will be regenerated every time XCA is run. Your `compounds_manual.csv` file will
+need to be manually updated. By keeping these files separate there is no risk of your manual curation being overwritten.
+Your `compounds_manual.csv` file should follow the same syntax as the `compounds_auto.csv` with a header line and the
+first column being the crystal name.
+
+We expect that a future version of Fragalysis will make these additional identifiers (compound aliases) visible in the
+UI. For now, they just appear in the downloaded files.
+
 #### Code Prefix
 
 `code_prefix` and `code_prefix_tooltip` are fields that allow you to distinguish this uploaded dataset.
