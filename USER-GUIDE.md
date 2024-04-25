@@ -121,20 +121,30 @@ Also, this status is considered so that crystals in previous upload versions can
 
 #### Non-Diamond datasets
 
-Additional PDB files can be specified as an input of type `manual`. See the end of the above example.
-The dir specified is relative to `base_dir`. In that directory you place the PDB file, and any corresponding MTZ file,
-with the same base name and the .pdb and .mtz extensions. The base name is used for the name of the crystal (and is the
-name that will be used in Fragalysis, so choose sensible names here).  
+Additional structures can be specified as an input of type `manual`. See the end of the above example.
+The dir specified is relative to `base_dir`. In that directory you place the PDB file, the ligand CIF file, and any
+corresponding MTZ file, with the same base name and the .pdb and .mtz extensions. The base name is used for the name of the crystal (and is the
+name that will be used in Fragalysis, so choose sensible names here).
+
+The PDB and ligand CIF files are mandatory, and can be downloaded from [RCSB](https://www.rcsb.org/). Ligand CIFs can
+be downloaded from [here](https://www.rcsb.org/downloads/ligands). Check that the ligand name is the same in the PDB
+and CIF files. XCA uses the ligand name from the CIF file to identify the ligand in the PDB.
 
 For instance, if your directory contains this:
 
 * 1ABC.pdb
 * 1ABC.mtz
+* 1ABC.cif
 * 5XYZ.pdb
+* 5XYZ.cif
 * random.txt
 
 then 2 crystals will be processed and given the names 1ABC and 5XYZ. The second will not have a MTZ file and the file
 `random.txt` and any subdirectories are ignored.
+
+**NOTE**: currently the ligand name in the PDB MUST be LIG, even if it is something different in the downloaded files.
+So, currently, the ligand in the PDB file must be renamed to LIG (do not rename it in the CIF file). We expect to remove
+this limitation soon.
 
 #### Extra files
 

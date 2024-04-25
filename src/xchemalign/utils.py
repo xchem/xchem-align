@@ -60,6 +60,7 @@ class Constants:
     CONFIG_EXCLUDE = 'exclude'
     CONFIG_CODE_PREFIX = 'code_prefix'
     CONFIG_CODE_PREFIX_TOOLTIP = 'code_prefix_tooltip'
+    CONFIG_PANDDAS_EVENT_FILES = "panddas_event_files"
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
     META_VERSION_NUM = "version_number"
@@ -84,7 +85,7 @@ class Constants:
     META_XTAL_MTZ = "xtal_mtz"
     META_XTAL_CIF = "ligand_cif"
     META_SMILES = "smiles"
-    META_BINDING_EVENT = "panddas_event_files"
+    META_BINDING_EVENT = "ligand_binding_events"
     META_PANDDAS_MISSING_OK = "panddas_missing_ok"
     META_PROT_MODEL = "model"
     META_PROT_CHAIN = "chain"
@@ -127,6 +128,7 @@ class Constants:
     META_PDB_APO_DESOLV = "pdb_apo_desolv"
     META_LIGAND_MOL = "ligand_mol"
     META_LIGAND_PDB = "ligand_pdb"
+    META_LIGAND_NAME = "ligand_name"
     META_LIGAND_SMILES_STRING = "ligand_smiles_string"
     META_LIGAND_SMILES = "ligand_smiles"
     META_TRANSFORMS = "transforms"
@@ -348,6 +350,7 @@ def gen_mol_from_cif(cif_file):
     if not block:
         print("sole block not found")
         return None
+    comp_ids = block.find_loop('_chem_comp_atom.comp_id')
     atom_ids = block.find_loop('_chem_comp_atom.atom_id')
     atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
     # coordinates are sometimes called "x" and sometimes "model_Cartn_x" etc.
@@ -367,8 +370,14 @@ def gen_mol_from_cif(cif_file):
         charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
 
     atoms = {}
-    for s, id, px, py, pz, charge in zip(atom_symbols, atom_ids, x, y, z, charges):
+    ligand_name = None
+    for name, s, id, px, py, pz, charge in zip(comp_ids, atom_symbols, atom_ids, x, y, z, charges):
         # sometimes that atom ids are wrapped in double quotes
+        if ligand_name is None:
+            ligand_name = name
+        elif name != ligand_name:
+            print("WARNING: ligand name has changed from {} to {}. Old name will be used.".format(ligand_name, name))
+
         id = strip_quotes(id)
 
         if len(s) == 2:
@@ -399,6 +408,8 @@ def gen_mol_from_cif(cif_file):
     mol.AddConformer(conf)
     Chem.AssignStereochemistryFrom3D(mol)
     mol = Chem.RemoveAllHs(mol)
+
+    mol.SetProp('_Name', ligand_name)
 
     return mol
 

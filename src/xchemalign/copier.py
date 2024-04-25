@@ -407,7 +407,7 @@ def main():
                     continue
                 input_dirs.append(input.get('dir'))
                 soakdbfiles.append(input.get('soakdb', 'processing/database/soakDBDataFile.sqlite'))
-                panddas_files.append(input.get('panddas_event_files', []))
+                panddas_files.append(input.get(utils.Constants.META_BINDING_EVENT, []))
 
         # check we have at least one input
         if len(input_dirs) == 0:

@@ -31,9 +31,9 @@ In crystallography, the structural context is made up of two parts:
 
 Once these two have been deconvoluted, which is relatively straightforward if the biological assembly is know, the biological binding context of a compound can be identified.
 
-In order to generate the conformer site the next step is to identify which compounds have protein contexts which can be aligned to one another well. 
+In order to generate the conformer site the next step is to identify which compounds have protein contexts which can be aligned to one another well.
 
-The key idea of a conformer site is that this alignment does not have to be direct: two compounds do not need to share any atoms in their local protein context if there exist other compounds whose contexts allow them to be aligned to one another indirectly. 
+The key idea of a conformer site is that this alignment does not have to be direct: two compounds do not need to share any atoms in their local protein context if there exist other compounds whose contexts allow them to be aligned to one another indirectly.
 
 In this way two compounds which bind on the opposite sides of a pocket may still end up in the same conformer site if compounds which span the entire pocket, or at least the part of that pocket between these two compounds.
 
@@ -42,10 +42,9 @@ In this way two compounds which bind on the opposite sides of a pocket may still
 
 The key to identifying the biological context of fragments is by linking their binding mode to the sequence that generates the residues.
 
-As however 
+As however
 
 
 
 
 ### Crystalform Sites: Partitioning Structure By Crystallographic Context
-
