@@ -605,9 +605,9 @@ class Aligner:
             print(dataset_output)
             for chain_name, chain_output in dataset_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
+                i = 0
                 for ligand_residue, ligand_output in chain_output.items():
                     aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
-                    i = 0
                     for version, version_output in ligand_output.items():
                         aligned_version_output = aligned_ligand_output[version] = {}
                         for site_id, aligned_structure_path in version_output.aligned_structures.items():
@@ -631,7 +631,7 @@ class Aligner:
                                 aligned_version_output[site_id][
                                     Constants.META_AIGNED_EVENT_MAP
                                 ] = aligned_event_map_path
-                            i += 1
+                    i += 1
 
         ## Add the reference alignments
         new_meta[Constants.META_REFERENCE_ALIGNMENTS] = {}
