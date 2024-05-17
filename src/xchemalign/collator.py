@@ -16,6 +16,7 @@ from pathlib import Path
 import shutil
 import datetime
 import re
+import traceback
 from distutils import dir_util
 import yaml
 
@@ -182,7 +183,7 @@ class Collator:
                     soakdb_path = utils.find_path(
                         input, Constants.CONFIG_SOAKDB, default=Constants.DEFAULT_SOAKDB_PATH
                     )
-                    panddas_csvs = utils.find_property(input, Constants.META_BINDING_EVENT)
+                    panddas_csvs = utils.find_property(input, Constants.CONFIG_PANDDAS_EVENT_FILES)
                     if panddas_csvs:
                         panddas_paths = [Path(p) for p in panddas_csvs]
                     else:
@@ -419,10 +420,8 @@ class Collator:
                         expanded_files.append(None)
                         self._log_warning("PDB entry {} for {} not defined in SoakDB".format(colname, xtal_name))
                     else:
-                        # print('handling', colname, file)
                         inputpath = utils.make_path_relative(Path(file))
                         full_inputpath = self.base_path / inputpath
-                        # print('generated', full_inputpath)
                         ok = full_inputpath.exists()
                         if ok:
                             num_pdb_files += 1
@@ -900,8 +899,10 @@ class Collator:
                                 mol = utils.gen_mol_from_cif(str(self.output_path / fdata[1]))
                                 smi = Chem.MolToSmiles(mol)
                                 data_to_add[Constants.META_XTAL_CIF][Constants.META_SMILES] = smi
+                                data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGAND_NAME] = mol.GetProp('_Name')
                             except:
-                                self.logger.warn('failed to generate SMILES for ligand {}'.format(xtal_name))
+                                self.logger.warn('failed to generate ligand data for {}'.format(xtal_name))
+                                traceback.print_exc()
 
                     # copy event maps that differ in SHA from previously known ones
                     unsucessfully_copied_event_maps = {}
