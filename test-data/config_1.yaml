@@ -4,8 +4,10 @@ output_dir: test-data/outputs
 ref_datasets:
   - Mpro-IBM0045
   - Mpro-x0107_fake_P1
+  - Mpro-x0107_fake_P1_conf_change
 panddas_missing_ok:
   - Mpro-x0107_fake_P1
+  - Mpro-x0107_fake_P1_conf_change
 inputs:
   - dir: dls/labxchem/data/2020/lb27995-1
     type: model_building
