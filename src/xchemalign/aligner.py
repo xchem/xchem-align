@@ -57,6 +57,7 @@ from ligand_neighbourhood_alignment.cli import (
     _load_reference_stucture_transforms,
     _update,
 )
+from ligand_neighbourhood_alignment import alignment_heirarchy as ah
 
 from xchemalign import utils
 from xchemalign.utils import Constants
@@ -437,6 +438,29 @@ class Aligner:
                 fs_model.reference_structure_transforms
             )
 
+        # Get the assembly landmarks
+        working_fs_model = fs_model
+        if source_fs_model:
+            working_fs_model = fs_model
+
+        if working_fs_model.assembly_landmarks.exists():
+            assembly_landmarks = ah.load_yaml(
+                working_fs_model.assembly_landmarks,
+                ah.dict_to_assembly_landmarks
+            )
+        else:
+            assembly_landmarks = {}
+
+        # Get the assembly transforms
+        if working_fs_model.assembly_landmarks.exists():
+            assembly_transforms = ah.load_yaml(
+                working_fs_model.assembly_landmarks,
+                lambda x: x
+            )
+        else:
+            assembly_transforms = {}
+
+
         # Run the update
         updated_fs_model = _update(
             fs_model,
@@ -455,7 +479,9 @@ class Aligner:
             canonical_sites,
             xtalform_sites,
             reference_structure_transforms,
-            version=self.version_dir.name[7:],
+            self.version_dir.name[7:],
+            assembly_landmarks,
+            assembly_transforms,
         )
 
         # Update the metadata_file with aligned file locations and site information
