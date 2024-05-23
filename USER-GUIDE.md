@@ -56,6 +56,10 @@ In order to run XChemAlign you will need to create two files:
 1. The config.yaml file
 2. The assemblies.yaml file
 
+Both of these files will need to be in a new output directory that you create (e.g. `output/xchemalign`) in your dataset, this is the path to add to the `output_dir` in `config.yaml`.
+
+Working with YAML files can be difficult at first. Free tools such as [yamlchecker.com](https://yamlchecker.com) may help you learn and check the syntax.
+
 ### 2.1. The Config Yaml
 
 The config yaml defines what data to collect for collation. This includes raw crystalographic data, PanDDA data and ligand information.
@@ -102,6 +106,8 @@ inputs:        # The datasources to collate
   - dir: dls/labxchem/data/lb32633/lb32633-6/processing/analysis/additional_pdbs_forXCA
     type: manual       # each downloaded pdb file (cif!) and corresponding .mtz file are put in this dir.
 ```
+
+You will need to create the directory you specified in `output_dir`, i.e. `output/xchemalign`.
 
 Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either
 having sensible default values or not necessarily needing values.
@@ -230,10 +236,14 @@ TODO - create a more complex example.
 
 The first step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
 
+You will need to change into your output directory.
+
 ```commandline
 mkdir <path to your output_dir>/upload_1
 python /dls/science/groups/i04-1/software/xchem-align/scripts/collate.py -c <your upload config file>
 ```
+
+Warning: collation can take a long time, please be patient.
 
 ## 4. Aligning everything
 
@@ -256,13 +266,21 @@ To generate the gzipped tar file needed to manually upload the data move into yo
 tar cvfz <target_name>.tgz upload_1
 ```
 
-First to log in to Fragalysis and authenticate and log in with your FedID:
+**Staging vs production: there are two live versions of Fragalysis. "Staging" is used for testing and is in constant development, therefore it may be buggier and/or have new features with respect to "production" which is the stable and public deployment. You should test if your upload works in staging, and verify that the data has been uploaded correctly before uploading to production. Data in staging is "at risk" as we may have to wipe the data occassionally for development reasons.**
+
+### First to log in to Fragalysis and authenticate and log in with your FedID:
+
 * Staging: https://fragalysis.xchem.diamond.ac.uk/viewer/react/landing
 * Production: https://fragalysis.diamond.ac.uk/viewer/react/landing
 
-The gzipped tar file can then be uploaded to Fragalysis via:
+### The gzipped tar file can then be uploaded to Fragalysis via:
+
 * Staging: https://fragalysis.xchem.diamond.ac.uk/api/upload_target_experiments/
 * Production: https://fragalysis.diamond.ac.uk/api/upload_target_experiments
+
+The target access string will be the name of your proposal in UAS/ISpyB. Any Fed ID with access to your proposal will be able to see your data. If you have a private/closed data set, this means only logged in users with access configured via UAS will see your target dataset.
+
+Fill in your email and attach the `.tgz` archive. After clicking 'POST' you will see a URL which you can append to https://fragalysis.xchem.diamond.ac.uk/ (or https://fragalysis.diamond.ac.uk/ for production) to track the progress of the upload.
 
 ## 6. Creating subsequent versions
 
@@ -441,6 +459,8 @@ inputs:  # The datasources to collate
 2. **Copy** relevant files from Diamond _(if not at Diamond)_
 
 ## 1. Setting up runtime environment _(only once)_
+
+_You will need to install Python if you don't have it already. Conda/Miniconda are the easiest way to do this. You will need to create a new environment with specifically python=3.10_
 
 To run the XChemAlign tools you need to setup a Python environment.
 This is described in more detail in the [Developer guide](DEV-GUIDE.md), but just to run the tools do this:
