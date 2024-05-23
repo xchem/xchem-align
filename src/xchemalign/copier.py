@@ -204,7 +204,7 @@ class Copier:
                                 num_files += 1
 
         # copy the specified csv files with the panddas info
-        self.logger.info("Copying panddas csv files")
+        self.logger.info("Copying", len(self.panddas_file_paths), "panddas csv files")
         copied_csv = []
         for panddas_path in self.panddas_file_paths:
             f = self.copy_csv(panddas_path)
@@ -407,7 +407,7 @@ def main():
                     continue
                 input_dirs.append(input.get('dir'))
                 soakdbfiles.append(input.get('soakdb', 'processing/database/soakDBDataFile.sqlite'))
-                panddas_files.append(input.get(utils.Constants.META_BINDING_EVENT, []))
+                panddas_files.append(input.get(utils.Constants.CONFIG_PANDDAS_EVENT_FILES, []))
 
         # check we have at least one input
         if len(input_dirs) == 0:

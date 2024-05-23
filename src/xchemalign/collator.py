@@ -189,7 +189,7 @@ class Collator:
                     else:
                         panddas_paths = []
 
-                    self.logger.info("adding input", input_path)
+                    self.logger.info("adding input", input_path, "with", len(panddas_paths), "panddas event maps")
                     self.inputs.append(
                         Input(
                             self.base_path,
