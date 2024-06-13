@@ -208,6 +208,8 @@ the mapping between chains in the PDB file (`chains`) to chains in the assembly 
 i.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains
 **C,E,A** in the **largecellpdb**.
 
+The symmetry operator can be obtained from coot ([relevant docs page](https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot/web/docs/coot.html#Space-Group-and-Symmetry)).
+
 ### 2.3 Example configs
 
 Here are some example configs that you can look at and run to hel get your head round how all this works.
