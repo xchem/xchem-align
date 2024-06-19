@@ -13,6 +13,7 @@ classifiers = [
 description = "Tools to generate data suitable for loading into Fragalysis"
 dependencies = [
     'rdkit == 2023.3.2',
+    'numpy == 1.26.4',
     'pandas == 1.5.3',
     'pyyaml == 6.0',
     'gemmi == 0.6.0',
@@ -26,7 +27,7 @@ dependencies = [
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12.0"
 
 #[tool.setuptools.packages.find]
 #where = ["src/xchemalign"]
