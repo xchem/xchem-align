@@ -21,9 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     - name: Pre-commit check
@@ -38,9 +38,9 @@ jobs:
     - static-analysis
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     - name: Test command help
@@ -57,9 +57,9 @@ jobs:
     - command-help
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     - name: Test test-data config
@@ -67,5 +67,5 @@ jobs:
         pip install --upgrade pip
         pip install .
         mkdir -p test-data/outputs/upload_1
-        python -m xchemalign.collator -c test-data/config.yaml
+        python -m xchemalign.collator -c test-data/config_1.yaml
         python -m xchemalign.aligner -d test-data/outputs/upload_1 -x test-data/xtalforms.yaml
