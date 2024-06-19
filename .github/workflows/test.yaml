@@ -71,7 +71,7 @@ jobs:
       run: |
         mkdir -p test-data/outputs/upload_2
         python -m xchemalign.collator -c test-data/config_2.yaml
-        python -m xchemalign.aligner -d test-data/outputs/upload_3
+        python -m xchemalign.aligner -d test-data/outputs/upload_2
     - name: Test config_3
       run: |
         mkdir -p test-data/outputs/upload_3
