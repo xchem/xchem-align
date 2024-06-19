@@ -19,13 +19,18 @@ on:
 jobs:
   static-analysis:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+        - "3.10"
+        - "3.11"
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: ${{ matrix.python-version }}
     - name: Pre-commit check
       run: |
         pip install --upgrade pip
@@ -42,7 +47,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: ${{ matrix.python-version }}
     - name: Test command help
       run: |
         pip install --upgrade pip
@@ -61,11 +66,11 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: ${{ matrix.python-version }}
     - name: Test test-data config
       run: |
         pip install --upgrade pip
         pip install .
         mkdir -p test-data/outputs/upload_1
         python -m xchemalign.collator -c test-data/config_1.yaml
-        python -m xchemalign.aligner -d test-data/outputs/upload_1 -x test-data/xtalforms.yaml
+        python -m xchemalign.aligner -d test-data/outputs/upload_1
