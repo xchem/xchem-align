@@ -4,7 +4,11 @@ output_dir: test-data/outputs
 ref_datasets:
   - Mpro-IBM0045
   - 5rgs
+  - Mpro-x0107_fake_P1
+  - Mpro-x0107_fake_P1_conf_change
 panddas_missing_ok:
+  - Mpro-x0107_fake_P1
+  - Mpro-x0107_fake_P1_conf_change
   - Mpro-i0130
 inputs:
   - dir: dls/labxchem/data/2020/lb27995-1
@@ -26,6 +30,10 @@ inputs:
     code_prefix: "m"
     code_prefix_tooltip: "MERS structures"
   - dir: ligand_bound_manual
+    type: manual
+    code_prefix: "m"
+    code_prefix_tooltip: "MERS structures"
+  - dir: Mpro-x0107_fake_P1
     type: manual
     code_prefix: "m"
     code_prefix_tooltip: "MERS structures"
