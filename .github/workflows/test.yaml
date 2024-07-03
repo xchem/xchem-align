@@ -16,6 +16,9 @@ name: test
 on:
 - push
 
+env:
+  XCA_GIT_REPO: ${{ github.workspace }}
+
 jobs:
   static-analysis:
     runs-on: ubuntu-latest
@@ -64,9 +67,13 @@ jobs:
         python -m xchemalign.aligner -h
     - name: Test config_1
       run: |
+        pwd
+        ls -la
+        env
         mkdir -p test-data/outputs/upload_1
         python -m xchemalign.collator -c test-data/config_1.yaml
         python -m xchemalign.aligner -d test-data/outputs/upload_1
+
 # config-2 breaks with: -
 # ! "KeyError: 'Mpro-x0107_fake_P1'"
 #    - name: Test config_2
