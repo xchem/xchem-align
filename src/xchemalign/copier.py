@@ -208,7 +208,7 @@ class Copier:
         copied_csv = []
         for panddas_path in self.panddas_file_paths:
             f = self.copy_csv(panddas_path)
-            if ok:
+            if f:
                 copied_csv.append(f)
                 num_csv += 1
             else:

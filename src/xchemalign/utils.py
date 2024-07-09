@@ -33,7 +33,7 @@ class Constants:
     EVENT_TABLE_Y = "y"
     EVENT_TABLE_Z = "z"
     EVENT_TABLE_BDC = "1-BDC"
-    LIGAND_NAMES = ["LIG", "XXX"]
+    LIGAND_NAMES = ["LIG", "XXX", "LG1", "LG2", "LG3", "LG4", "LG5", "LG6", "LG7", "LG8", "LG9"]
     PROCESSED_DATASETS_DIR = "processed_datasets"
     EVENT_MAP_TEMPLATES = [
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4",
@@ -84,6 +84,7 @@ class Constants:
     META_XTAL_PDB = "xtal_pdb"
     META_XTAL_MTZ = "xtal_mtz"
     META_XTAL_CIF = "ligand_cif"
+    META_LIGANDS = "ligands"
     META_SMILES = "smiles"
     META_BINDING_EVENT = "ligand_binding_events"
     META_PANDDAS_MISSING_OK = "panddas_missing_ok"
@@ -337,81 +338,98 @@ def expand_path(p1, p2, expand=True):
         return p2
 
 
-def gen_mol_from_cif(cif_file):
-    mol = Chem.RWMol()
-    conf = Chem.Conformer()
-
+def gen_mols_from_cif(cif_file):
     doc = cif.read(cif_file)
-    # Diamond CIFs have two blocks, but the one we want will be named data_comp_LIG
-    block = doc.find_block("comp_LIG")
-    # Other CIFs have unpredictable block names, so let's hope there is only one
-    if not block:
+    # Diamond CIFs can have multiple blocks, but the ones we want will be named
+    # data_comp_LIG, data_comp_LG1, data_comp_LG2 ...
+    blocks = []
+    for name in ["LIG", "LG1", "LG2", "LG3", "LG4", "LG5", "LG6", "LG7", "LG8", "LG9"]:
+        block = doc.find_block("comp_" + name)
+        if block:
+            print("Found block for", name)
+            blocks.append(block)
+
+    print("Found", len(blocks), " blocks in CIF file")
+    if not blocks:
+        # Other CIFs have unpredictable block names, so let's hope there is only one
         block = doc.sole_block()
-    if not block:
-        print("sole block not found")
-        return None
-    comp_ids = block.find_loop('_chem_comp_atom.comp_id')
-    atom_ids = block.find_loop('_chem_comp_atom.atom_id')
-    atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
-    # coordinates are sometimes called "x" and sometimes "model_Cartn_x" etc.
-    x = block.find_loop('_chem_comp_atom.x')
-    if not x:
-        x = block.find_loop('_chem_comp_atom.model_Cartn_x')
-    y = block.find_loop('_chem_comp_atom.y')
-    if not y:
-        y = block.find_loop('_chem_comp_atom.model_Cartn_y')
-    z = block.find_loop('_chem_comp_atom.z')
-    if not z:
-        z = block.find_loop('_chem_comp_atom.model_Cartn_z')
-    charges = [0] * len(atom_ids)
-    if block.find_loop('_chem_comp_atom.charge'):
-        charges = list(block.find_loop('_chem_comp_atom.charge'))
-    elif block.find_loop('_chem_comp_atom.partial_charge'):
-        charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
+        if block:
+            blocks.append(block)
+        else:
+            print("sole block not found")
+            return None
 
-    atoms = {}
-    ligand_name = None
-    for name, s, id, px, py, pz, charge in zip(comp_ids, atom_symbols, atom_ids, x, y, z, charges):
-        # sometimes that atom ids are wrapped in double quotes
-        if ligand_name is None:
-            ligand_name = name
-        elif name != ligand_name:
-            print("WARNING: ligand name has changed from {} to {}. Old name will be used.".format(ligand_name, name))
+    mols = []
+    for block in blocks:
+        mol = Chem.RWMol()
+        conf = Chem.Conformer()
 
-        id = strip_quotes(id)
+        comp_ids = block.find_loop('_chem_comp_atom.comp_id')
+        atom_ids = block.find_loop('_chem_comp_atom.atom_id')
+        atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
+        # coordinates are sometimes called "x" and sometimes "model_Cartn_x" etc.
+        x = block.find_loop('_chem_comp_atom.x')
+        if not x:
+            x = block.find_loop('_chem_comp_atom.model_Cartn_x')
+        y = block.find_loop('_chem_comp_atom.y')
+        if not y:
+            y = block.find_loop('_chem_comp_atom.model_Cartn_y')
+        z = block.find_loop('_chem_comp_atom.z')
+        if not z:
+            z = block.find_loop('_chem_comp_atom.model_Cartn_z')
+        charges = [0] * len(atom_ids)
+        if block.find_loop('_chem_comp_atom.charge'):
+            charges = list(block.find_loop('_chem_comp_atom.charge'))
+        elif block.find_loop('_chem_comp_atom.partial_charge'):
+            charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
 
-        if len(s) == 2:
-            s = s[0] + s[1].lower()
+        atoms = {}
+        ligand_name = None
+        for name, s, id, px, py, pz, charge in zip(comp_ids, atom_symbols, atom_ids, x, y, z, charges):
+            # sometimes that atom ids are wrapped in double quotes
+            if ligand_name is None:
+                ligand_name = name
+            elif name != ligand_name:
+                print(
+                    "WARNING: ligand name has changed from {} to {}. Old name will be used.".format(ligand_name, name)
+                )
 
-        atom = Chem.Atom(s)
-        atom.SetFormalCharge(round(float(charge)))
-        atom.SetProp('atom_id', id)
-        idx = mol.AddAtom(atom)
-        atom.SetIntProp('idx', idx)
-        atoms[id] = atom
+            id = strip_quotes(id)
 
-        point = Geometry.Point3D(float(px), float(py), float(pz))
-        conf.SetAtomPosition(idx, point)
+            if len(s) == 2:
+                s = s[0] + s[1].lower()
 
-    atom1 = block.find_loop('_chem_comp_bond.atom_id_1')
-    atom2 = block.find_loop('_chem_comp_bond.atom_id_2')
-    bond_type = block.find_loop('_chem_comp_bond.type')
-    if not bond_type:
-        bond_type = block.find_loop('_chem_comp_bond.value_order')
+            atom = Chem.Atom(s)
+            atom.SetFormalCharge(round(float(charge)))
+            atom.SetProp('atom_id', id)
+            idx = mol.AddAtom(atom)
+            atom.SetIntProp('idx', idx)
+            atoms[id] = atom
 
-    for a1, a2, bt in zip(atom1, atom2, bond_type):
-        mol.AddBond(
-            atoms[strip_quotes(a1)].GetIntProp('idx'), atoms[strip_quotes(a2)].GetIntProp('idx'), BOND_TYPES[bt]
-        )
+            point = Geometry.Point3D(float(px), float(py), float(pz))
+            conf.SetAtomPosition(idx, point)
 
-    Chem.SanitizeMol(mol)
-    mol.AddConformer(conf)
-    Chem.AssignStereochemistryFrom3D(mol)
-    mol = Chem.RemoveAllHs(mol)
+        atom1 = block.find_loop('_chem_comp_bond.atom_id_1')
+        atom2 = block.find_loop('_chem_comp_bond.atom_id_2')
+        bond_type = block.find_loop('_chem_comp_bond.type')
+        if not bond_type:
+            bond_type = block.find_loop('_chem_comp_bond.value_order')
 
-    mol.SetProp('_Name', ligand_name)
+        for a1, a2, bt in zip(atom1, atom2, bond_type):
+            mol.AddBond(
+                atoms[strip_quotes(a1)].GetIntProp('idx'), atoms[strip_quotes(a2)].GetIntProp('idx'), BOND_TYPES[bt]
+            )
 
-    return mol
+        Chem.SanitizeMol(mol)
+        mol.AddConformer(conf)
+        Chem.AssignStereochemistryFrom3D(mol)
+        mol = Chem.RemoveAllHs(mol)
+
+        mol.SetProp('_Name', ligand_name)
+
+        mols.append(mol)
+
+    return mols
 
 
 def strip_quotes(val):
@@ -429,10 +447,10 @@ def main():
     # log.log("foo", "bar", "baz")
     # log.log("foo", 99, "apples", level=2)
 
-    mol = gen_mol_from_cif('data/Zx1674a.cif')
-    molfile = Chem.MolToMolBlock(mol)
-
-    print(molfile)
+    mols = gen_mols_from_cif('data/Zx1674a.cif')
+    for mol in mols:
+        molfile = Chem.MolToMolBlock(mol)
+        print(molfile)
 
 
 if __name__ == "__main__":

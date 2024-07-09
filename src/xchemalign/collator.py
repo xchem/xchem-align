@@ -896,10 +896,14 @@ class Collator:
                                 Constants.META_SHA256: fdata[2],
                             }
                             try:
-                                mol = utils.gen_mol_from_cif(str(self.output_path / fdata[1]))
-                                smi = Chem.MolToSmiles(mol)
-                                data_to_add[Constants.META_XTAL_CIF][Constants.META_SMILES] = smi
-                                data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGAND_NAME] = mol.GetProp('_Name')
+                                mols = utils.gen_mols_from_cif(str(self.output_path / fdata[1]))
+                                ligands = {}
+                                for mol in mols:
+                                    name = mol.GetProp("_Name")
+                                    smi = Chem.MolToSmiles(mol)
+                                    ligands[name] = {Constants.META_SMILES: smi}
+                                if ligands:
+                                    data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
                             except:
                                 self.logger.warn('failed to generate ligand data for {}'.format(xtal_name))
                                 traceback.print_exc()

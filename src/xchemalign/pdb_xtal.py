@@ -224,38 +224,40 @@ class PDBXtal:
         :return: The generated RDKit Mol
         """
 
-        mol = utils.gen_mol_from_cif(cif_file)
-        mol.RemoveAllConformers()
+        mols = utils.gen_mols_from_cif(cif_file)
+        for mol in mols:
+            mol.RemoveAllConformers()
 
-        coords = self.extract_coordinates(chain, res_id)
-        conf = Chem.Conformer()
-        missing = []
-        for atom_id, pos in coords.items():
-            found = False
-            for atom in mol.GetAtoms():
-                if atom.GetProp('atom_id').upper() == atom_id.upper():
-                    idx = atom.GetIdx()
-                    point = Geometry.Point3D(pos[0], pos[1], pos[2])
-                    conf.SetAtomPosition(idx, point)
-                    found = True
-                    continue
-            if not found:
-                missing.append(atom_id)
-        if missing:
-            self.log('atoms not present in cif molecule:', missing, level=1)
+            coords = self.extract_coordinates(chain, res_id)
+            conf = Chem.Conformer()
+            missing = []
+            for atom_id, pos in coords.items():
+                found = False
+                for atom in mol.GetAtoms():
+                    if atom.GetProp('atom_id').upper() == atom_id.upper():
+                        idx = atom.GetIdx()
+                        point = Geometry.Point3D(pos[0], pos[1], pos[2])
+                        conf.SetAtomPosition(idx, point)
+                        found = True
+                        continue
+                if not found:
+                    missing.append(atom_id)
+            if missing:
+                self.log('atoms not present in cif molecule:', missing, level=1)
 
-        mol.AddConformer(conf)
-        Chem.AssignStereochemistryFrom3D(mol)
+            mol.AddConformer(conf)
+            Chem.AssignStereochemistryFrom3D(mol)
 
-        self.ligand_base_file = self.output_dir / (self.filebase + "_ligand")
-        mol.SetProp('_Name', str(self.filebase))
-        self.smiles = Chem.MolToSmiles(mol)
-        Chem.MolToMolFile(mol, str(self.ligand_base_file) + '.mol')
-        Chem.MolToPDBFile(mol, str(self.ligand_base_file) + '.pdb')
-        with open(str(self.ligand_base_file) + '.smi', 'wt') as f:
-            f.write(self.smiles)
+            old_name = mol.GetProp('_Name')
+            self.ligand_base_file = self.output_dir / (self.filebase + "_ligand_" + old_name)
+            mol.SetProp('_Name', str(self.filebase) + '_' + old_name)
+            self.smiles = Chem.MolToSmiles(mol)
+            Chem.MolToMolFile(mol, str(self.ligand_base_file) + '.mol')
+            Chem.MolToPDBFile(mol, str(self.ligand_base_file) + '.pdb')
+            with open(str(self.ligand_base_file) + '.smi', 'wt') as f:
+                f.write(self.smiles)
 
-        return mol
+        return mols
 
     def extract_sequences(self, pdb_file=None):
         if not pdb_file:
