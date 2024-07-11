@@ -646,14 +646,19 @@ class Aligner:
                             aligned_event_map_path = version_output.aligned_event_maps[site_id]
                             aligned_xmap_path = version_output.aligned_xmaps[site_id]
                             aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
+
+                            aligned_crystallographic_event_map_path = version_output.aligned_event_maps_crystallographic[site_id]
+                            aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[site_id]
+                            aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[site_id]
+
                             aligned_version_output[site_id] = {
                                 Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
                                 # Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
                                 # Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
                                 Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                                 Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
-                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_xmap_path,
-                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_diff_map_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_crystallographic_xmap_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_crystallographic_diff_map_path,
                             }
                             # if the event map is present then include it in the output
                             if event_map_present:
@@ -662,7 +667,7 @@ class Aligner:
                                 ] = aligned_event_map_path
                                 aligned_version_output[site_id][
                                     Constants.META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP
-                                ] = aligned_event_map_path
+                                ] = aligned_crystallographic_event_map_path
                     i += 1
 
         ## Add the reference alignments
