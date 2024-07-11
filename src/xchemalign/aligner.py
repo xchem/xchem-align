@@ -652,11 +652,16 @@ class Aligner:
                                 # Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
                                 Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                                 Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_xmap_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_diff_map_path,
                             }
                             # if the event map is present then include it in the output
                             if event_map_present:
                                 aligned_version_output[site_id][
                                     Constants.META_AIGNED_EVENT_MAP
+                                ] = aligned_event_map_path
+                                aligned_version_output[site_id][
+                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP
                                 ] = aligned_event_map_path
                     i += 1
 
