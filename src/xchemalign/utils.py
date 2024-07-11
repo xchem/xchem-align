@@ -100,7 +100,6 @@ class Constants:
     META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP = "event_map_crystallographic"
     META_AIGNED_CRYSTALLOGRAPHIC_X_MAP = "sigmaa_map_crystallographic"
     META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP = "diff_map_crystallographic"
-
     META_CONFORMER_SITES = "conformer_sites"
     META_CONFORMER_SITE_NAME = "name"
     META_CONFORMER_SITE_REFERENCE_LIG = "lig_ref"
