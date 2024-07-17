@@ -640,7 +640,9 @@ class Collator:
             else:
                 break
         if version == 1:
-            self.logger.error("No version directory found. Please create one named upload_1")
+            self.logger.error(
+                "No version directory found. Please create one named", str(self.output_path / 'upload_1')
+            )
             return None
 
         # the working version dir is one less than the current value
