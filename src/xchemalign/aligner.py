@@ -19,6 +19,9 @@ from pathlib import Path
 import yaml
 import gemmi
 
+from rich.traceback import install
+install(show_locals=True)
+
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
