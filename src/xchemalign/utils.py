@@ -33,7 +33,6 @@ class Constants:
     EVENT_TABLE_Y = "y"
     EVENT_TABLE_Z = "z"
     EVENT_TABLE_BDC = "1-BDC"
-    LIGAND_NAMES = ["LIG", "XXX", "LG1", "LG2", "LG3", "LG4", "LG5", "LG6", "LG7", "LG8", "LG9"]
     PROCESSED_DATASETS_DIR = "processed_datasets"
     EVENT_MAP_TEMPLATES = [
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4",
@@ -339,28 +338,32 @@ def expand_path(p1, p2, expand=True):
 
 
 def gen_mols_from_cif(cif_file):
-    doc = cif.read(cif_file)
-    # Diamond CIFs can have multiple blocks, but the ones we want will be named
-    # data_comp_LIG, data_comp_LG1, data_comp_LG2 ...
-    blocks = []
-    for name in ["LIG", "LG1", "LG2", "LG3", "LG4", "LG5", "LG6", "LG7", "LG8", "LG9"]:
-        block = doc.find_block("comp_" + name)
-        if block:
-            print("Found block for", name)
-            blocks.append(block)
+    """
+    If the CIF file contains a block named 'comp_list' then that is inspected
+    for the names of the molecules that should be read.
+    If that block is not present then it is assumed that the CIF contains just a
+    single block that is the molecule.
 
-    print("Found", len(blocks), " blocks in CIF file")
-    if not blocks:
-        # Other CIFs have unpredictable block names, so let's hope there is only one
+    :param cif_file: The CIF file to read
+    :return: A list of molecules found in the CIF
+    """
+    doc = cif.read(str(cif_file))
+
+    ligand_blocks = []
+    list_block = doc.find_block('comp_list')
+    if list_block:  # seems to be a multi-ligand CIF
+        components = list_block.find_loop('_chem_comp.id')
+        for component in components:
+            block = doc.find_block('comp_' + str(component))
+            ligand_blocks.append(block)
+    else:  # seems to be a single ligand CIF
         block = doc.sole_block()
-        if block:
-            blocks.append(block)
-        else:
-            print("sole block not found")
-            return None
+        ligand_blocks.append(block)
+
+    print('Found', len(ligand_blocks), 'ligand blocks')
 
     mols = []
-    for block in blocks:
+    for block in ligand_blocks:
         mol = Chem.RWMol()
         conf = Chem.Conformer()
 

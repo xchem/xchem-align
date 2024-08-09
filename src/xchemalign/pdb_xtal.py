@@ -205,6 +205,8 @@ class PDBXtal:
 
     def extract_coordinates(self, chain, res_id):
         lines = self._extract_residue_as_list(chain, res_id)
+        name = lines[0][17:21].strip()
+        print('LIGAND:', chain, res_id, name, "\n" + "".join(lines))
         result = {}
         for line in lines:
             if line.startswith("HETATM") or line.startswith("ATOM"):
@@ -213,7 +215,7 @@ class PDBXtal:
                 y = float(line[38:46].strip())
                 z = float(line[46:54].strip())
                 result[atom_id] = (x, y, z)
-        return result
+        return result, name
 
     def create_ligands(self, chain: str, res_id, cif_file: str):
         """
@@ -224,40 +226,55 @@ class PDBXtal:
         :return: The generated RDKit Mol
         """
 
+        # get the coordinates of the ligand corresponding to the specified residue number
+        coords, name = self.extract_coordinates(chain, res_id)
+        if not coords:
+            self.log('No coordinates found for residue ' + chain + '/' + str(res_id), level=1)
+            return None
+
+        # read the ligands from the CIF
         mols = utils.gen_mols_from_cif(cif_file)
-        for mol in mols:
-            mol.RemoveAllConformers()
 
-            coords = self.extract_coordinates(chain, res_id)
-            conf = Chem.Conformer()
-            missing = []
-            for atom_id, pos in coords.items():
-                found = False
-                for atom in mol.GetAtoms():
-                    if atom.GetProp('atom_id').upper() == atom_id.upper():
-                        idx = atom.GetIdx()
-                        point = Geometry.Point3D(pos[0], pos[1], pos[2])
-                        conf.SetAtomPosition(idx, point)
-                        found = True
-                        continue
-                if not found:
-                    missing.append(atom_id)
-            if missing:
-                self.log('atoms not present in cif molecule:', missing, level=1)
+        mol = None
+        for m in mols:
+            if name == m.GetProp('_Name'):
+                mol = m
+                break
+        if not mol:
+            self.log('No molecule named ' + name + ' in CIF file', level=1)
+            return None
 
-            mol.AddConformer(conf)
-            Chem.AssignStereochemistryFrom3D(mol)
+        mol.RemoveAllConformers()
 
-            old_name = mol.GetProp('_Name')
-            self.ligand_base_file = self.output_dir / (self.filebase + "_ligand_" + old_name)
-            mol.SetProp('_Name', str(self.filebase) + '_' + old_name)
-            self.smiles = Chem.MolToSmiles(mol)
-            Chem.MolToMolFile(mol, str(self.ligand_base_file) + '.mol')
-            Chem.MolToPDBFile(mol, str(self.ligand_base_file) + '.pdb')
-            with open(str(self.ligand_base_file) + '.smi', 'wt') as f:
-                f.write(self.smiles)
+        conf = Chem.Conformer()
+        missing = []
+        for atom_id, pos in coords.items():
+            found = False
+            for atom in mol.GetAtoms():
+                if atom.GetProp('atom_id').upper() == atom_id.upper():
+                    idx = atom.GetIdx()
+                    point = Geometry.Point3D(pos[0], pos[1], pos[2])
+                    conf.SetAtomPosition(idx, point)
+                    found = True
+                    continue
+            if not found:
+                missing.append(atom_id)
+        if missing:
+            self.log('atoms not present in cif molecule: ' + str(missing), level=1)
 
-        return mols
+        mol.AddConformer(conf)
+        Chem.AssignStereochemistryFrom3D(mol)
+
+        old_name = mol.GetProp('_Name')
+        self.ligand_base_file = self.output_dir / (self.filebase + "_ligand_" + old_name)
+        mol.SetProp('_Name', str(self.filebase) + '_' + old_name)
+        self.smiles = Chem.MolToSmiles(mol)
+        Chem.MolToMolFile(mol, str(self.ligand_base_file) + '.mol')
+        Chem.MolToPDBFile(mol, str(self.ligand_base_file) + '.pdb')
+        with open(str(self.ligand_base_file) + '.smi', 'wt') as f:
+            f.write(self.smiles)
+
+        return mol
 
     def extract_sequences(self, pdb_file=None):
         if not pdb_file:

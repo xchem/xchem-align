@@ -766,6 +766,7 @@ class Collator:
 
                 # handle the CIF file
                 cif = curr_xtal_data.get(Constants.META_XTAL_CIF)
+                ligand_names = []
                 if cif:
                     cif_file = cif[Constants.META_FILE]
                     cif_input = self.base_path / cif_file
@@ -778,6 +779,11 @@ class Collator:
                             cif_name = xtal_name + ".cif"
                             cif_output = dir / cif_name
                             files_to_copy[Constants.META_XTAL_CIF] = (cif_input, cif_output, digest)
+                        # read the CIF file to determine the ligand names
+                        ligand_mols = utils.gen_mols_from_cif(cif_input)
+                        ligand_names = [m.GetProp('_Name') for m in ligand_mols]
+                        self.logger.info('Found ligand names ' + str(ligand_names))
+
                 elif type == Constants.CONFIG_TYPE_MODEL_BUILDING:
                     self.logger.warn("CIF entry missing for {}".format(xtal_name))
 
@@ -791,7 +797,7 @@ class Collator:
                         hist_event_maps[(model, chain, res)] = ligand_binding_data
 
                 # Determine the ligands present and their coordinates
-                dataset_ligands = self.get_dataset_ligands(pdb_input)
+                dataset_ligands = self.get_dataset_ligands(pdb_input, ligand_names)
 
                 # Match ligand to panddas event maps if possible and determine if those maps are new
                 best_event_map_paths = self.get_dataset_event_maps(xtal_name, dataset_ligands, event_tables)
@@ -1120,8 +1126,7 @@ class Collator:
         return True
 
     def get_dataset_ligands(
-        self,
-        structure_path: Path,
+        self, structure_path: Path, ligand_names: list[str]
     ) -> dict[tuple[str, str, str], np.array]:
         structure = gemmi.read_structure(str(structure_path))
 
@@ -1129,7 +1134,7 @@ class Collator:
         for model in structure:
             for chain in model:
                 for residue in chain:
-                    if residue.name in Constants.LIGAND_NAMES:
+                    if residue.name in ligand_names:
                         poss = []
                         for atom in residue:
                             pos = atom.pos
