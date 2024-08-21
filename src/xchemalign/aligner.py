@@ -455,9 +455,9 @@ class Aligner:
             assembly_landmarks = {}
 
         # Get the assembly transforms
-        if working_fs_model.assembly_landmarks.exists():
+        if working_fs_model.assembly_transforms.exists():
             assembly_transforms = ah.load_yaml(
-                working_fs_model.assembly_landmarks,
+                working_fs_model.assembly_transforms,
                 lambda x: x
             )
         else:
