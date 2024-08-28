@@ -12,19 +12,16 @@ This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
 Project dependencies are defined in the `pyproject.toml` file.
 
-You will need to use Python 3.10 or 3.11 (a requirement of the `pyproject.toml` file).
-Python 3.12 cannot currently be used.
-
+You will need to use Python 3.10 or later (a requirement of the `pyproject.toml` file).
 If you prefer to use [conda] you can create a Python 3.10 environment using the
-`environment.yaml` in this project, otherwise, if you have Python 3.10 or 3.11,
+`environment.yaml` in this project, otherwise, if you have Python 3.10 or later,
 you can create an environment using the built-in `venv` module: -
 
     python -m venv venv
     source venv/bin/activate
     pip install --upgrade pip
 
-Make sure you create the venv using Python 3.10 or 3.11 (e.g. change the first command to `python3.11 -m venv venv`
-if needed).
+Make sure you create the venv using Python 3.10 (or later).
 
 From your clean virtual environment you can now install the run-time and development
 dependencies like this: -
