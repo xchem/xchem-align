@@ -215,6 +215,14 @@ class Aligner:
         elif not self.version_dir.is_dir():
             self._log_error("version dir {} is not a directory".format(self.version_dir))
         else:
+            output_meta_path = self.version_dir / Constants.METADATA_ALIGN_FILENAME
+            if output_meta_path.exists():
+                self._log_error(
+                    "aligner output {} already exists. You must run aligner on clean output from collator.".format(
+                        str(output_meta_path)
+                    )
+                )
+
             p = self.metadata_file
             if not p.exists():
                 self._log_error("metadata file {} does not exist. Did the collator step run successfully?".format(p))
@@ -447,10 +455,7 @@ class Aligner:
             working_fs_model = fs_model
 
         if working_fs_model.assembly_landmarks.exists():
-            assembly_landmarks = ah.load_yaml(
-                working_fs_model.assembly_landmarks,
-                ah.dict_to_assembly_landmarks
-            )
+            assembly_landmarks = ah.load_yaml(working_fs_model.assembly_landmarks, ah.dict_to_assembly_landmarks)
         else:
             assembly_landmarks = {}
 
@@ -462,7 +467,6 @@ class Aligner:
             )
         else:
             assembly_transforms = {}
-
 
         # Run the update
         updated_fs_model = _update(
@@ -493,7 +497,7 @@ class Aligner:
 
         # Add the xtalform information
         meta_xtalforms = {}
-        xtalforms = read_yaml(updated_fs_model.xtalforms)
+        xtalforms = readπ_yaml(updated_fs_model.xtalforms)
         for xtalform_id, xtalform in xtalforms[Constants.META_XTALFORMS].items():
             xtalform_reference = xtalform[Constants.META_REFERENCE]
             reference_structure = gemmi.read_structure(datasets[xtalform_reference].pdb)  # (xtalform_reference).pdb)
@@ -650,9 +654,13 @@ class Aligner:
                             aligned_xmap_path = version_output.aligned_xmaps[site_id]
                             aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
 
-                            aligned_crystallographic_event_map_path = version_output.aligned_event_maps_crystallographic[site_id]
+                            aligned_crystallographic_event_map_path = (
+                                version_output.aligned_event_maps_crystallographic[site_id]
+                            )
                             aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[site_id]
-                            aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[site_id]
+                            aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[
+                                site_id
+                            ]
 
                             aligned_version_output[site_id] = {
                                 Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
