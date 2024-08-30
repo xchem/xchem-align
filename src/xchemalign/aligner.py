@@ -497,7 +497,7 @@ class Aligner:
 
         # Add the xtalform information
         meta_xtalforms = {}
-        xtalforms = readπ_yaml(updated_fs_model.xtalforms)
+        xtalforms = read_yaml(updated_fs_model.xtalforms)
         for xtalform_id, xtalform in xtalforms[Constants.META_XTALFORMS].items():
             xtalform_reference = xtalform[Constants.META_REFERENCE]
             reference_structure = gemmi.read_structure(datasets[xtalform_reference].pdb)  # (xtalform_reference).pdb)
