@@ -53,6 +53,22 @@ The main tools are implemented as the following Python modules:
 - Collator: xchemalign/collator.py
 - Aligner: xchemalign/aligner.py
 
+## Rollout
+
+There is an environment at Diamond where users user the XChem align code on their data.
+This can be found on the Diamond file system at `/dls/science/groups/i04-1/software/xchem-align`.
+To roll out a new version of this:
+
+1. Check that the repos are up to date on the `master` (XCA) and `main` (LNA) branches.
+2. Test locally
+3. Tag the XCA repo and push the tag: `git tag 1.2.3` and `git push origin 1.2.3` (using the appropriate tag number)
+4. ssh to Diamond and move into the `/dls/science/groups/i04-1/software/xchem-align` dir
+5. `git update` - update the repo
+6. `git tag` - check you have the expected tag
+7. `rm -rf env_xchem_align` - remove the old conda environment
+8. `conda deactivate` - deactivate the current conda env (if necessary)
+9. `conda env create -f environment.yaml -p env_xchem_align` - create the new conda environment
+
 ---
 
 [conda]: https://docs.conda.io/en/latest/
