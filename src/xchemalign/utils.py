@@ -78,6 +78,7 @@ class Constants:
     META_REFERENCE = "reference"
     META_FILE = "file"
     META_SHA256 = "sha256"
+    META_SOURCE_FILE = "source_file"
     META_XTAL_FILES = "crystallographic_files"
     META_ALIGNED_FILES = "aligned_files"
     META_REFERENCE_ALIGNMENTS = "reference_aligned_files"

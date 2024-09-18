@@ -20,7 +20,6 @@ import yaml
 import gemmi
 
 from rich.traceback import install
-install(show_locals=True)
 
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
@@ -65,6 +64,8 @@ from ligand_neighbourhood_alignment import alignment_heirarchy as ah
 from xchemalign import utils
 from xchemalign.utils import Constants
 from xchemalign.pdb_xtal import PDBXtal
+
+install(show_locals=True)
 
 
 def try_make(path):
@@ -461,10 +462,7 @@ class Aligner:
 
         # Get the assembly transforms
         if working_fs_model.assembly_transforms.exists():
-            assembly_transforms = ah.load_yaml(
-                working_fs_model.assembly_transforms,
-                lambda x: x
-            )
+            assembly_transforms = ah.load_yaml(working_fs_model.assembly_transforms, lambda x: x)
         else:
             assembly_transforms = {}
 
@@ -489,7 +487,6 @@ class Aligner:
             assembly_landmarks,
             assembly_transforms,
             self.version_dir.name[7:],
-
         )
 
         # Update the metadata_file with aligned file locations and site information

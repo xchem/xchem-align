@@ -869,6 +869,7 @@ class Collator:
                     data_to_add[Constants.META_XTAL_PDB] = {
                         Constants.META_FILE: str(fdata[1]),
                         Constants.META_SHA256: fdata[2],
+                        Constants.META_SOURCE_FILE: str(fdata[0]),
                     }
                     # copy MTZ file
                     fdata = files_to_copy.get(Constants.META_XTAL_MTZ)
@@ -882,6 +883,7 @@ class Collator:
                             data_to_add[Constants.META_XTAL_MTZ] = {
                                 Constants.META_FILE: str(fdata[1]),
                                 Constants.META_SHA256: fdata[2],
+                                Constants.META_SOURCE_FILE: str(fdata[0]),
                             }
                     fdata = files_to_copy.get(Constants.META_XTAL_CIF)
 
@@ -896,6 +898,7 @@ class Collator:
                             data_to_add[Constants.META_XTAL_CIF] = {
                                 Constants.META_FILE: str(fdata[1]),
                                 Constants.META_SHA256: fdata[2],
+                                Constants.META_SOURCE_FILE: str(fdata[0]),
                             }
                             try:
                                 mol = utils.gen_mol_from_cif(str(self.output_path / fdata[1]))
@@ -938,6 +941,7 @@ class Collator:
                                 data = {
                                     Constants.META_FILE: str(attested_ligand_event_data[1]),
                                     Constants.META_SHA256: attested_ligand_event_data[2],
+                                    Constants.META_SOURCE_FILE: str(attested_ligand_event_data[0]),
                                     Constants.META_PROT_MODEL: ligand_key[0],
                                     Constants.META_PROT_CHAIN: ligand_key[1],
                                     Constants.META_PROT_RES: ligand_key[2],
