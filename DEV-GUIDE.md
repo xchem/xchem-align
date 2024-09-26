@@ -70,8 +70,17 @@ To roll out a new version of this:
 9. `conda env create -f environment.yaml -p env_xchem_align` - create the new conda environment
 
 NOTE: the repo MUST be tagged before rolling out to users. Step 3 does this and is assumed to be done by the
-developers. If you want to roll out a new environment and the repo is not tagged (step 3) then the commands in step 3
-must instead be performed after step 5 and before step 6.
+developers. If you want to roll out a new environment and the repo is not tagged follow the instructions below
+
+### Rollout if no tag is made yet
+
+1. ssh to Diamond and move into the `/dls/science/groups/i04-1/software/xchem-align` dir
+2. `git pull` - update the repo
+3. `git tag` - check you have the expected tag
+4. Tag the XCA repo and push the tag: `git tag 1.2.3` and `git push origin 1.2.3` (using the appropriate tag number)
+5. `rm -rf env_xchem_align` - remove the old conda environment
+6. `conda deactivate` - deactivate the current conda env (if necessary)
+7. `conda env create -f environment.yaml -p env_xchem_align` - create the new conda environment
 
 ---
 
