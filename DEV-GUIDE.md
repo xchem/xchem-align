@@ -69,6 +69,10 @@ To roll out a new version of this:
 8. `conda deactivate` - deactivate the current conda env (if necessary)
 9. `conda env create -f environment.yaml -p env_xchem_align` - create the new conda environment
 
+NOTE: the repo MUST be tagged before rolling out to users. Step 3 does this and is assumed to be done by the
+developers. If you want to roll out a new environment and the repo is not tagged (step 3) then the commands in step 3
+must instead be performed after step 5 and before step 6.
+
 ---
 
 [conda]: https://docs.conda.io/en/latest/
