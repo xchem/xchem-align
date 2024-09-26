@@ -19,6 +19,8 @@ from pathlib import Path
 import yaml
 import gemmi
 
+from rich.traceback import install
+
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
@@ -62,6 +64,8 @@ from ligand_neighbourhood_alignment import alignment_heirarchy as ah
 from xchemalign import utils
 from xchemalign.utils import Constants
 from xchemalign.pdb_xtal import PDBXtal
+
+install(show_locals=True)
 
 
 def try_make(path):
@@ -212,6 +216,14 @@ class Aligner:
         elif not self.version_dir.is_dir():
             self._log_error("version dir {} is not a directory".format(self.version_dir))
         else:
+            output_meta_path = self.version_dir / Constants.METADATA_ALIGN_FILENAME
+            if output_meta_path.exists():
+                self._log_error(
+                    "aligner output {} already exists. You must run aligner on clean output from collator.".format(
+                        str(output_meta_path)
+                    )
+                )
+
             p = self.metadata_file
             if not p.exists():
                 self._log_error("metadata file {} does not exist. Did the collator step run successfully?".format(p))
@@ -444,22 +456,15 @@ class Aligner:
             working_fs_model = fs_model
 
         if working_fs_model.assembly_landmarks.exists():
-            assembly_landmarks = ah.load_yaml(
-                working_fs_model.assembly_landmarks,
-                ah.dict_to_assembly_landmarks
-            )
+            assembly_landmarks = ah.load_yaml(working_fs_model.assembly_landmarks, ah.dict_to_assembly_landmarks)
         else:
             assembly_landmarks = {}
 
         # Get the assembly transforms
-        if working_fs_model.assembly_landmarks.exists():
-            assembly_transforms = ah.load_yaml(
-                working_fs_model.assembly_landmarks,
-                lambda x: x
-            )
+        if working_fs_model.assembly_transforms.exists():
+            assembly_transforms = ah.load_yaml(working_fs_model.assembly_transforms, lambda x: x)
         else:
             assembly_transforms = {}
-
 
         # Run the update
         updated_fs_model = _update(
@@ -482,7 +487,6 @@ class Aligner:
             assembly_landmarks,
             assembly_transforms,
             self.version_dir.name[7:],
-
         )
 
         # Update the metadata_file with aligned file locations and site information
@@ -646,18 +650,32 @@ class Aligner:
                             aligned_event_map_path = version_output.aligned_event_maps[site_id]
                             aligned_xmap_path = version_output.aligned_xmaps[site_id]
                             aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
+
+                            aligned_crystallographic_event_map_path = (
+                                version_output.aligned_event_maps_crystallographic[site_id]
+                            )
+                            aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[site_id]
+                            aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[
+                                site_id
+                            ]
+
                             aligned_version_output[site_id] = {
                                 Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
                                 # Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
                                 # Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
                                 Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                                 Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_crystallographic_xmap_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_crystallographic_diff_map_path,
                             }
                             # if the event map is present then include it in the output
                             if event_map_present:
                                 aligned_version_output[site_id][
                                     Constants.META_AIGNED_EVENT_MAP
                                 ] = aligned_event_map_path
+                                aligned_version_output[site_id][
+                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP
+                                ] = aligned_crystallographic_event_map_path
                     i += 1
 
         ## Add the reference alignments

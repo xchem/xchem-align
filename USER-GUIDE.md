@@ -35,20 +35,18 @@ If you won't run this at Diamond, you will first have to set up your environment
 
 Uploading data from Diamond Light Source is as simple as running a few commands.
 
+**ONLY THE VERY FIRST TIME** you must run this (the scripts below will fail and tell you).  _(It enables your linux account to read version info from the code's Git repository.)_:
+
+```commandline
+git config --global --add safe.directory /dls/science/groups/i04-1/software/xchem-align
+```
+
 **EVERY TIME** you log in to run any XChemAlign tools:
 
 ```commandline
 source /dls/science/groups/i04-1/software/xchem-align/act
 conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
 ```
-
-**THE VERY FIRST TIME** you must run this (the scripts above will fail and tell you).  _(It enables your linux account to read version info from the code's Git repository.)_:
-
-```commandline
-git config --global --add safe.directory /dls/science/groups/i04-1/software/xchem-align
-```
-
-
 
 ## 2. Declaring things
 
