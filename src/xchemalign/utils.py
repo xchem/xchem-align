@@ -364,7 +364,7 @@ def gen_mols_from_cif(cif_file):
         block = doc.sole_block()
         ligand_blocks.append(block)
 
-    print('Found', len(ligand_blocks), 'ligand blocks')
+    # print('Found', len(ligand_blocks), 'ligand blocks')
 
     mols = []
     for block in ligand_blocks:

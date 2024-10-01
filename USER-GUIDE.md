@@ -190,8 +190,30 @@ UI. For now, they just appear in the downloaded files.
 `code_prefix` and `code_prefix_tooltip` are fields that allow you to distinguish this uploaded dataset.
 For example you may use `code_prefix` to specify a crystal construct. `code_prefix_tooltip` should be a string
 explaining the meaning of the prefix, this will be displayed in Fragalysis.
-`code_prefix` is necessary for inpputs or type `model_building`, but can be an empty string: `""`.
+`code_prefix` is necessary for inputs or type `model_building`, but can be an empty string: `""`.
 For inputs of type `manual` it is not needed as the names of the PDB files are used for display in Fragalysis.
+
+#### Covalent ligands
+
+The Fragalysis UI uses different molecules for displaying the protein and the ligand. This means it cannot render the
+bond for a covalent ligand. As a workaround for this XCA tag 2.1.7 (October 2024) introduced a feature where the
+protein atom (typically the sulphur of a cysteine) is grafted onto the ligand molecule. This means that in the
+Fragalysis UI the sulphur atom is present twice at exactly the same location (once for the protein, once for the
+grafted ligand). This gives the impression of the covalent bond being present, but this is a slight illusion.
+
+For this to happen the PDB file that is the input to XCA must contain `LINK` header records that define the covalent
+bond. For instance:
+```
+LINK         SG  CYS A 110                 C7  LIG A 201     1555   1555  2.21
+```
+This states that there is a covalent bond between the SG of CYS 110 in chain A and the C7 atom of the residue named LIG,
+which has a residue number of 201. The order of the atoms in the line does not matter (the LIG section can be first and
+the CYS section second), but the syntax MUST conform with the PDB file specification (see
+[here](https://www.wwpdb.org/documentation/file-format-content/format33/sect6.html#LINK)).
+
+XCA looks for all `LINK` records, selects only those involving the relevant ligand residue number (201 in the above
+example) and grafts the protein atom onto the ligand for each record (of course, usually there will only be a single
+one for each ligand).
 
 ### 2.2. The assemblies YAML
 

@@ -45,7 +45,7 @@ class PDBXtal:
             self.log("PDB file not found:", self.pdbfile, level=2)
             errors += 1
         if self.biomol and not os.path.isfile(self.biomol):
-            self.log("Biomol file not found:", self.biomol, level=2)
+            self.log("biomol file not found:", self.biomol, level=2)
             errors += 1
 
         return errors
@@ -139,7 +139,7 @@ class PDBXtal:
             f.write(str(conect_lines))
 
         if self.biomol is not None:
-            self.log("Attaching biomol headers")
+            self.log("attaching biomol headers")
             self.add_biomol_remark()
 
     def create_apo_solv_desolv(self):
@@ -152,7 +152,7 @@ class PDBXtal:
         """
 
         if not self.apo_file:
-            self.log("Apo file has not been created. Use pdb_apo().make_apo_file()")
+            self.log("apo file has not been created. Use pdb_apo().make_apo_file()")
             exit(1)
 
         prot_file_name = self.output_dir / (self.filebase + "_apo-desolv.pdb")
@@ -206,7 +206,6 @@ class PDBXtal:
     def extract_coordinates(self, chain, res_id):
         lines = self._extract_residue_as_list(chain, res_id)
         name = lines[0][17:21].strip()
-        print('LIGAND:', chain, res_id, name, "\n" + "".join(lines))
         result = {}
         for line in lines:
             if line.startswith("HETATM") or line.startswith("ATOM"):
@@ -226,10 +225,12 @@ class PDBXtal:
         :return: The generated RDKit Mol
         """
 
+        self.log("creating ligand files")
+
         # get the coordinates of the ligand corresponding to the specified residue number
         coords, name = self.extract_coordinates(chain, res_id)
         if not coords:
-            self.log('No coordinates found for residue ' + chain + '/' + str(res_id), level=1)
+            self.log('no coordinates found for residue ' + chain + '/' + str(res_id), level=1)
             return None
 
         # read the ligands from the CIF
@@ -241,7 +242,7 @@ class PDBXtal:
                 mol = m
                 break
         if not mol:
-            self.log('No molecule named ' + name + ' in CIF file', level=1)
+            self.log('no molecule named ' + name + ' in CIF file', level=1)
             return None
 
         mol.RemoveAllConformers()
@@ -268,9 +269,16 @@ class PDBXtal:
         old_name = mol.GetProp('_Name')
         self.ligand_base_file = self.output_dir / (self.filebase + "_ligand_" + old_name)
         mol.SetProp('_Name', str(self.filebase) + '_' + old_name)
+
+        modified_mol = self.handle_covalent_ligands(chain, res_id, mol)
+        if modified_mol:
+            mol = modified_mol
+
         self.smiles = Chem.MolToSmiles(mol)
+
         Chem.MolToMolFile(mol, str(self.ligand_base_file) + '.mol')
         Chem.MolToPDBFile(mol, str(self.ligand_base_file) + '.pdb')
+
         with open(str(self.ligand_base_file) + '.smi', 'wt') as f:
             f.write(self.smiles)
 
@@ -303,11 +311,151 @@ class PDBXtal:
                         curr_seq.seq.append(code)
             return seqs
 
+    def handle_covalent_ligands(self, chain: str, res_num: str, lig_mol: Chem.Mol):
+        """
+        Look for LINK records that define a covalent bond between the ligand and the protein
+        e.g.
+        LINK         SG  CYS A 110                 C7  LIG A 201     1555   1555  2.22
+
+        If found then create a new Mol that has the protein atom added to it and a bond to that atom
+
+        :param chain:
+        :return: A modified molecule if one was needed, if not None
+        """
+
+        link_records = []
+        L_ATOM_TYPE = 'l_atom_type'
+        L_RES_NAME = 'l_res_name'
+        L_RES_NUM = 'l_res_num'
+        L_CHAIN = 'l_chain'
+        P_ATOM_TYPE = 'p_atom_type'
+        P_RES_NAME = 'p_res_name'
+        P_RES_NUM = 'p_res_num'
+        P_CHAIN = 'p_chain'
+
+        mol = None
+
+        with open(self.pdbfile, "r") as pdb:
+            header_complete = False
+            for line in pdb:
+                if not header_complete:
+                    if line.startswith("ATOM"):
+                        header_complete = True
+                    elif line.startswith("LINK"):
+                        # The ligand could be first or second in the link line. We need to work out which.
+                        # We do this by matching the residue ids
+                        left_atom_type = line[12:16].strip()  # chars 13-16
+                        left_res_name = line[17:20].strip()  # chars 18-20
+                        left_chain = line[21]  # char 22
+                        left_res_num = line[22:26].strip()  # chars 23-26
+
+                        right_atom_type = line[42:46].strip()  # chars 43-46
+                        right_res_name = line[47:50].strip()  # chars 48-50
+                        right_chain = line[51]  # char 52
+                        right_res_num = line[52:56].strip()  # chars 53-56
+
+                        # now set the ligand and protein properties
+                        found_ligand = True
+                        d = {}
+                        if res_num == left_res_num:
+                            d[L_ATOM_TYPE] = left_atom_type
+                            d[L_RES_NAME] = left_res_name
+                            d[L_CHAIN] = left_chain
+                            d[L_RES_NUM] = left_res_num
+                            d[P_ATOM_TYPE] = right_atom_type
+                            d[P_RES_NAME] = right_res_name
+                            d[P_CHAIN] = right_chain
+                            d[P_RES_NUM] = right_res_num
+                            link_records.append(d)
+                        elif res_num == right_res_num:
+                            d[L_ATOM_TYPE] = right_atom_type
+                            d[L_RES_NAME] = right_res_name
+                            d[L_CHAIN] = right_chain
+                            d[L_RES_NUM] = right_res_num
+                            d[P_ATOM_TYPE] = left_atom_type
+                            d[P_RES_NAME] = left_res_name
+                            d[P_CHAIN] = left_chain
+                            d[P_RES_NUM] = left_res_num
+                            link_records.append(d)
+                        else:
+                            found_ligand = False
+                            self.log(
+                                "failed to identify ligand residue. Looking for",
+                                res_num,
+                                "found",
+                                left_res_num,
+                                right_res_num,
+                            )
+
+                        # if found_ligand and chain == d[L_CHAIN]:
+                        #     self.log("|".join([d[P_ATOM_TYPE], d[P_RES_NAME], d[P_CHAIN], d[P_RES_NUM],
+                        #                        d[L_ATOM_TYPE], d[L_RES_NAME], d[L_CHAIN], d[L_RES_NUM],]))
+
+                else:
+                    # look for the protein atom
+                    if line.startswith("ATOM"):
+                        for link_record in link_records:
+                            if (
+                                line[23:26].strip() == link_record[P_RES_NUM]
+                                and line[21] == link_record[P_CHAIN]
+                                and line[12:16].strip() == link_record[P_ATOM_TYPE]
+                            ):
+                                x = line[30:38].strip()  # chars 31-38
+                                y = line[38:46].strip()  # chars 39-46
+                                z = line[46:54].strip()  # chars 47-54
+                                element = line[76:78].strip()  # chars 77-78
+
+                                if len(element) == 2:
+                                    element[1] = element[1].lower()
+                                atomic_no = Chem.GetPeriodicTable().GetAtomicNumber(element)
+
+                                self.log(
+                                    "found covalent atom",
+                                    "|".join(
+                                        [
+                                            d[P_ATOM_TYPE],
+                                            d[P_RES_NAME],
+                                            d[P_CHAIN],
+                                            d[P_RES_NUM],
+                                            d[L_ATOM_TYPE],
+                                            d[L_RES_NAME],
+                                            d[L_CHAIN],
+                                            d[L_RES_NUM],
+                                        ]
+                                    ),
+                                    element,
+                                    atomic_no,
+                                    x,
+                                    y,
+                                    z,
+                                )
+                                mol = Chem.RWMol(lig_mol)
+                                # find the ligand atom to attach the bond to
+                                lig_atom = None
+                                for atom in mol.GetAtoms():
+                                    if atom.GetProp('atom_id').upper() == link_record[L_ATOM_TYPE].upper():
+                                        lig_atom = atom
+                                        break
+                                if lig_atom:
+                                    idx = mol.AddAtom(Chem.Atom(atomic_no))
+                                    mol.AddBond(idx, lig_atom.GetIdx(), Chem.BondType.SINGLE)
+                                    mol.GetConformer(-1).SetAtomPosition(
+                                        idx, Geometry.Point3D(float(x), float(y), float(z))
+                                    )
+                                    Chem.SanitizeMol(mol)
+                                    Chem.AssignStereochemistryFrom3D(mol)
+                                    self.log("added atom and bond for covalent ligand")
+                                else:
+                                    self.log("could not find ligand atom", link_record[L_ATOM_TYPE], level=1)
+                                break
+
+        return mol
+
     def log(self, *args, level=0):
         if self.logger:
-            self.logger.log(args, level=level)
+            self.logger.log(*args, level=level)
         else:
-            print(args)
+            print(*args)
 
 
 class ProteinSeq:
@@ -365,6 +513,7 @@ def main():
     if args.residue and args.cif:
         lig_mol = p.create_ligands(args.chain, args.residue, args.cif)
         print(lig_mol)
+
     # seqs = p.extract_sequences()
     # for seq in seqs:
     #     print(seq.create_seqres_header())
