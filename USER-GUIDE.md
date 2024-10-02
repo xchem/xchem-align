@@ -150,6 +150,34 @@ then 2 crystals will be processed and given the names 1ABC and 5XYZ. The second 
 So, currently, the ligand in the PDB file must be renamed to LIG (do not rename it in the CIF file). We expect to remove
 this limitation soon.
 
+#### Ligand definition
+
+The definition of what is considered to be a ligand is driven by the contents of the CIF file. For each crystal there
+must be a single CIF file (referenced in SoakDB) and it must contain all the molecules that you want to be considered as
+ligands. Typically there will be a single molecule, but it is possible (e.g. for combi-soaks) for there to be multiple
+ones. An example can be found [here](content/CHIKV_MacB-x1739.cif). That CIF defines 3 ligands, named LIG, LG1 and LG2.
+These must be defined in the `data_comp_list` block. Whatever is defined there is extracted out from its own
+`data_comp_LG1` block (corresponding to the ligand name). The precise names of the ligand are not important, but it is
+useful to follow a convention of using the name `LIG` if there is only one ligand, and using the names `LG1`, `LG2`, ...
+if there are multiple ligands (the example file does not quite follow tht convention).
+
+Those molecules are written to the metadata and are used to drive the XCA process. The metadata now looks like this:
+```yaml
+      ligand_cif:
+        file: upload_1/crystallographic_files/CHIKV_MacB-x1739/CHIKV_MacB-x1739.cif
+        sha256: d0556ef2b0c3bd065be7d29a3b37698bd1cb099a5122cb27f6fa6a75231a2a98
+        source_file: data/lb32633-6/inputs/dls/labxchem/data/lb32633/lb32633-6/processing/analysis/model_building/CHIKV_MacB-x1739/merged.cif
+        ligands:
+          LG1: {smiles: 'Cc1cn[nH]c1-c1ccncc1'}
+          LG2: {smiles: Nc1nnc2ccccn12}
+          LIG: {smiles: O=C1NCCN1}
+```
+Note how multiple ligands can be present.
+
+Another thing to consider here is the definition of those ligands in the PDB file. The same ligand names as are in the
+CIF file must be used. Also, check the chain assignment of the ligands. Sometimes they are assigned to the wrong
+chain.
+
 #### Extra files
 
 There is support for adding arbitrary extra files to the upload. These files are not used by Fragalysis but
