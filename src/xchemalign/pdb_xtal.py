@@ -35,6 +35,7 @@ class PDBXtal:
         self.apo_desolv_file = None
         self.ligand_base_file = None
         self.smiles = None
+        self.ligand_name = None
 
     def validate(self):
         errors = 0
@@ -267,6 +268,7 @@ class PDBXtal:
         Chem.AssignStereochemistryFrom3D(mol)
 
         old_name = mol.GetProp('_Name')
+        self.ligand_name = old_name
         self.ligand_base_file = self.output_dir / (self.filebase + "_ligand_" + old_name)
         mol.SetProp('_Name', str(self.filebase) + '_' + old_name)
 

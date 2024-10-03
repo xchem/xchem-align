@@ -836,6 +836,7 @@ class Aligner:
                                                 v5[Constants.META_LIGAND_SMILES] = (
                                                     str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.smi'
                                                 )
+                                                v5[Constants.META_LIGAND_NAME] = pdbxtal.ligand_name
                                                 v5[Constants.META_LIGAND_SMILES_STRING] = pdbxtal.smiles
                                             except:
                                                 num_errors += 1
