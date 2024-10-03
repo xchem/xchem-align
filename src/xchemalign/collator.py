@@ -955,6 +955,7 @@ class Collator:
                                     Constants.META_PROT_MODEL: ligand_key[0],
                                     Constants.META_PROT_CHAIN: ligand_key[1],
                                     Constants.META_PROT_RES: ligand_key[2],
+                                    Constants.META_PROT_NAME: ligand_key[3],
                                     Constants.META_PROT_INDEX: attested_ligand_event_data[4],
                                     Constants.META_PROT_BDC: attested_ligand_event_data[5],
                                 }
@@ -1148,7 +1149,7 @@ class Collator:
 
                         arr = np.array(poss)
                         mean = np.mean(arr, axis=0)
-                        ligand_coords[(model.name, chain.name, residue.seqid.num)] = mean
+                        ligand_coords[(model.name, chain.name, residue.seqid.num, residue.name)] = mean
 
         return ligand_coords
 
