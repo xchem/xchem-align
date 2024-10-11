@@ -159,6 +159,7 @@ class Collator:
         self.all_xtals = None
         self.rejected_xtals = set()
         self.new_or_updated_xtals = None
+        self.compound_codes = {}
         if not log_file:
             log_file = self.output_path / 'collator.log'
         self.logger = utils.Logger(logfile=log_file, level=log_level)
@@ -519,6 +520,7 @@ class Collator:
                                 Constants.META_SHA256: digest,
                             }
                         if cmpd_code:
+                            self.compound_codes[xtal_name] = cmpd_code
                             data[Constants.META_CMPD_CODE] = cmpd_code
                             extra_data_items.append(cmpd_code)
                         else:
@@ -527,20 +529,6 @@ class Collator:
                         if input.code_prefix is not None:
                             data[Constants.META_CODE_PREFIX] = input.code_prefix
                         data[Constants.META_XTAL_FILES] = f_data
-
-        extra_files_path = self.output_path / self.version_dir / 'extra_files'
-        if not extra_files_path.is_dir():
-            os.mkdir(extra_files_path)
-
-        compound_path = extra_files_path / 'compounds_auto.csv'
-        self.logger.info("writing compound data to " + str(compound_path))
-        with open(compound_path, 'wt') as compounds:
-            compounds.write("xtal," + Constants.META_CMPD_CODE + "\n")
-            for xtal, data in extra_data.items():
-                s = xtal
-                for item in data:
-                    s += "," + item
-                compounds.write(s + "\n")
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
         if num_mtz_files < num_pdb_files:
@@ -720,284 +708,306 @@ class Collator:
         self.logger.info("creating cryst_dir", ext_cryst_path)
         os.makedirs(ext_cryst_path)
 
-        num_event_maps = 0
+        extra_files_path = self.output_path / self.version_dir / 'extra_files'
+        if not extra_files_path.is_dir():
+            os.mkdir(extra_files_path)
 
-        event_tables = self._find_event_tables()
-        forbidden_unattested_ligand_events = {}
-        for xtal_name, xtal in meta[Constants.META_XTALS].items():
-            dir = cryst_path / xtal_name
+        compound_path = extra_files_path / 'compounds_auto.csv'
+        self.logger.info("writing compound data to " + str(compound_path))
+        with open(compound_path, 'wt') as compounds_auto:
+            # write header for compounds_auto.csv
+            compounds_auto.write("xtal,ligand_name," + Constants.META_CMPD_CODE + "\n")
 
-            historical_xtal_data = self._collate_crystallographic_files_history(xtal_name)
-            curr_xtal_data = xtal[Constants.META_XTAL_FILES]
-            type = xtal[Constants.CONFIG_TYPE]
-            files_to_copy = {}
+            event_tables = self._find_event_tables()
+            forbidden_unattested_ligand_events = {}
+            for xtal_name, xtal in meta[Constants.META_XTALS].items():
+                dir = cryst_path / xtal_name
 
-            # handle the PDB file
-            pdb = curr_xtal_data.get(Constants.META_XTAL_PDB)
-            if pdb:
-                pdb_input = self.base_path / pdb[Constants.META_FILE]
-                if pdb_input.is_file():
-                    digest = utils.gen_sha256(pdb_input)
-                    old_digest = historical_xtal_data.get(Constants.META_XTAL_PDB, {}).get(Constants.META_SHA256)
-                    if digest != old_digest:
-                        # PDB is new or changed
-                        if old_digest is not None:
-                            self.logger.info("PDB file for {} has changed".format(xtal_name))
-                        pdb_name = xtal_name + ".pdb"
-                        pdb_output = dir / pdb_name
-                        files_to_copy[Constants.META_XTAL_PDB] = (pdb_input, pdb_output, digest)
+                historical_xtal_data = self._collate_crystallographic_files_history(xtal_name)
+                curr_xtal_data = xtal[Constants.META_XTAL_FILES]
+                type = xtal[Constants.CONFIG_TYPE]
+                files_to_copy = {}
 
-                # handle the MTZ file
-                mtz = curr_xtal_data.get(Constants.META_XTAL_MTZ)
-                if mtz:
-                    mtz_file = mtz[Constants.META_FILE]
-                    mtz_input = self.base_path / mtz_file
-                    if mtz_input.is_file():
-                        digest = utils.gen_sha256(mtz_input)
-                        old_digest = historical_xtal_data.get(Constants.META_XTAL_MTZ, {}).get(Constants.META_SHA256)
+                # handle the PDB file
+                pdb = curr_xtal_data.get(Constants.META_XTAL_PDB)
+                if pdb:
+                    pdb_input = self.base_path / pdb[Constants.META_FILE]
+                    if pdb_input.is_file():
+                        digest = utils.gen_sha256(pdb_input)
+                        old_digest = historical_xtal_data.get(Constants.META_XTAL_PDB, {}).get(Constants.META_SHA256)
                         if digest != old_digest:
+                            # PDB is new or changed
                             if old_digest is not None:
-                                self.logger.info("MTZ file for {} has changed".format(xtal_name))
-                            mtz_name = xtal_name + ".mtz"
-                            mtz_output = dir / mtz_name
-                            files_to_copy[Constants.META_XTAL_MTZ] = (mtz_input, mtz_output, digest)
+                                self.logger.info("PDB file for {} has changed".format(xtal_name))
+                            pdb_name = xtal_name + ".pdb"
+                            pdb_output = dir / pdb_name
+                            files_to_copy[Constants.META_XTAL_PDB] = (pdb_input, pdb_output, digest)
+
+                    # handle the MTZ file
+                    mtz = curr_xtal_data.get(Constants.META_XTAL_MTZ)
+                    if mtz:
+                        mtz_file = mtz[Constants.META_FILE]
+                        mtz_input = self.base_path / mtz_file
+                        if mtz_input.is_file():
+                            digest = utils.gen_sha256(mtz_input)
+                            old_digest = historical_xtal_data.get(Constants.META_XTAL_MTZ, {}).get(
+                                Constants.META_SHA256
+                            )
+                            if digest != old_digest:
+                                if old_digest is not None:
+                                    self.logger.info("MTZ file for {} has changed".format(xtal_name))
+                                mtz_name = xtal_name + ".mtz"
+                                mtz_output = dir / mtz_name
+                                files_to_copy[Constants.META_XTAL_MTZ] = (mtz_input, mtz_output, digest)
+                        elif type == Constants.CONFIG_TYPE_MODEL_BUILDING:
+                            self.logger.warn("mtz file {} not present".format(mtz_input))
+                    else:
+                        self.logger.warn("MTZ entry missing for {}".format(xtal_name))
+
+                    # handle the CIF file
+                    cif = curr_xtal_data.get(Constants.META_XTAL_CIF)
+                    ligand_names = []
+                    if cif:
+                        cif_file = cif[Constants.META_FILE]
+                        cif_input = self.base_path / cif_file
+                        if cif_input.is_file():
+                            digest = utils.gen_sha256(cif_input)
+                            old_digest = historical_xtal_data.get(Constants.META_XTAL_CIF, {}).get(
+                                Constants.META_SHA256
+                            )
+                            if digest != old_digest:
+                                if old_digest is not None:
+                                    self.logger.info("CIF file for {} has changed".format(xtal_name))
+                                cif_name = xtal_name + ".cif"
+                                cif_output = dir / cif_name
+                                files_to_copy[Constants.META_XTAL_CIF] = (cif_input, cif_output, digest)
+                            # read the CIF file to determine the ligand names
+                            ligand_mols = utils.gen_mols_from_cif(cif_input)
+                            ligand_names = [m.GetProp('_Name') for m in ligand_mols]
+                            self.logger.info('Found ligand names ' + str(ligand_names))
+
                     elif type == Constants.CONFIG_TYPE_MODEL_BUILDING:
-                        self.logger.warn("mtz file {} not present".format(mtz_input))
-                else:
-                    self.logger.warn("MTZ entry missing for {}".format(xtal_name))
+                        self.logger.warn("CIF entry missing for {}".format(xtal_name))
 
-                # handle the CIF file
-                cif = curr_xtal_data.get(Constants.META_XTAL_CIF)
-                ligand_names = []
-                if cif:
-                    cif_file = cif[Constants.META_FILE]
-                    cif_input = self.base_path / cif_file
-                    if cif_input.is_file():
-                        digest = utils.gen_sha256(cif_input)
-                        old_digest = historical_xtal_data.get(Constants.META_XTAL_CIF, {}).get(Constants.META_SHA256)
-                        if digest != old_digest:
-                            if old_digest is not None:
-                                self.logger.info("CIF file for {} has changed".format(xtal_name))
-                            cif_name = xtal_name + ".cif"
-                            cif_output = dir / cif_name
-                            files_to_copy[Constants.META_XTAL_CIF] = (cif_input, cif_output, digest)
-                        # read the CIF file to determine the ligand names
-                        ligand_mols = utils.gen_mols_from_cif(cif_input)
-                        ligand_names = [m.GetProp('_Name') for m in ligand_mols]
-                        self.logger.info('Found ligand names ' + str(ligand_names))
+                    # Handle historical ligand binding events (in particular pull up their event map SHA256s for comparing)
+                    hist_event_maps = {}
+                    for ligand_binding_data in historical_xtal_data.get(Constants.META_BINDING_EVENT, []):
+                        model = ligand_binding_data.get(Constants.META_PROT_MODEL)
+                        chain = ligand_binding_data.get(Constants.META_PROT_CHAIN)
+                        res = ligand_binding_data.get(Constants.META_PROT_RES)
+                        if model is not None and chain and res:
+                            hist_event_maps[(model, chain, res)] = ligand_binding_data
 
-                elif type == Constants.CONFIG_TYPE_MODEL_BUILDING:
-                    self.logger.warn("CIF entry missing for {}".format(xtal_name))
+                    # Determine the ligands present and their coordinates
+                    dataset_ligands = self.get_dataset_ligands(pdb_input, ligand_names)
 
-                # Handle historical ligand binding events (in particular pull up their event map SHA256s for comparing)
-                hist_event_maps = {}
-                for ligand_binding_data in historical_xtal_data.get(Constants.META_BINDING_EVENT, []):
-                    model = ligand_binding_data.get(Constants.META_PROT_MODEL)
-                    chain = ligand_binding_data.get(Constants.META_PROT_CHAIN)
-                    res = ligand_binding_data.get(Constants.META_PROT_RES)
-                    if model is not None and chain and res:
-                        hist_event_maps[(model, chain, res)] = ligand_binding_data
+                    # Match ligand to panddas event maps if possible and determine if those maps are new
+                    best_event_map_paths = self.get_dataset_event_maps(xtal_name, dataset_ligands, event_tables)
+                    identical_historical_event_maps = {}
+                    unattested_ligand_events = {}
+                    attested_ligand_events = {}
+                    event_maps_to_copy = {}
 
-                # Determine the ligands present and their coordinates
-                dataset_ligands = self.get_dataset_ligands(pdb_input, ligand_names)
-
-                # Match ligand to panddas event maps if possible and determine if those maps are new
-                best_event_map_paths = self.get_dataset_event_maps(xtal_name, dataset_ligands, event_tables)
-                identical_historical_event_maps = {}
-                unattested_ligand_events = {}
-                attested_ligand_events = {}
-                event_maps_to_copy = {}
-
-                for ligand_key in dataset_ligands:
-                    if ligand_key in best_event_map_paths:
-                        ligand_event_map_data = best_event_map_paths[ligand_key]
-                        path = ligand_event_map_data[0]
-                        if path:
-                            digest = utils.gen_sha256(path)
-                            ccp4_output = (
-                                cryst_path
-                                / xtal_name
-                                / "{}_{}_{}_{}.ccp4".format(xtal_name, ligand_key[0], ligand_key[1], ligand_key[2])
-                            )
-                            attested_ligand_events[ligand_key] = (
-                                path,
-                                ccp4_output,
-                                digest,
-                                ligand_key,
-                                ligand_event_map_data[1],
-                                ligand_event_map_data[2],
-                            )
-                            hist_data = hist_event_maps.get(ligand_key)
-                            # Track whether the event map actually is new by data
-                            if hist_data:
-                                if digest == hist_data.get(Constants.META_SHA256):
-                                    identical_historical_event_maps[ligand_key] = True
-                                    self.logger.info("Event map {} for {} is unchanged".format(ligand_key, xtal_name))
+                    for ligand_key in dataset_ligands:
+                        if ligand_key in best_event_map_paths:
+                            ligand_event_map_data = best_event_map_paths[ligand_key]
+                            path = ligand_event_map_data[0]
+                            if path:
+                                digest = utils.gen_sha256(path)
+                                ccp4_output = (
+                                    cryst_path
+                                    / xtal_name
+                                    / "{}_{}_{}_{}.ccp4".format(xtal_name, ligand_key[0], ligand_key[1], ligand_key[2])
+                                )
+                                attested_ligand_events[ligand_key] = (
+                                    path,
+                                    ccp4_output,
+                                    digest,
+                                    ligand_key,
+                                    ligand_event_map_data[1],
+                                    ligand_event_map_data[2],
+                                )
+                                hist_data = hist_event_maps.get(ligand_key)
+                                # Track whether the event map actually is new by data
+                                if hist_data:
+                                    if digest == hist_data.get(Constants.META_SHA256):
+                                        identical_historical_event_maps[ligand_key] = True
+                                        self.logger.info(
+                                            "Event map {} for {} is unchanged".format(ligand_key, xtal_name)
+                                        )
+                                    else:
+                                        event_maps_to_copy[ligand_key] = True
+                                        self.logger.info(
+                                            "Event map {} for {} has changed".format(ligand_key, xtal_name)
+                                        )
                                 else:
                                     event_maps_to_copy[ligand_key] = True
-                                    self.logger.info("Event map {} for {} has changed".format(ligand_key, xtal_name))
+                        # Handle ligands that cannot be matched
+                        else:
+                            # Add those permitted ligands
+                            if xtal_name in self.panddas_missing_ok:
+                                self.logger.warn(
+                                    "no PanDDA event map found for",
+                                    xtal_name,
+                                    "but this is OK as it's been added to the panddas_missing_ok",
+                                    "list in the config file",
+                                )
+                                unattested_ligand_events[ligand_key] = True
+                            # Track forbidden ligands for informative error messages at the end of this function
                             else:
-                                event_maps_to_copy[ligand_key] = True
-                    # Handle ligands that cannot be matched
-                    else:
-                        # Add those permitted ligands
-                        if xtal_name in self.panddas_missing_ok:
-                            self.logger.warn(
-                                "no PanDDA event map found for",
-                                xtal_name,
-                                "but this is OK as it's been added to the panddas_missing_ok",
-                                "list in the config file",
-                            )
-                            unattested_ligand_events[ligand_key] = True
-                        # Track forbidden ligands for informative error messages at the end of this function
-                        else:
-                            self.logger.error(
-                                "no PanDDA event map found. If you want to allow this then add",
-                                xtal_name,
-                                "to the panddas_missing_ok list in the config file",
-                            )
-                            forbidden_unattested_ligand_events[xtal_name] = ligand_key
+                                self.logger.error(
+                                    "no PanDDA event map found. If you want to allow this then add",
+                                    xtal_name,
+                                    "to the panddas_missing_ok list in the config file",
+                                )
+                                forbidden_unattested_ligand_events[xtal_name] = ligand_key
 
-            else:
-                self.logger.error("PDB entry missing for {}".format(xtal_name))
-                return meta
-
-            # now copy the files
-            self.logger.info("{} has {} files to copy".format(xtal_name, len(files_to_copy)))
-            fdata = files_to_copy.get(Constants.META_XTAL_PDB)
-            data_to_add = {}
-            if fdata:
-                os.makedirs(self.output_path / dir)
-                f = shutil.copy2(fdata[0], self.output_path / fdata[1])
-                if not f:
-                    self.logger.error("Failed to copy PDB file {} to {}".format(fdata[0], self.output_path / fdata[1]))
                 else:
-                    data_to_add[Constants.META_XTAL_PDB] = {
-                        Constants.META_FILE: str(fdata[1]),
-                        Constants.META_SHA256: fdata[2],
-                        Constants.META_SOURCE_FILE: str(fdata[0]),
-                    }
-                    # copy MTZ file
-                    fdata = files_to_copy.get(Constants.META_XTAL_MTZ)
-                    if fdata:
-                        f = shutil.copy2(fdata[0], self.output_path / fdata[1])
-                        if not f:
-                            self.logger.error(
-                                "Failed to copy MTZ file {} to {}".format(fdata[0], self.output_path / fdata[1])
-                            )
-                        else:
-                            data_to_add[Constants.META_XTAL_MTZ] = {
-                                Constants.META_FILE: str(fdata[1]),
-                                Constants.META_SHA256: fdata[2],
-                                Constants.META_SOURCE_FILE: str(fdata[0]),
-                            }
-                    fdata = files_to_copy.get(Constants.META_XTAL_CIF)
+                    self.logger.error("PDB entry missing for {}".format(xtal_name))
+                    return meta
 
-                    # copy CIF file
-                    if fdata:
-                        f = shutil.copy2(fdata[0], self.output_path / fdata[1])
-                        if not f:
-                            self.logger.error(
-                                "Failed to copy CIF file {} to {}".format(fdata[0], self.output_path / fdata[1])
-                            )
-                        else:
-                            data_to_add[Constants.META_XTAL_CIF] = {
-                                Constants.META_FILE: str(fdata[1]),
-                                Constants.META_SHA256: fdata[2],
-                                Constants.META_SOURCE_FILE: str(fdata[0]),
-                            }
-                            try:
-                                mols = utils.gen_mols_from_cif(str(self.output_path / fdata[1]))
-                                ligands = {}
-                                for mol in mols:
-                                    name = mol.GetProp("_Name")
-                                    smi = Chem.MolToSmiles(mol)
-                                    ligands[name] = {Constants.META_SMILES: smi}
-                                if ligands:
-                                    data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
-                            except:
-                                self.logger.warn('failed to generate ligand data for {}'.format(xtal_name))
-                                traceback.print_exc()
-
-                    # copy event maps that differ in SHA from previously known ones
-                    unsucessfully_copied_event_maps = {}
-                    if len(event_maps_to_copy) != 0:
-                        for ligand_key in event_maps_to_copy:
-                            source = attested_ligand_events[ligand_key][0]
-                            destination = attested_ligand_events[ligand_key][1]
-                            f = shutil.copy2(source, self.output_path / destination)
+                # now copy the files
+                self.logger.info("{} has {} files to copy".format(xtal_name, len(files_to_copy)))
+                fdata = files_to_copy.get(Constants.META_XTAL_PDB)
+                data_to_add = {}
+                if fdata:
+                    os.makedirs(self.output_path / dir)
+                    f = shutil.copy2(fdata[0], self.output_path / fdata[1])
+                    if not f:
+                        self.logger.error(
+                            "Failed to copy PDB file {} to {}".format(fdata[0], self.output_path / fdata[1])
+                        )
+                    else:
+                        data_to_add[Constants.META_XTAL_PDB] = {
+                            Constants.META_FILE: str(fdata[1]),
+                            Constants.META_SHA256: fdata[2],
+                            Constants.META_SOURCE_FILE: str(fdata[0]),
+                        }
+                        # copy MTZ file
+                        fdata = files_to_copy.get(Constants.META_XTAL_MTZ)
+                        if fdata:
+                            f = shutil.copy2(fdata[0], self.output_path / fdata[1])
                             if not f:
                                 self.logger.error(
-                                    "Failed to copy Panddas file {} to {}".format(
-                                        source, self.output_path / destination
-                                    )
+                                    "Failed to copy MTZ file {} to {}".format(fdata[0], self.output_path / fdata[1])
                                 )
-                                # Mark that copying failed
-                                unsucessfully_copied_event_maps[ligand_key] = True
-
-                    # Create ligand binding events for the dataset
-                    ligand_binding_events = []
-                    for ligand_key in dataset_ligands:
-                        # Add binding events for ligands that can be matched to PanDDA event maps
-                        if ligand_key in attested_ligand_events:
-                            # Skip if failed to copy pandda event map
-                            if ligand_key in unsucessfully_copied_event_maps:
-                                continue
-                            attested_ligand_event_data = attested_ligand_events[ligand_key]
-
-                            if identical_historical_event_maps.get(ligand_key, False):
-                                data = hist_event_maps[ligand_key]
                             else:
+                                data_to_add[Constants.META_XTAL_MTZ] = {
+                                    Constants.META_FILE: str(fdata[1]),
+                                    Constants.META_SHA256: fdata[2],
+                                    Constants.META_SOURCE_FILE: str(fdata[0]),
+                                }
+                        fdata = files_to_copy.get(Constants.META_XTAL_CIF)
+
+                        # copy CIF file
+                        if fdata:
+                            f = shutil.copy2(fdata[0], self.output_path / fdata[1])
+                            if not f:
+                                self.logger.error(
+                                    "Failed to copy CIF file {} to {}".format(fdata[0], self.output_path / fdata[1])
+                                )
+                            else:
+                                data_to_add[Constants.META_XTAL_CIF] = {
+                                    Constants.META_FILE: str(fdata[1]),
+                                    Constants.META_SHA256: fdata[2],
+                                    Constants.META_SOURCE_FILE: str(fdata[0]),
+                                }
+                                try:
+                                    mols = utils.gen_mols_from_cif(str(self.output_path / fdata[1]))
+                                    ligands = {}
+                                    for mol in mols:
+                                        name = mol.GetProp("_Name")
+                                        smi = Chem.MolToSmiles(mol)
+                                        ligands[name] = {Constants.META_SMILES: smi}
+                                        cpd_code = self.compound_codes.get(xtal_name)
+                                        if cpd_code:
+                                            ligands[name][Constants.META_CMPD_CODE] = cpd_code
+                                            compounds_auto.write(",".join((xtal_name, name, cpd_code)) + "\n")
+                                    if ligands:
+                                        data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
+                                except:
+                                    self.logger.warn('failed to generate ligand data for {}'.format(xtal_name))
+                                    traceback.print_exc()
+
+                        # copy event maps that differ in SHA from previously known ones
+                        unsucessfully_copied_event_maps = {}
+                        if len(event_maps_to_copy) != 0:
+                            for ligand_key in event_maps_to_copy:
+                                source = attested_ligand_events[ligand_key][0]
+                                destination = attested_ligand_events[ligand_key][1]
+                                f = shutil.copy2(source, self.output_path / destination)
+                                if not f:
+                                    self.logger.error(
+                                        "Failed to copy Panddas file {} to {}".format(
+                                            source, self.output_path / destination
+                                        )
+                                    )
+                                    # Mark that copying failed
+                                    unsucessfully_copied_event_maps[ligand_key] = True
+
+                        # Create ligand binding events for the dataset
+                        ligand_binding_events = []
+                        for ligand_key in dataset_ligands:
+                            # Add binding events for ligands that can be matched to PanDDA event maps
+                            if ligand_key in attested_ligand_events:
+                                # Skip if failed to copy pandda event map
+                                if ligand_key in unsucessfully_copied_event_maps:
+                                    continue
+                                attested_ligand_event_data = attested_ligand_events[ligand_key]
+
+                                if identical_historical_event_maps.get(ligand_key, False):
+                                    data = hist_event_maps[ligand_key]
+                                else:
+                                    data = {
+                                        Constants.META_FILE: str(attested_ligand_event_data[1]),
+                                        Constants.META_SHA256: attested_ligand_event_data[2],
+                                        Constants.META_SOURCE_FILE: str(attested_ligand_event_data[0]),
+                                        Constants.META_PROT_MODEL: ligand_key[0],
+                                        Constants.META_PROT_CHAIN: ligand_key[1],
+                                        Constants.META_PROT_RES: ligand_key[2],
+                                        Constants.META_PROT_NAME: ligand_key[3],
+                                        Constants.META_PROT_INDEX: attested_ligand_event_data[4],
+                                        Constants.META_PROT_BDC: attested_ligand_event_data[5],
+                                    }
+                                # if data[Constants.META_FILE]:
+                                ligand_binding_events.append(data)
+                            # Add binding events for permitted ligands without an event map
+                            elif ligand_key in unattested_ligand_events:
                                 data = {
-                                    Constants.META_FILE: str(attested_ligand_event_data[1]),
-                                    Constants.META_SHA256: attested_ligand_event_data[2],
-                                    Constants.META_SOURCE_FILE: str(attested_ligand_event_data[0]),
                                     Constants.META_PROT_MODEL: ligand_key[0],
                                     Constants.META_PROT_CHAIN: ligand_key[1],
                                     Constants.META_PROT_RES: ligand_key[2],
-                                    Constants.META_PROT_NAME: ligand_key[3],
-                                    Constants.META_PROT_INDEX: attested_ligand_event_data[4],
-                                    Constants.META_PROT_BDC: attested_ligand_event_data[5],
                                 }
-                            # if data[Constants.META_FILE]:
-                            ligand_binding_events.append(data)
-                        # Add binding events for permitted ligands without an event map
-                        elif ligand_key in unattested_ligand_events:
-                            data = {
-                                Constants.META_PROT_MODEL: ligand_key[0],
-                                Constants.META_PROT_CHAIN: ligand_key[1],
-                                Constants.META_PROT_RES: ligand_key[2],
-                            }
-                            ligand_binding_events.append(data)
+                                ligand_binding_events.append(data)
 
-                        # Skip if ligand key is not associated with a legal ligand
-                        else:
-                            continue
-                        # ligand_binding_events.append(data)
+                            # Skip if ligand key is not associated with a legal ligand
+                            else:
+                                continue
+                            # ligand_binding_events.append(data)
 
-                    # Add data on the ligand binding events to the new dataset to add
-                    if ligand_binding_events:
-                        data_to_add[Constants.META_BINDING_EVENT] = ligand_binding_events
+                        # Add data on the ligand binding events to the new dataset to add
+                        if ligand_binding_events:
+                            data_to_add[Constants.META_BINDING_EVENT] = ligand_binding_events
 
-            new_xtal_data = {}
-            for k, v in historical_xtal_data.items():
-                new_xtal_data[k] = v
-            for k, v in data_to_add.items():
-                new_xtal_data[k] = v
-            xtal[Constants.META_XTAL_FILES] = new_xtal_data
+                new_xtal_data = {}
+                for k, v in historical_xtal_data.items():
+                    new_xtal_data[k] = v
+                for k, v in data_to_add.items():
+                    new_xtal_data[k] = v
+                xtal[Constants.META_XTAL_FILES] = new_xtal_data
 
-        # Handle the presence of ligand without event maps that have not been permitted
-        if len(forbidden_unattested_ligand_events) != 0:
-            exception = (
-                "No PanDDA event map found that correspond to the following ligands. If you want to allow these then "
-                "add the corresponding crystal names to the panddas_missing_ok list in the config file:\n"
-            )
-            for dtag, ligand_key in forbidden_unattested_ligand_events.items():
-                lk = ligand_key
-                exception = exception + f"{dtag} : Model: {lk[0]}; Chain: {lk[1]}; Residue: {lk[2]}\n"
-            raise Exception(exception)
+            # Handle the presence of ligand without event maps that have not been permitted
+            if len(forbidden_unattested_ligand_events) != 0:
+                exception = (
+                    "No PanDDA event map found that correspond to the following ligands. If you want to allow these then "
+                    "add the corresponding crystal names to the panddas_missing_ok list in the config file:\n"
+                )
+                for dtag, ligand_key in forbidden_unattested_ligand_events.items():
+                    lk = ligand_key
+                    exception = exception + f"{dtag} : Model: {lk[0]}; Chain: {lk[1]}; Residue: {lk[2]}\n"
+                raise Exception(exception)
 
-        return meta
+            return meta
 
     def _find_event_tables(self):
         event_tables = {}
