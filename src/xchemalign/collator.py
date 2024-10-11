@@ -488,8 +488,6 @@ class Collator:
                             )
 
                         data = {}
-                        extra_data_items = []
-                        extra_data[xtal_name] = extra_data_items
                         if xtal_name in ref_datasets:
                             data[Constants.META_REFERENCE] = True
                         data[Constants.CONFIG_TYPE] = Constants.CONFIG_TYPE_MODEL_BUILDING
@@ -520,11 +518,8 @@ class Collator:
                                 Constants.META_SHA256: digest,
                             }
                         if cmpd_code:
-                            self.compound_codes[xtal_name] = cmpd_code
-                            data[Constants.META_CMPD_CODE] = cmpd_code
-                            extra_data_items.append(cmpd_code)
-                        else:
-                            extra_data_items.append("")
+                            tokens = cmpd_code.split(';')
+                            self.compound_codes[xtal_name] = tokens
 
                         if input.code_prefix is not None:
                             data[Constants.META_CODE_PREFIX] = input.code_prefix
@@ -593,6 +588,29 @@ class Collator:
             self.logger.warn(
                 "{} PDB files were found, but only {} had corresponding MTZ files".format(num_pdb_files, num_mtz_files)
             )
+
+    def _validate_pdb_file(self, pdb_path, ligand_names):
+        with open(pdb_path) as f:
+            for line in f:
+                if not line.startswith("HETATM"):
+                    continue
+
+                residue_number = int(line[22:26].strip())
+                residue_name = line[17:21].strip()
+
+                if residue_name not in ligand_names:
+                    continue
+
+                chain = line[21:22].strip()
+                alt_code = line[16:17].strip() or None
+
+                if alt_code:
+                    self._log_error(
+                        "Encountered ligand "
+                        + residue_name
+                        + " that has an alternative conformation. "
+                        + "You should model this as separate ligands (separate residue numbers)",
+                    )
 
     def _collect_manual_files(self, manual_input_path: Path):
         data = {}
@@ -915,14 +933,20 @@ class Collator:
                                 try:
                                     mols = utils.gen_mols_from_cif(str(self.output_path / fdata[1]))
                                     ligands = {}
-                                    for mol in mols:
+                                    cpd_codes = self.compound_codes.get(xtal_name)
+                                    if cpd_codes and len(cpd_codes) == len(mols):
+                                        cpd_codes_is_valid = True
+                                    else:
+                                        cpd_codes_is_valid = False
+                                        # TODO what to do here - error or warn?
+                                        self._log_warning("Invalid number of compound codes for " + xtal_name)
+                                    for i, mol in enumerate(mols):
                                         name = mol.GetProp("_Name")
                                         smi = Chem.MolToSmiles(mol)
                                         ligands[name] = {Constants.META_SMILES: smi}
-                                        cpd_code = self.compound_codes.get(xtal_name)
-                                        if cpd_code:
-                                            ligands[name][Constants.META_CMPD_CODE] = cpd_code
-                                            compounds_auto.write(",".join((xtal_name, name, cpd_code)) + "\n")
+                                        if cpd_codes_is_valid:
+                                            ligands[name][Constants.META_CMPD_CODE] = cpd_codes[i]
+                                            compounds_auto.write(",".join((xtal_name, name, cpd_codes[i])) + "\n")
                                     if ligands:
                                         data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
                                 except:
