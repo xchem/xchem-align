@@ -100,6 +100,8 @@ def traverse_dictionary(dic, func):
             traverse_dictionary(value, func)
         except AttributeError:
             dic[key] = func(value)
+        except ValueError:
+            dic[key] = func(value)
 
 
 def _get_xmap_path_or_none(output_path, binding_event):
