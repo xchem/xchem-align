@@ -90,6 +90,8 @@ def path_to_relative_string(
         return str(rel_path)
     except AttributeError:
         return path
+    except ValueError:
+        return path
 
 
 def traverse_dictionary(dic, func):
