@@ -352,7 +352,7 @@ class Aligner:
 
         # Get assemblies
         if source_fs_model:
-            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.assemblies_file)
+            assemblies: dict[str, dt.Assembly] = _load_assemblies(self.base_dir / source_fs_model.xtalforms, self.assemblies_file)
         else:
             assemblies = _load_assemblies(fs_model.xtalforms, self.assemblies_file)
         self.logger.info(f"Got {len(assemblies)} assemblies")
@@ -362,21 +362,21 @@ class Aligner:
 
         # # Get xtalforms
         if source_fs_model:
-            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.assemblies_file)
+            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(self.base_dir / source_fs_model.xtalforms, self.assemblies_file)
         else:
             xtalforms = _load_xtalforms(fs_model.xtalforms, self.assemblies_file)
         self.logger.info(f"Got {len(xtalforms)} xtalforms")
 
         # Get the dataset assignments
         if source_fs_model:
-            dataset_assignments = _load_dataset_assignments(Path(source_fs_model.dataset_assignments))
+            dataset_assignments = _load_dataset_assignments(Path(self.base_dir / source_fs_model.dataset_assignments))
         else:
             dataset_assignments = _load_dataset_assignments(Path(fs_model.dataset_assignments))
 
         # Get Ligand neighbourhoods
         if source_fs_model:
             ligand_neighbourhoods: dict[tuple[str, str, str], dt.Neighbourhood] = _load_ligand_neighbourhoods(
-                source_fs_model.ligand_neighbourhoods
+                self.base_dir / source_fs_model.ligand_neighbourhoods
             )
         else:
             ligand_neighbourhoods = _load_ligand_neighbourhoods(fs_model.ligand_neighbourhoods)
@@ -384,13 +384,13 @@ class Aligner:
 
         # Get alignability graph
         if source_fs_model:
-            alignability_graph = _load_alignability_graph(source_fs_model.alignability_graph)
+            alignability_graph = _load_alignability_graph(self.base_dir / source_fs_model.alignability_graph)
         else:
             alignability_graph = _load_alignability_graph(fs_model.alignability_graph)
 
         # Get the connected components
         if source_fs_model:
-            connected_components = _load_connected_components(source_fs_model.connected_components)
+            connected_components = _load_connected_components(self.base_dir / source_fs_model.connected_components)
         else:
             connected_components = _load_connected_components(fs_model.connected_components)
 
@@ -399,7 +399,7 @@ class Aligner:
             print(f"Have source fs model at {source_fs_model.ligand_neighbourhood_transforms}!")
             ligand_neighbourhood_transforms: dict[
                 tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform
-            ] = _load_ligand_neighbourhood_transforms(source_fs_model.ligand_neighbourhood_transforms)
+            ] = _load_ligand_neighbourhood_transforms(self.base_dir / source_fs_model.ligand_neighbourhood_transforms)
         else:
             ligand_neighbourhood_transforms = _load_ligand_neighbourhood_transforms(
                 fs_model.ligand_neighbourhood_transforms
@@ -408,42 +408,42 @@ class Aligner:
 
         # Get conformer sites
         if source_fs_model:
-            conformer_sites: dict[str, dt.ConformerSite] = _load_conformer_sites(source_fs_model.conformer_sites)
+            conformer_sites: dict[str, dt.ConformerSite] = _load_conformer_sites(self.base_dir / source_fs_model.conformer_sites)
         else:
             conformer_sites = _load_conformer_sites(fs_model.conformer_sites)
 
         #
         if source_fs_model:
             conformer_site_transforms: dict[tuple[str, str], dt.Transform] = _load_conformer_site_transforms(
-                source_fs_model.conformer_site_transforms
+                self.base_dir / source_fs_model.conformer_site_transforms
             )
         else:
             conformer_site_transforms = _load_conformer_site_transforms(fs_model.conformer_site_transforms)
 
         # Get canonical sites
         if source_fs_model:
-            canonical_sites: dict[str, dt.CanonicalSite] = _load_canonical_sites(source_fs_model.canonical_sites)
+            canonical_sites: dict[str, dt.CanonicalSite] = _load_canonical_sites(self.base_dir / source_fs_model.canonical_sites)
         else:
             canonical_sites = _load_canonical_sites(fs_model.canonical_sites)
 
         #
         if source_fs_model:
             canonical_site_transforms: dict[str, dt.Transform] = _load_canonical_site_transforms(
-                source_fs_model.conformer_site_transforms
+                self.base_dir / source_fs_model.conformer_site_transforms
             )
         else:
             canonical_site_transforms = _load_canonical_site_transforms(fs_model.conformer_site_transforms)
 
         # Get xtalform sites
         if source_fs_model:
-            xtalform_sites: dict[str, dt.XtalFormSite] = _load_xtalform_sites(source_fs_model.xtalform_sites)
+            xtalform_sites: dict[str, dt.XtalFormSite] = _load_xtalform_sites(self.base_dir / source_fs_model.xtalform_sites)
         else:
             xtalform_sites = _load_xtalform_sites(fs_model.xtalform_sites)
 
         # Get reference structure transforms
         if source_fs_model:
             reference_structure_transforms: dict[tuple[str, str], dt.Transform] = _load_reference_stucture_transforms(
-                source_fs_model.reference_structure_transforms
+                self.base_dir / source_fs_model.reference_structure_transforms
             )
         else:
             reference_structure_transforms = _load_reference_stucture_transforms(
@@ -456,13 +456,13 @@ class Aligner:
             working_fs_model = fs_model
 
         if working_fs_model.assembly_landmarks.exists():
-            assembly_landmarks = ah.load_yaml(working_fs_model.assembly_landmarks, ah.dict_to_assembly_landmarks)
+            assembly_landmarks = ah.load_yaml(self.base_dir /working_fs_model.assembly_landmarks, ah.dict_to_assembly_landmarks)
         else:
             assembly_landmarks = {}
 
         # Get the assembly transforms
         if working_fs_model.assembly_transforms.exists():
-            assembly_transforms = ah.load_yaml(working_fs_model.assembly_transforms, lambda x: x)
+            assembly_transforms = ah.load_yaml(self.base_dir / working_fs_model.assembly_transforms, lambda x: x)
         else:
             assembly_transforms = {}
 
