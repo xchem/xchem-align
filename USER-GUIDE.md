@@ -178,6 +178,18 @@ Another thing to consider here is the definition of those ligands in the PDB fil
 CIF file must be used. Also, check the chain assignment of the ligands. Sometimes they are assigned to the wrong
 chain.
 
+When there are multiple ligands present the data for the `CompoundCode` and `CompoundSMILES` columns in soakDB must
+correspond to those molecules.
+
+For `CompoundCode` the codes must be semi-colon separated and must be in the same order as in the CIF file. So for the
+above example the value would look like this: `code_for_lg1;code_for_lg2;code_for_lig`. If the number of values does
+not match the number of molecules in the CIF file then an error is thrown.
+
+For `CompoundSMILES` the same applies - semi-colon separated and the same order. But in the case that the soaked
+compound is different to the modeled one the soaked one can also be specified according to the following:
+`smiles1;smiles2 smiles3;smiles4`. In this case the second molecule (LG2) has a modeled SMILES of smiles2 and a
+soaked SMILES of smiles3. Only use space to separate the modeled and soaked SMILES.
+
 #### Extra files
 
 There is support for adding arbitrary extra files to the upload. These files are not used by Fragalysis but

@@ -142,6 +142,10 @@ class Constants:
     META_TRANSFORMS_CANON_SITES_TO_GLOBAL = "canon_to_global"
     META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID = "global_reference_canon_site_id"
     META_CMPD_CODE = "compound_code"
+    META_MODELED_SMILES_SOAKDB = "modeled_smiles_soakdb"
+    META_MODELED_SMILES_CANON = "modeled_smiles_canon"
+    META_SOAKED_SMILES_SOAKDB = "soaked_smiles_soakdb"
+    META_SOAKED_SMILES_CANON = "soaked_smiles_canon"
     META_GIT_INFO = "xca_git_info"
     META_GIT_INFO_URL = "origin_url"
     META_GIT_INFO_BRANCH = "branch"
@@ -157,6 +161,7 @@ class Constants:
     SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
     SOAKDB_COL_REFINEMENT_OUTCOME = "RefinementOutcome"
     SOAKDB_COL_COMPOUND_CODE = "CompoundCode"
+    SOAKDB_COL_COMPOUND_SMILES = "CompoundSMILES"
     CRYSTAL_NEW = "crystal_new"
     ASSEMBLIES_FILENAME = "assemblies.yaml"
     PREVIOUS_OUTPUT_DIR = ""
@@ -446,6 +451,15 @@ def strip_quotes(val):
     if val[-1] == '"':
         val = val[:-1]
     return val
+
+
+def parse_compound_smiles(val: str):
+    result = []
+    tokens1 = val.strip().split(';')
+    for token1 in tokens1:
+        tokens2 = token1.strip().split(' ')
+        result.append(tokens2)
+    return result
 
 
 def main():

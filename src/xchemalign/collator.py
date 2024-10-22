@@ -160,6 +160,7 @@ class Collator:
         self.rejected_xtals = set()
         self.new_or_updated_xtals = None
         self.compound_codes = {}
+        self.compound_smiles = {}
         if not log_file:
             log_file = self.output_path / 'collator.log'
         self.logger = utils.Logger(logfile=log_file, level=log_level)
@@ -394,6 +395,7 @@ class Collator:
             count += 1
             xtal_name = row[Constants.SOAKDB_XTAL_NAME]
             cmpd_code = row[Constants.SOAKDB_COL_COMPOUND_CODE]
+            cmpd_smiles = row[Constants.SOAKDB_COL_COMPOUND_SMILES]
 
             # Exclude datasets
             if xtal_name in input.exclude:
@@ -520,6 +522,8 @@ class Collator:
                         if cmpd_code:
                             tokens = cmpd_code.split(';')
                             self.compound_codes[xtal_name] = tokens
+                        if cmpd_smiles:
+                            self.compound_smiles[xtal_name] = utils.parse_compound_smiles(cmpd_smiles)
 
                         if input.code_prefix is not None:
                             data[Constants.META_CODE_PREFIX] = input.code_prefix
@@ -933,13 +937,25 @@ class Collator:
                                 try:
                                     mols = utils.gen_mols_from_cif(str(self.output_path / fdata[1]))
                                     ligands = {}
+
                                     cpd_codes = self.compound_codes.get(xtal_name)
                                     if cpd_codes and len(cpd_codes) == len(mols):
                                         cpd_codes_is_valid = True
                                     else:
                                         cpd_codes_is_valid = False
-                                        # TODO what to do here - error or warn?
-                                        self._log_warning("Invalid number of compound codes for " + xtal_name)
+                                        if cpd_codes:
+                                            self._log_error("Invalid number of compound codes for " + xtal_name)
+                                        # else:  no compound codes defined - this is OK
+
+                                    cpd_smiles = self.compound_smiles.get(xtal_name)
+                                    if cpd_smiles and len(cpd_smiles) == len(mols):
+                                        cpd_smiles_is_valid = True
+                                    else:
+                                        cpd_smiles_is_valid = False
+                                        if cpd_smiles:
+                                            self._log_error("Invalid number of compound SMILES for " + xtal_name)
+                                        # else:  no compound smiles defined - this is OK
+
                                     for i, mol in enumerate(mols):
                                         name = mol.GetProp("_Name")
                                         smi = Chem.MolToSmiles(mol)
@@ -947,6 +963,31 @@ class Collator:
                                         if cpd_codes_is_valid:
                                             ligands[name][Constants.META_CMPD_CODE] = cpd_codes[i]
                                             compounds_auto.write(",".join((xtal_name, name, cpd_codes[i])) + "\n")
+                                        if cpd_smiles_is_valid:
+                                            ligands[name][Constants.META_MODELED_SMILES_SOAKDB] = cpd_smiles[i][0]
+                                            try:
+                                                m = Chem.MolFromSmiles(cpd_smiles[i][0])
+                                                can_smi = Chem.MolToSmiles(m)
+                                                if can_smi:
+                                                    ligands[name][Constants.META_MODELED_SMILES_CANON] = can_smi
+                                            except:
+                                                self._log_warning(
+                                                    'Failed to generate canonical smiles for '
+                                                    + 'modeled molecule from soakDB'
+                                                )
+                                            if len(cpd_smiles[i]) == 2:
+                                                ligands[name][Constants.META_SOAKED_SMILES_SOAKDB] = cpd_smiles[i][1]
+                                                try:
+                                                    m = Chem.MolFromSmiles(cpd_smiles[i][1])
+                                                    can_smi = Chem.MolToSmiles(m)
+                                                    if can_smi:
+                                                        ligands[name][Constants.META_MODELED_SMILES_CANON] = can_smi
+                                                except:
+                                                    self._log_warning(
+                                                        'Failed to generate canonical smiles for '
+                                                        + 'soaked molecule from soakDB'
+                                                    )
+
                                     if ligands:
                                         data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
                                 except:
