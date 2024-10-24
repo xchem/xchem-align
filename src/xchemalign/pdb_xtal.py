@@ -21,6 +21,42 @@ from rdkit import Geometry
 from xchemalign import utils
 
 
+def split_altloc_pdb(pdb_path: Path, ligand_names: list[str]):
+    """
+    Take a PDB file as input and generate a PDB file for each ligand altloc
+    :return:
+    """
+
+    # First pass - find out if there are any ligands with altcodes
+    with open(pdb_path, 'rt') as pdb:
+        ligand_alt_codes = set()
+        for line in pdb:
+            if line.startswith('HETATM'):
+                residue_name = line[17:21].strip()
+                if residue_name in ligand_names:
+                    alt_code = line[16:17]
+                    if alt_code != ' ':
+                        ligand_alt_codes.add(alt_code)
+
+        print(ligand_alt_codes)
+
+        for i, ligand_alt_code in enumerate(ligand_alt_codes):
+            # second pass - split out the PDB files using those altcodes
+            with open(pdb_path, 'rt') as pdb:
+                # generate the output file:
+                dir = pdb_path.parent
+                base_filename = pdb_path.stem
+                print(dir, base_filename)
+                with open(dir / (base_filename + '_' + ligand_alt_code + '.pdb'), 'wt') as out:
+                    for line in pdb:
+                        if line.startswith('ATOM') or line.startswith('HETATM') or line.startswith('ANISOU'):
+                            alt_code = line[16:17]
+                            if alt_code in ligand_alt_codes and alt_code != ligand_alt_code:
+                                print("SKIPPING ", ligand_alt_code, i, line.strip())
+                                continue
+                        out.write(line)
+
+
 class PDBXtal:
     def __init__(self, pdbfile, output_dir, biomol=None, logger=None):
         self.pdbfile = pdbfile
@@ -173,7 +209,7 @@ class PDBXtal:
 
         return prot_file_name, solv_file_name
 
-    def _extract_residue_as_list(self, chain, res_id):
+    def _extract_residue_as_list(self, chain: str, res_id: int):
         """
         Extracts out the lines corresponding a particular chain and residue
         :param chain: e.g. A
@@ -181,23 +217,11 @@ class PDBXtal:
         :return: The lines of the PDB corresponding to the specified residue
         """
 
-        s = str(res_id)
-        if len(s) == 1:
-            id = '   ' + s
-        elif len(s) == 2:
-            id = '  ' + s
-        elif len(s) == 3:
-            id = ' ' + s
-        elif len(s) == 4:
-            id = s
-        else:
-            raise ValueError('Unexpected residue ID: ' + res_id)
-
         ligand_lines = []
         with open(self.pdbfile, "r") as pdb:
             for line in pdb:
                 if line.startswith("HETATM") or line.startswith("ATOM"):
-                    if line[21] == chain and line[22:26] == id:
+                    if line[21] == chain and line[22:26].strip() == res_id:
                         ligand_lines.append(line)
         return ligand_lines
 
@@ -211,10 +235,17 @@ class PDBXtal:
         for line in lines:
             if line.startswith("HETATM") or line.startswith("ATOM"):
                 atom_id = line[12:16].strip()
+                altloc = line[16]
+                if altloc == ' ':
+                    altloc = '_'
+                d = result.get(altloc)
+                if d is None:
+                    d = {}
+                    result[altloc] = d
                 x = float(line[30:38].strip())
                 y = float(line[38:46].strip())
                 z = float(line[46:54].strip())
-                result[atom_id] = (x, y, z)
+                d[atom_id] = (x, y, z)
         return result, name
 
     def create_ligands(self, chain: str, res_id, cif_file: str):
@@ -229,8 +260,8 @@ class PDBXtal:
         self.log("creating ligand files")
 
         # get the coordinates of the ligand corresponding to the specified residue number
-        coords, name = self.extract_coordinates(chain, res_id)
-        if not coords:
+        coords_for_altlocs, name = self.extract_coordinates(chain, res_id)
+        if not coords_for_altlocs:
             self.log('no coordinates found for residue ' + chain + '/' + str(res_id), level=1)
             return None
 
@@ -247,44 +278,67 @@ class PDBXtal:
             return None
 
         mol.RemoveAllConformers()
-
-        conf = Chem.Conformer()
-        missing = []
-        for atom_id, pos in coords.items():
-            found = False
-            for atom in mol.GetAtoms():
-                if atom.GetProp('atom_id').upper() == atom_id.upper():
-                    idx = atom.GetIdx()
-                    point = Geometry.Point3D(pos[0], pos[1], pos[2])
-                    conf.SetAtomPosition(idx, point)
-                    found = True
-                    continue
-            if not found:
-                missing.append(atom_id)
-        if missing:
-            self.log('atoms not present in cif molecule: ' + str(missing), level=1)
-
-        mol.AddConformer(conf)
-        Chem.AssignStereochemistryFrom3D(mol)
+        generated_mols = []
 
         old_name = mol.GetProp('_Name')
         self.ligand_name = old_name
         self.ligand_base_file = self.output_dir / (self.filebase + "_ligand_" + old_name)
-        mol.SetProp('_Name', str(self.filebase) + '_' + old_name)
-
-        modified_mol = self.handle_covalent_ligands(chain, res_id, mol)
-        if modified_mol:
-            mol = modified_mol
-
         self.smiles = Chem.MolToSmiles(mol)
 
-        Chem.MolToMolFile(mol, str(self.ligand_base_file) + '.mol')
-        Chem.MolToPDBFile(mol, str(self.ligand_base_file) + '.pdb')
+        for altloc, coords in coords_for_altlocs.items():
+            m = Chem.RWMol(mol)
+            conf = Chem.Conformer()
+            missing = []
+            for atom_id, pos in coords.items():
+                found = False
+                for atom in mol.GetAtoms():
+                    if atom.GetProp('atom_id').upper() == atom_id.upper():
+                        idx = atom.GetIdx()
+                        point = Geometry.Point3D(pos[0], pos[1], pos[2])
+                        conf.SetAtomPosition(idx, point)
+                        found = True
+                        continue
+                if not found:
+                    missing.append(atom_id)
+            if missing:
+                self.log('atoms not present in cif molecule: ' + str(missing), level=1)
+
+            m.SetProp('_Name', str(self.filebase) + '_' + altloc + old_name)
+            m.AddConformer(conf)
+            Chem.AssignStereochemistryFrom3D(m)
+
+            modified_mol = self.handle_covalent_ligands(chain, res_id, m)
+            if modified_mol:
+                m = modified_mol
+            generated_mols.append(m)
+
+        with Chem.SDWriter(str(self.ligand_base_file) + '.sdf') as writer:
+            for m in generated_mols:
+                writer.write(m)
+
+        merged_mol = Chem.RWMol()
+        for m in generated_mols:
+            merged_mol.InsertMol(m)
+
+        Chem.MolToMolFile(merged_mol, str(self.ligand_base_file) + '.mol')
+
+        # write the ligand PDB
+        with open(str(self.ligand_base_file) + '.pdb', 'wt') as pdb_out:
+            with open(self.pdbfile) as pdb_in:
+                for line in pdb_in:
+                    if line.startswith('HETATM') or line.startswith('ANISOU'):
+                        # match residue number, name and chain
+                        if (
+                            line[22:26].strip() == str(res_id)
+                            and line[17:21].strip() == old_name
+                            and chain == line[21].strip()
+                        ):
+                            pdb_out.write(line)
 
         with open(str(self.ligand_base_file) + '.smi', 'wt') as f:
             f.write(self.smiles)
 
-        return mol
+        return merged_mol
 
     def extract_sequences(self, pdb_file=None):
         if not pdb_file:
