@@ -34,7 +34,7 @@ def split_altloc_pdb(pdb_path: Path, ligand_names: list[str]):
             if line.startswith('HETATM'):
                 residue_name = line[17:21].strip()
                 if residue_name in ligand_names:
-                    alt_code = line[16:17]
+                    alt_code = line[16]
                     if alt_code != ' ':
                         ligand_alt_codes.add(alt_code)
 
@@ -50,7 +50,7 @@ def split_altloc_pdb(pdb_path: Path, ligand_names: list[str]):
                 with open(dir / (base_filename + '_' + ligand_alt_code + '.pdb'), 'wt') as out:
                     for line in pdb:
                         if line.startswith('ATOM') or line.startswith('HETATM') or line.startswith('ANISOU'):
-                            alt_code = line[16:17]
+                            alt_code = line[16]
                             if alt_code in ligand_alt_codes and alt_code != ligand_alt_code:
                                 print("SKIPPING ", ligand_alt_code, i, line.strip())
                                 continue
@@ -66,7 +66,6 @@ class PDBXtal:
         self.logger = logger
         self.non_ligs = json.load(open(os.path.join(os.path.dirname(__file__), "non_ligs.json"), "r"))
         self.apo_file = None
-        self.ligand_file = None
         self.apo_solv_file = None
         self.apo_desolv_file = None
         self.ligand_base_file = None
@@ -167,13 +166,8 @@ class PDBXtal:
                 conect_to_keep += line
 
         self.apo_file = self.output_dir / (self.filebase + "_apo.pdb")
-        self.ligand_file = self.output_dir / (self.filebase + "_ligand_0.pdb")
-        self.ligand_file = self.output_dir / (self.filebase + "_ligand_0.pdb")
         with open(self.apo_file, "w") as f:
             f.write(str(lines))
-        with open(self.ligand_file, "w") as f:
-            f.write(str(ligand))
-            f.write(str(conect_lines))
 
         if self.biomol is not None:
             self.log("attaching biomol headers")
@@ -317,6 +311,7 @@ class PDBXtal:
                 writer.write(m)
 
         merged_mol = Chem.RWMol()
+        merged_mol.SetProp('_Name', str(self.filebase) + '_' + old_name)
         for m in generated_mols:
             merged_mol.InsertMol(m)
 
@@ -442,10 +437,6 @@ class PDBXtal:
                                 left_res_num,
                                 right_res_num,
                             )
-
-                        # if found_ligand and chain == d[L_CHAIN]:
-                        #     self.log("|".join([d[P_ATOM_TYPE], d[P_RES_NAME], d[P_CHAIN], d[P_RES_NUM],
-                        #                        d[L_ATOM_TYPE], d[L_RES_NAME], d[L_CHAIN], d[L_RES_NUM],]))
 
                 else:
                     # look for the protein atom
