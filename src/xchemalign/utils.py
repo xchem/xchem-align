@@ -132,6 +132,7 @@ class Constants:
     META_PDB_APO_SOLV = "pdb_apo_solv"
     META_PDB_APO_DESOLV = "pdb_apo_desolv"
     META_LIGAND_MOL = "ligand_mol"
+    META_LIGAND_SDF = "ligand_sdf"
     META_LIGAND_PDB = "ligand_pdb"
     META_LIGAND_NAME = "ligand_name"
     META_LIGAND_SMILES_STRING = "ligand_smiles_string"

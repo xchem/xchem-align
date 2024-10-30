@@ -846,6 +846,9 @@ class Aligner:
                                                 v5[Constants.META_LIGAND_MOL] = (
                                                     str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.mol'
                                                 )
+                                                v5[Constants.META_LIGAND_SDF] = (
+                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.sdf'
+                                                )
                                                 v5[Constants.META_LIGAND_PDB] = (
                                                     str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.pdb'
                                                 )
