@@ -27,6 +27,10 @@ If you won't run this at Diamond, you will first have to set up your environment
 * [Multiple Reference Structures](#missing-panddas-event-files-warning-when-no-event-maps-have-been-generated)
 * [Adding PDB Structures To The Alignment](#adding-pdb-structures-to-the-alignment)
 
+### Using the "staging" deployment of XCA
+
+If someone has told you to use the "staging" deployment of XCA, follow [the instructions in the "staging deployment" section](#staging-deployment).
+
 [^1]: "yet another markup language"
 
 ##
@@ -511,6 +515,29 @@ inputs:  # The datasources to collate
   - dir: path/to/some/dir  # Folder containing directories which contain PDB structures (and possibly corresponding MTZs)
     type: manual
 
+```
+
+# Staging deployment
+
+A separate version of XCA is deployed at `/dls/science/groups/i04-1/software/xchem-align-staging` for the testing new/experimental features. Depending on the status of the Fragalysis codebase, may also be required for upload to the staging version of Fragalysis. You should by default use the regular deployment, but if someone has told you to use the "staging" version of XCA these are the slightly modified commands from above:
+
+## Activate the environment
+
+```commandline
+source /dls/science/groups/i04-1/software/xchem-align-staging/act
+conda activate /dls/science/groups/i04-1/software/xchem-align-staging/env_xchem_align
+```
+
+## Collate
+
+```commandline
+python /dls/science/groups/i04-1/software/xchem-align-staging/scripts/collate.py -c <your upload config file>
+```
+
+## Align
+
+```commandline
+python /dls/science/groups/i04-1/software/xchem-align-staging/scripts/align.py -d <your upload directory> -a <your assemblies file>
 ```
 
 # Non-Diamond instructions
