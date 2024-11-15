@@ -304,7 +304,7 @@ You will need to change into your output directory.
 
 ```commandline
 mkdir <path to your output_dir>/upload_1
-python /dls/science/groups/i04-1/software/xchem-align/scripts/collate.py -c <your upload config file>
+python -m xchemalign.collator -c <your upload config file>
 ```
 
 Warning: collation can take a long time, please be patient.
@@ -314,10 +314,11 @@ Warning: collation can take a long time, please be patient.
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-python /dls/science/groups/i04-1/software/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies file>
+python xchemalign.aligner -d <your upload directory> -a <your assemblies file>
 ```
 Note: the -a option is only needed if your assemblies file is not named `assemblies.yaml` and is not in `base_dir`.
 
+Warning: aligner can take an even longer time, please be patient.
 
 ## 5. Upload to Fragalysis
 
@@ -355,9 +356,11 @@ and then re-run *collator* and *aligner*. The commands will look like this:
 
 ```commandline
 mkdir <path to your output_dir>/upload_2
-python /dls/science/groups/i04-1/software/xchem-align/scripts/collate.py -c <your upload config file>
-python /dls/science/groups/i04-1/software/xchem-align/scripts/align.py -d <your upload directory> -a <your assemblies file>
+python -m xchemalign.collator -c <your upload config file>
+python -m xchemalign.aligner -d <your upload directory> -a <your assemblies file>
 ```
+
+As before, the `-a` argument is not needed if you follow the conventions for the filename and locations.
 
 For a third version it's the same, just create and use a directory named `upload_3`.
 
@@ -528,16 +531,12 @@ source /dls/science/groups/i04-1/software/xchem-align-staging/act
 conda activate /dls/science/groups/i04-1/software/xchem-align-staging/env_xchem_align
 ```
 
-## Collate
+## Execution
 
+Just as before:
 ```commandline
-python /dls/science/groups/i04-1/software/xchem-align-staging/scripts/collate.py -c <your upload config file>
-```
-
-## Align
-
-```commandline
-python /dls/science/groups/i04-1/software/xchem-align-staging/scripts/align.py -d <your upload directory> -a <your assemblies file>
+python -m xchemalign.collate -c <your upload config file>
+python -m xchemalign.aligner -d <your upload directory>
 ```
 
 # Non-Diamond instructions
@@ -547,7 +546,8 @@ python /dls/science/groups/i04-1/software/xchem-align-staging/scripts/align.py -
 
 ## 1. Setting up runtime environment _(only once)_
 
-_You will need to install Python if you don't have it already. Conda/Miniconda are the easiest way to do this. You will need to create a new environment with specifically python=3.10_
+_You will need to install Python if you don't have it already. Conda/Miniconda are the easiest way to do this.
+You will need to create a new environment with specifically python=3.10 or 3.11.
 
 To run the XChemAlign tools you need to setup a Python environment.
 This is described in more detail in the [Developer guide](DEV-GUIDE.md), but just to run the tools do this:
@@ -557,7 +557,7 @@ This is described in more detail in the [Developer guide](DEV-GUIDE.md), but jus
     pip install --upgrade pip
     pip install .
 
-Make sure you use Python 3.10. Earlier versions will not work, and later ones have not been tested.
+Make sure you use Python 3.10 or 3.11.
 Those steps just install what you need to run the tools, not to develop them.
 You only need to set up this environment once.
 
