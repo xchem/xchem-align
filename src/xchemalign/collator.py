@@ -16,6 +16,7 @@ from pathlib import Path
 import shutil
 import datetime
 import re
+import time
 import traceback
 from distutils import dir_util
 import yaml
@@ -161,6 +162,7 @@ class Collator:
         self.new_or_updated_xtals = None
         self.compound_codes = {}
         self.compound_smiles = {}
+        self.num_crystals = 0
         if not log_file:
             log_file = self.output_path / 'collator.log'
         self.logger = utils.Logger(logfile=log_file, level=log_level)
@@ -742,6 +744,7 @@ class Collator:
 
             event_tables = self._find_event_tables()
             forbidden_unattested_ligand_events = {}
+            pdb_count = 0
             for xtal_name, xtal in meta[Constants.META_XTALS].items():
                 dir = cryst_path / xtal_name
 
@@ -900,6 +903,7 @@ class Collator:
                             "Failed to copy PDB file {} to {}".format(fdata[0], self.output_path / fdata[1])
                         )
                     else:
+                        pdb_count += 1
                         data_to_add[Constants.META_XTAL_PDB] = {
                             Constants.META_FILE: str(fdata[1]),
                             Constants.META_SHA256: fdata[2],
@@ -1053,6 +1057,8 @@ class Collator:
                         # Add data on the ligand binding events to the new dataset to add
                         if ligand_binding_events:
                             data_to_add[Constants.META_BINDING_EVENT] = ligand_binding_events
+
+                self.num_crystals = pdb_count
 
                 new_xtal_data = {}
                 for k, v in historical_xtal_data.items():
@@ -1305,8 +1311,11 @@ def main():
             logger.close()
             exit(1)
         else:
+            t0 = time.time()
             c.run(meta)
+            t1 = time.time()
             # write a summary of errors and warnings
+            logger.info("Handled {} crystals in {} secs".format(c.num_crystals, round(t1 - t0)))
             logger.report()
             logger.close()
             if logger.logfilename:

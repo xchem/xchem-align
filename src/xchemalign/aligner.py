@@ -14,6 +14,7 @@ import argparse
 import os
 import traceback
 import shutil
+import time
 from pathlib import Path
 
 import yaml
@@ -207,6 +208,7 @@ class Aligner:
             self.logger = logger
         else:
             self.logger = utils.Logger()
+        self.num_alignments = 0
         self.errors = []
         self.warnings = []
 
@@ -802,6 +804,7 @@ class Aligner:
         self.logger.info('extracting components')
 
         num_errors = 0
+        num_pdbs = 0
         for k1, v1 in aligner_meta.get(Constants.META_XTALS, {}).items():  # k = xtal
             if Constants.META_ALIGNED_FILES in v1:
                 self.logger.info('handling', k1)
@@ -811,7 +814,6 @@ class Aligner:
                     .get(Constants.META_XTAL_CIF, {})
                     .get(Constants.META_FILE)
                 )
-
                 for k2, v2 in v1[Constants.META_ALIGNED_FILES].items():  # chain
                     for k3, v3 in v2.items():  # ligand
                         for k4, v4 in v3.items():  # version
@@ -830,6 +832,7 @@ class Aligner:
                                         self.logger.error("validation errors - can't extract components")
                                         num_errors += 1
                                     else:
+                                        num_pdbs += 1
                                         pdbxtal.create_apo_file()
                                         pdbxtal.create_apo_solv_desolv()
 
@@ -866,6 +869,7 @@ class Aligner:
                                                 )
                                                 traceback.print_exc()
 
+        self.num_alignments = num_pdbs
         return num_errors
 
 
@@ -901,7 +905,10 @@ def main():
             logger.error("There are errors, cannot continue")
             exit(1)
         else:
+            t0 = time.time()
             a.run()
+            t1 = time.time()
+            logger.info("Handled {} alignments in {} secs".format(a.num_alignments, round(t1 - t0)))
             # write a summary of errors and warnings
             logger.report()
             logger.close()
