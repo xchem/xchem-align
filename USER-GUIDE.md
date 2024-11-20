@@ -314,7 +314,7 @@ Warning: collation can take a long time, please be patient.
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-python xchemalign.aligner -d <your upload directory> -a <your assemblies file>
+python -m xchemalign.aligner -d <your upload directory> -a <your assemblies file>
 ```
 Note: the -a option is only needed if your assemblies file is not named `assemblies.yaml` and is not in `base_dir`.
 
