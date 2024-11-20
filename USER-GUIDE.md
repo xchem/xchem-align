@@ -524,6 +524,12 @@ inputs:  # The datasources to collate
 
 A separate version of XCA is deployed at `/dls/science/groups/i04-1/software/xchem-align-staging` for the testing new/experimental features. Depending on the status of the Fragalysis codebase, may also be required for upload to the staging version of Fragalysis. You should by default use the regular deployment, but if someone has told you to use the "staging" version of XCA these are the slightly modified commands from above:
 
+## Only the very first time you use the staging environment:
+
+```commandline
+git config --global --add safe.directory /dls/science/groups/i04-1/software/xchem-align-staging
+```
+
 ## Activate the environment
 
 ```commandline
