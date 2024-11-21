@@ -543,6 +543,7 @@ Just as before:
 ```commandline
 python -m xchemalign.collator -c <your upload config file>
 python -m xchemalign.aligner -d <your upload directory>
+tar cvfz <target_name>.tgz upload_1
 ```
 
 # Non-Diamond instructions
