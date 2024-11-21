@@ -541,7 +541,7 @@ conda activate /dls/science/groups/i04-1/software/xchem-align-staging/env_xchem_
 
 Just as before:
 ```commandline
-python -m xchemalign.collate -c <your upload config file>
+python -m xchemalign.collator -c <your upload config file>
 python -m xchemalign.aligner -d <your upload directory>
 ```
 
