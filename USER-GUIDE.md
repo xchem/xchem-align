@@ -114,6 +114,8 @@ You will need to create the directory you specified in `output_dir`, i.e. `outpu
 Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either
 having sensible default values or not necessarily needing values.
 
+Any datasets you specify in the `config.yaml`, including as references in `ref_datasets` must be found in one of the directories specified in `inputs`.
+
 #### Diamond Datasets
 
 For the inputs that are of type `model_building` (e.g. come from Diamond) the corresponding soakdb file is inspected
