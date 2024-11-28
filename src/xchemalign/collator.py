@@ -328,6 +328,7 @@ class Collator:
             Constants.CONFIG_CONFIG_FILE: self.config_file,
             Constants.META_INPUT_DIRS: input_dirs,
             Constants.CONFIG_OUTPUT_DIR: str(self.output_path),
+            Constants.META_DATA_FORMAT_VERSION: utils.DATA_FORMAT_VERSION,
             Constants.META_VERSION_NUM: self.version_number,
             Constants.META_VERSION_DIR: str(self.version_dir),
             Constants.META_PREV_VERSION_DIRS: prev_version_dirs_str,
@@ -679,6 +680,22 @@ class Collator:
         num_old_metas = len(self.meta_history)
         if num_old_metas:
             self.logger.info("found {} metadata files from previous versions".format(num_old_metas))
+            last_meta = self.meta_history[-1]
+            last_data_format_version = last_meta.get(utils.Constants.META_DATA_FORMAT_VERSION)
+            self.logger.info(
+                "Data format versions: current="
+                + str(utils.DATA_FORMAT_VERSION)
+                + " previous="
+                + str(last_data_format_version)
+            )
+            if last_data_format_version is None:
+                self._log_warning(
+                    "Previous data format version not defined - cannot determine compatibility"
+                    + " with current version"
+                )
+            elif utils.check_data_format_version(last_data_format_version) < 0:
+                self._log_error("Old upload version found that is incompatible with this version of XCA")
+                exit(1)
 
         return v_dir
 

@@ -13,6 +13,7 @@
 import atexit
 import datetime
 import hashlib
+import math
 import os
 from pathlib import Path
 import sys
@@ -155,6 +156,7 @@ class Constants:
     META_GIT_INFO_DIRTY = "dirty"
     META_CODE_PREFIX = "code_prefix"
     META_CODE_PREFIX_TOOLTIPS = "code_prefix_tooltips"
+    META_DATA_FORMAT_VERSION = "data_format_version"
     SOAKDB_XTAL_NAME = "CrystalName"
     SOAKDB_COL_PDB = "RefinementBoundConformation"
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
@@ -461,6 +463,27 @@ def parse_compound_smiles(val: str):
         tokens2 = token1.strip().split(' ')
         result.append(tokens2)
     return result
+
+
+# the integer part is the major version number (increment when the data format changes in an incompatible way)
+# the decimal part is the minor version number (something changed in XCA but does not impact the data format)
+DATA_FORMAT_VERSION = 1.0
+
+
+def check_data_format_version(ver_to_check):
+    """
+    Check the data format version
+    :param ver_to_check: the version of an older XCA run
+    :return: -1 if the major version has changed, +1 if the minor version has changed, 0 if the version is unchanged
+    """
+    my_major_ver = math.floor(DATA_FORMAT_VERSION)
+    check_major_ver = math.floor(ver_to_check)
+    if my_major_ver > check_major_ver:
+        return -1
+    if DATA_FORMAT_VERSION == ver_to_check:
+        return 0
+    else:
+        return 1
 
 
 def main():
