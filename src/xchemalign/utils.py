@@ -385,14 +385,14 @@ def gen_mols_from_cif(cif_file):
         atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
         # coordinates are sometimes called "x" and sometimes "model_Cartn_x" etc.
         x = block.find_loop('_chem_comp_atom.x')
-        if not x:
-            x = block.find_loop('_chem_comp_atom.model_Cartn_x')
+        # if not x:
+        #     x = block.find_loop('_chem_comp_atom.model_Cartn_x')
         y = block.find_loop('_chem_comp_atom.y')
-        if not y:
-            y = block.find_loop('_chem_comp_atom.model_Cartn_y')
+        # if not y:
+        #     y = block.find_loop('_chem_comp_atom.model_Cartn_y')
         z = block.find_loop('_chem_comp_atom.z')
-        if not z:
-            z = block.find_loop('_chem_comp_atom.model_Cartn_z')
+        # if not z:
+        #     z = block.find_loop('_chem_comp_atom.model_Cartn_z')
         charges = [0] * len(atom_ids)
         if block.find_loop('_chem_comp_atom.charge'):
             charges = list(block.find_loop('_chem_comp_atom.charge'))
