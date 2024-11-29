@@ -431,10 +431,17 @@ def gen_mols_from_cif(cif_file):
         if not bond_type:
             bond_type = block.find_loop('_chem_comp_bond.value_order')
 
-        for a1, a2, bt in zip(atom1, atom2, bond_type):
-            mol.AddBond(
-                atoms[strip_quotes(a1)].GetIntProp('idx'), atoms[strip_quotes(a2)].GetIntProp('idx'), BOND_TYPES[bt]
-            )
+        try:
+            for a1, a2, bt in zip(atom1, atom2, bond_type):
+                print([a1, a2, bt])
+                mol.AddBond(
+                    atoms[strip_quotes(a1)].GetIntProp('idx'), atoms[strip_quotes(a2)].GetIntProp('idx'), BOND_TYPES[bt]
+                )
+        except:
+            print('atoms')
+            print(atoms)
+
+            raise Exception
 
         Chem.SanitizeMol(mol)
         mol.AddConformer(conf)
