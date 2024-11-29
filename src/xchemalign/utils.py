@@ -440,7 +440,20 @@ def gen_mols_from_cif(cif_file):
         except:
             print('atoms')
             print(atoms)
-
+            print('comp ids')
+            print(comp_ids)
+            print('atom symbols')
+            print(atom_symbols)
+            print('atom ids')
+            print(atom_ids)
+            print('x')
+            print(x)
+            print('y')
+            print(y)
+            print('z')
+            print(z)
+            print('charges')
+            print(charges)
             raise Exception
 
         Chem.SanitizeMol(mol)
