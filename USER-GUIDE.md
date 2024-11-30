@@ -274,6 +274,8 @@ the mapping between chains in the PDB file (`chains`) to chains in the assembly 
 i.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains
 **C,E,A** in the **largecellpdb**.
 
+**If you are looking for the symmetry operator in coot**: draw > cell and symmetry > master switch: show symmetry atoms > apply. Double click on one of the atoms that is part of the symmetry image of the molecule that forms the biological assembly. This will show the operator in the bottom bar of the UI.
+
 ### 2.3 Example configs
 
 Here are some example configs that you can look at and run to hel get your head round how all this works.
