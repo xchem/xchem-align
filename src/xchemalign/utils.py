@@ -360,6 +360,7 @@ def gen_mols_from_cif(cif_file):
     :param cif_file: The CIF file to read
     :return: A list of molecules found in the CIF
     """
+    print(cif_file)
     doc = cif.read(str(cif_file))
 
     ligand_blocks = []
