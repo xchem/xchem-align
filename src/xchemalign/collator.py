@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import shutil
 import datetime
+import math
 import re
 import time
 import traceback
@@ -137,17 +138,18 @@ class Input:
 
 
 class Collator:
-    def __init__(self, config_file, log_file=None, log_level=0, include_git_info=False):
+    def __init__(self, working_dir, log_file=None, log_level=0, include_git_info=False):
         self.errors = []
         self.warnings = []
-        self.config_file = config_file
+        self.working_dir = Path(working_dir)
+        self.config_file = self.working_dir / 'upload-current' / 'config.yaml'
         self.include_git_info = include_git_info
 
-        config = utils.read_config_file(config_file)
+        config = utils.read_config_file(self.config_file)
         self.config = config
 
         self.base_path = utils.find_path(config, Constants.CONFIG_BASE_DIR)
-        self.output_path = utils.find_path(config, Constants.CONFIG_OUTPUT_DIR)
+        self.output_path = self.working_dir / 'upload-current'
 
         self.target_name = utils.find_property(config, Constants.CONFIG_TARGET_NAME)
 
@@ -239,6 +241,36 @@ class Collator:
         self.logger.warn(msg)
         self.warnings.append(msg)
 
+    def _migrate_version(self):
+        self.logger.info("migrating data for new data format version", utils.DATA_FORMAT_VERSION)
+
+        new_version_dirname = 'upload-v' + str(math.floor(utils.DATA_FORMAT_VERSION))
+        new_version_path = self.working_dir / new_version_dirname
+        self.logger.info("creating new working dir", new_version_path)
+        os.mkdir(new_version_path)
+        os.mkdir(new_version_path / 'upload_1')
+        self.logger.info("copying config.yaml and assemblies.yaml")
+        f = shutil.copy2(self.output_path / 'config.yaml', new_version_path)
+        f = shutil.copy2(self.output_path / 'assemblies.yaml', new_version_path)
+        self.logger.info("removing", self.output_path, 'symlink')
+        self.output_path.unlink()
+        self.logger.info("creating symlink", self.output_path, '->', new_version_path)
+        cwd = Path.cwd()
+        os.chdir(self.working_dir)
+        os.symlink(new_version_dirname, 'upload-current', target_is_directory=True)
+        os.chdir(cwd)
+        self.logger.info(
+            "A new directory",
+            new_version_dirname,
+            "for data format version",
+            utils.DATA_FORMAT_VERSION,
+            "has been created and the current config.yaml and assemblies.yaml",
+            "have been copied there.",
+            "\n      It is possible that you might need to update those files.",
+            "\n      The old data is in a directory named upload_v? where ? is the old version number",
+            "\n      Once ready you can re-run collator using the same command you just used.",
+        )
+
     def validate(self):
         v_dir = self.read_versions()
         if not v_dir:
@@ -325,7 +357,7 @@ class Collator:
         meta = {
             Constants.META_RUN_ON: str(datetime.datetime.now()),
             Constants.CONFIG_CWD: cwd,
-            Constants.CONFIG_CONFIG_FILE: self.config_file,
+            Constants.CONFIG_CONFIG_FILE: str(self.config_file),
             Constants.META_INPUT_DIRS: input_dirs,
             Constants.CONFIG_OUTPUT_DIR: str(self.output_path),
             Constants.META_DATA_FORMAT_VERSION: utils.DATA_FORMAT_VERSION,
@@ -695,13 +727,14 @@ class Collator:
                 )
             elif utils.check_data_format_version(last_data_format_version) < 0:
                 self._log_error("Old upload version found that is incompatible with this version of XCA")
+                self._migrate_version()
                 exit(1)
 
         return v_dir
 
     def read_metadata(self, version_dir):
-        self.logger.info("reading metadata for version {}".format(version_dir))
         meta_file = version_dir / Constants.METADATA_XTAL_FILENAME.format("")
+        self.logger.info("reading metadata for version {}".format(version_dir), meta_file)
 
         meta = utils.read_config_file(str(meta_file))
         return meta
@@ -1307,7 +1340,7 @@ class Collator:
 def main():
     parser = argparse.ArgumentParser(description="collator")
 
-    parser.add_argument("-c", "--config-file", default="config.yaml", help="Configuration file")
+    parser.add_argument("-d", "--dir", help="Working directory")
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
@@ -1315,7 +1348,8 @@ def main():
 
     args = parser.parse_args()
 
-    c = Collator(args.config_file, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
+    c = Collator(args.dir, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
+
     logger = c.logger
     logger.info("collator: ", str(args))
 

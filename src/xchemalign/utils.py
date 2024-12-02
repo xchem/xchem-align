@@ -300,6 +300,7 @@ def to_datetime(datetime_str):
 
 
 def read_config_file(filename):
+    filename = str(filename)  # in case it's a path
     if os.path.isfile(filename):
         if filename.endswith(".yaml"):
             with open(filename, "r") as stream:
@@ -467,7 +468,7 @@ def parse_compound_smiles(val: str):
 
 # the integer part is the major version number (increment when the data format changes in an incompatible way)
 # the decimal part is the minor version number (something changed in XCA but does not impact the data format)
-DATA_FORMAT_VERSION = 1.0
+DATA_FORMAT_VERSION = 3.2
 
 
 def check_data_format_version(ver_to_check):
