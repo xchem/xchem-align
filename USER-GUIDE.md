@@ -375,8 +375,8 @@ tar xvfz example-simple.tgz
 
 Take a look at the two configuration files which are:
 
-* example-simple/work/config_1.yaml
-* example-simple/work/assemblies.yaml
+* example-simple/wdir/config.yaml
+* example-simple/wdir/assemblies.yaml
 
 You can run XChemAlign with this data using the instructions in the example-simple/README.txt file.
 
