@@ -195,8 +195,6 @@ inputs:        # The datasources to collate
     type: manual       # each downloaded pdb file (cif!) and corresponding .mtz file are put in this dir.
 ```
 
-You will need to create the directory you specified in `output_dir`, i.e. `output/xchemalign`.
-
 Note that the `extra_files_dir`, `soakdb`, `exclude` and `panddas_missing_ok` items are optional, either
 having sensible default values or not necessarily needing values.
 
