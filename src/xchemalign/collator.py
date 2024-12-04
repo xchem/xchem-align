@@ -20,6 +20,8 @@ import re
 import time
 import traceback
 from distutils import dir_util
+from distutils.dir_util import copy_tree
+
 import yaml
 
 import gemmi
@@ -31,6 +33,7 @@ from rdkit import Chem
 from xchemalign import dbreader
 from xchemalign import utils
 from xchemalign import repo_info
+from xchemalign import setup
 from xchemalign.utils import Constants
 
 
@@ -141,8 +144,11 @@ class Collator:
     def __init__(self, working_dir, log_file=None, log_level=0, include_git_info=False):
         self.errors = []
         self.warnings = []
+
         self.working_dir = Path(working_dir)
         self.config_file = self.working_dir / 'upload-current' / 'config.yaml'
+        if not self.config_file.is_file():
+            print(self.config_file, "not found")
         self.include_git_info = include_git_info
 
         config = utils.read_config_file(self.config_file)
@@ -165,6 +171,7 @@ class Collator:
         self.compound_codes = {}
         self.compound_smiles = {}
         self.num_crystals = 0
+
         if not log_file:
             log_file = self.output_path / 'collator.log'
         self.logger = utils.Logger(logfile=log_file, level=log_level)
@@ -242,34 +249,45 @@ class Collator:
         self.warnings.append(msg)
 
     def _migrate_version(self):
-        self.logger.info("migrating data for new data format version", utils.DATA_FORMAT_VERSION)
+        inp = input("Do you want an environment for a new version of your data creating? (Y/N)")
+        if inp == "Y" or inp == "y":
+            self.logger.info("migrating data for new data format version", utils.DATA_FORMAT_VERSION)
 
-        new_version_dirname = 'upload-v' + str(math.floor(utils.DATA_FORMAT_VERSION))
-        new_version_path = self.working_dir / new_version_dirname
-        self.logger.info("creating new working dir", new_version_path)
-        os.mkdir(new_version_path)
-        os.mkdir(new_version_path / 'upload_1')
-        self.logger.info("copying config.yaml and assemblies.yaml")
-        f = shutil.copy2(self.output_path / 'config.yaml', new_version_path)
-        f = shutil.copy2(self.output_path / 'assemblies.yaml', new_version_path)
-        self.logger.info("removing", self.output_path, 'symlink')
-        self.output_path.unlink()
-        self.logger.info("creating symlink", self.output_path, '->', new_version_path)
-        cwd = Path.cwd()
-        os.chdir(self.working_dir)
-        os.symlink(new_version_dirname, 'upload-current', target_is_directory=True)
-        os.chdir(cwd)
-        self.logger.info(
-            "A new directory",
-            new_version_dirname,
-            "for data format version",
-            utils.DATA_FORMAT_VERSION,
-            "has been created and the current config.yaml and assemblies.yaml",
-            "have been copied there.",
-            "\n      It is possible that you might need to update those files.",
-            "\n      The old data is in a directory named upload_v? where ? is the old version number",
-            "\n      Once ready you can re-run collator using the same command you just used.",
-        )
+            new_version_dirname = 'upload-v' + str(math.floor(utils.DATA_FORMAT_VERSION))
+            new_version_path = self.working_dir / new_version_dirname
+            self.logger.info("creating new working dir", new_version_path)
+            os.mkdir(new_version_path)
+            os.mkdir(new_version_path / 'upload_1')
+            self.logger.info("copying config.yaml and assemblies.yaml")
+            f = shutil.copy2(self.output_path / 'config.yaml', new_version_path)
+            f = shutil.copy2(self.output_path / 'assemblies.yaml', new_version_path)
+            extra_files = Path(self.output_path / 'extra_files')
+            if extra_files.is_dir():
+                copy_tree(str(extra_files), str(new_version_path / 'extra_files'))
+            self.logger.info("removing", self.output_path, 'symlink')
+            self.output_path.unlink()
+            self.logger.info("creating symlink", self.output_path, '->', new_version_path)
+            cwd = Path.cwd()
+            os.chdir(self.working_dir)
+            os.symlink(new_version_dirname, 'upload-current', target_is_directory=True)
+            os.chdir(cwd)
+            self.logger.info(
+                "A new directory",
+                new_version_dirname,
+                "for data format version",
+                utils.DATA_FORMAT_VERSION,
+                "has been created and the current config.yaml and assemblies.yaml",
+                "have been copied there.",
+                "\n      It is possible that you might need to update those files.",
+                "\n      The old data is in a directory named upload_v? where ? is the old version number",
+                "\n      Once ready you can re-run collator using the same command you just used.",
+            )
+        else:
+            self.logger.info(
+                "You chose not to create an environment for a new version of the data. "
+                + "You will either need to do this manually, or re-run collator and choose to create one"
+            )
+            exit(0)
 
     def validate(self):
         v_dir = self.read_versions()
@@ -1337,6 +1355,20 @@ class Collator:
         return closest_event_maps
 
 
+def _check_working_dir(working_dir):
+    print("Using", working_dir, "as working dir")
+
+    if not working_dir.is_dir():
+        print("Working dir {} does not exist".format(working_dir))
+        exit(1)
+
+    current_dir = working_dir / 'upload-current'
+    if current_dir.is_symlink():
+        return 0
+    else:
+        return 1
+
+
 def main():
     parser = argparse.ArgumentParser(description="collator")
 
@@ -1348,7 +1380,21 @@ def main():
 
     args = parser.parse_args()
 
-    c = Collator(args.dir, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
+    if args.dir:
+        working_dir = Path(args.dir)
+    else:
+        working_dir = Path.cwd()
+
+    if _check_working_dir(working_dir):
+        print("Working dir does not seem to have been initialised - missing 'upload_current' symlink")
+        inp = input("Do you want the working dir to be initialised? (Y/N)")
+        if inp == "Y" or inp == "y":
+            print("Initialising working dir")
+            s = setup.Setup(args.dir)
+            s.run()
+        exit(1)
+
+    c = Collator(working_dir, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
 
     logger = c.logger
     logger.info("collator: ", str(args))

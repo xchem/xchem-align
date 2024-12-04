@@ -194,23 +194,56 @@ def get_datasets_from_crystals(
 
 
 class Aligner:
-    def __init__(self, version_dir, metadata, assemblies, logger=None):
-        self.version_dir = Path(version_dir)  # e.g. path/to/upload_1
-        self.base_dir = self.version_dir.parent  # e.g. path/to
-        self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
-        self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES  # e.g. path/to/upload_1/crystallographic_files
-        self.metadata_file = self.version_dir / metadata  # e.g. path/to/upload_1/meta_collator.yaml
-        if assemblies:
-            self.assemblies_file = Path(assemblies)
-        else:
-            self.assemblies_file = self.base_dir / Constants.ASSEMBLIES_FILENAME  # e.g. path/to/assemblies.yaml
+    def __init__(self, dir, logger=None):
+        self.num_alignments = 0
+        self.errors = []
+        self.warnings = []
         if logger:
             self.logger = logger
         else:
             self.logger = utils.Logger()
-        self.num_alignments = 0
-        self.errors = []
-        self.warnings = []
+        self._find_version_dir(dir)  # sets self.working_dir and self.version_dir
+        self.base_dir = self.version_dir.parent  # e.g. path/to
+        self.aligned_dir = (
+            self.version_dir / Constants.META_ALIGNED_FILES
+        )  # e.g. upload-current/upload_1/aligned_files
+        self.xtal_dir = (
+            self.version_dir / Constants.META_XTAL_FILES
+        )  # e.g. upload-current/upload_1/crystallographic_files
+        self.metadata_file = (
+            self.version_dir / Constants.METADATA_COLLATOR_FILENAME
+        )  # e.g. upload-current/upload_1/meta_collator.yaml
+        self.assemblies_file = (
+            self.base_dir / Constants.ASSEMBLIES_FILENAME
+        )  # e.g. upload-current/upload_1/assemblies.yaml
+
+    def _find_version_dir(self, dir):
+        if dir:
+            self.working_dir = Path(dir)
+        else:
+            self.working_dir = Path.cwd()
+
+        if not self.working_dir.is_dir():
+            self._log_error("Working dir {} does not exist".format(self.working_dir))
+            exit(1)
+
+        current_dir = self.working_dir / 'upload-current'
+        if not current_dir.is_symlink():
+            self._log_error(
+                "Working dir {} does not seem well formed - missing 'upload_current' symlink".format(self.working_dir)
+            )
+            exit(1)
+
+        i = 0
+        while True:
+            i += 1
+            version_dir = current_dir / ('upload_' + str(i))
+            if version_dir.is_dir():
+                self.version_dir = version_dir
+            else:
+                break
+
+        self.logger.info("Using", version_dir, "as current version dir")
 
     def _log_error(self, msg):
         self.logger.error(msg)
@@ -236,7 +269,7 @@ class Aligner:
             if not p.is_file():
                 self._log_error("metadata file {} is not a file. Did the collator step run successfully?".format(p))
 
-            p = Path(self.assemblies_file)
+            p = self.assemblies_file
             if not p.exists():
                 self._log_error("assemblies.yaml file {} does not exist".format(p))
             elif not p.is_file():
@@ -247,6 +280,16 @@ class Aligner:
     def run(self):
         self.logger.info("Running aligner...")
         input_meta = utils.read_config_file(str(self.metadata_file))
+        collator_ver = input_meta.get(Constants.META_DATA_FORMAT_VERSION)
+        if utils.DATA_FORMAT_VERSION != collator_ver:
+            self._log_error(
+                "Collator was run with a different data format version ({}). Current version is {}. "
+                + "You must re-run collator so that it uses this version".format(
+                    collator_ver, utils.DATA_FORMAT_VERSION
+                )
+            )
+            exit(1)
+
         new_meta = self._perform_alignments(input_meta)
         self._write_output(input_meta, new_meta)
 
@@ -876,28 +919,23 @@ class Aligner:
 def main():
     parser = argparse.ArgumentParser(description="aligner")
 
-    parser.add_argument("-d", "--version-dir", required=True, help="Path to version dir")
-    parser.add_argument(
-        "-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME.format(""), help="Metadata YAML file"
-    )
-    parser.add_argument("-a", "--assemblies", help="Assemblies YAML file")
+    parser.add_argument("-d", "--dir", help="Working directory")
 
-    parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("--validate", action="store_true", help="Only perform validation")
 
     args = parser.parse_args()
 
-    if args.log_file:
-        log = args.log_file
+    if args.dir:
+        log = str(Path(args.dir) / 'aligner.log')
     else:
-        log = str(Path(args.version_dir).parent / 'aligner.log')
-        print("Using {} for log file".format(str(log)))
+        log = 'aligner.log'
 
     logger = utils.Logger(logfile=log, level=args.log_level)
     logger.info("aligner: ", args)
+    logger.info("Using {} for log file".format(str(log)))
 
-    a = Aligner(args.version_dir, args.metadata_file, args.assemblies, logger=logger)
+    a = Aligner(args.dir, logger=logger)
     num_errors, num_warnings = a.validate()
 
     if not args.validate:

@@ -54,17 +54,104 @@ conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
 
 ## 2. Declaring things
 
-In order to run XChemAlign you will need to create two files:
-1. The config.yaml file
-2. The assemblies.yaml file
+### 2.1 Versioning
 
-Both of these files will need to be in a new output directory that you create (e.g. `output/xchemalign`) in your dataset, this is the path to add to the `output_dir` in `config.yaml`.
+Starting in Dec 2024, XChemAlign implemented a more formal approach to versioning the data that it generates.
+A new `data_format_version` property was introduced (included in the output metadata) that describes the version of the
+data that is generated. This corresponds to a major and minor version number written as major.minor (e.g. 2.3).
+A change to the minor version number (e.g. 2.3 -> 2.4) means that XCA changed, but that either there were no changes to
+the data that is generated or the changes are accommodated automatically.
+A change to the major version (e.g. 2.3 -> 3.0) means that the data is now incompatible with previously generated data,
+and you will need to regenerate all the data starting with `upload_1`, remove the current data for your target from
+Fragalysis and load it again (potentially loosing some tagging information and snapshots). We try to avoid having major version
+changes, but sometimes this is unavoidable.
+
+To facilitate handling this versioning, the way XCA works has been changed, resulting in a different way you need to
+setup the data for your project. You now need a *working directory* and in that directory are directories for each
+major version. This might look like this:
+
+```
+working-directory / upload-current
+                  / upload-v2 / upload_1
+                              / upload_2
+                              / upload_3
+                  / upload-v3 / upload_1
+```
+
+That scenario models the case when the data model version has just changed from 2 to 3. A new directory has been created
+for the v3 data and the old v2 data is still there in case you need to look at it. The `upload-current` directory is a
+symbolic link to the latest version directory (e.g. `upload-v3`).
+
+You do not need to worry too much about this as XCA will handle this for you automatically. You just need to tell it where
+your `working-directory` is, or if you don't it uses the current directory. And the `working-directory` does not have to
+be named `working-directory`, it can have any name.
+
+Your actions to set this up need to be:
+
+1. Create a working directory e.g. `mkdir xchem-align`
+2. cd into it (or use the `-d` arguments when you run `collator` and `aligner`)
+3. Run `collator` - it will notice that the working directory has not been initialised and will create the `upload-v?`
+   directory and the `upload-current` symbolic link, and dummy `config.yaml` and `assemblies.yaml` files.
+4. Edit the `config.yaml` and `assemblies.yaml` files (see below)
+5. Run collator again and it will recognise that everything is now present and will run
+6. Run aligner
+
+When running `collator` for the first time you will see something like this if the working directory needs to be
+initialised:
+```
+Using wdir as working dir
+Working dir does not seem to have been initialised - missing 'upload_current' symlink
+Do you want the working dir to be initialised? (Y/N)y
+Initialising working dir
+INFO: initialising logging at level 0 at 2024-12-04 11:13:37.049101
+INFO: Using wdir as working dir
+INFO: Current data format version is 2.1
+INFO: Your working environment has been set up in wdir/upload-current
+INFO: In there you will find dummy config.yaml and assemblies.yaml files
+INFO: You will need to edit these as described in the User Guide.
+INFO: Then you can run collator like this (omit the -d argument if you are already in that directory):
+      python -m xchemalign.collator -d wdir
+```
+
+If you run `collator` when the major data format version has changed `collator` will offer to automatically migrate
+your environment and create a new directory for the new version (the old data will still be kept). You will see
+something like this:
+```
+Using wdir as working dir
+INFO: initialising logging at level 0 at 2024-12-04 11:19:13.425034
+INFO: found 2 inputs
+INFO: adding input dls/labxchem/data/lb32627/lb32627-66 with 8 panddas event maps
+INFO: adding input reference
+INFO: collator:  Namespace(dir='wdir', log_file=None, log_level=0, validate=False, no_git_info=True)
+INFO: version is 2
+INFO: reading metadata for version 1
+INFO: reading metadata for version wdir/upload-current/upload_1 wdir/upload-current/upload_1/meta_collator.yaml
+INFO: setting version dir to upload_2
+INFO: found 1 metadata files from previous versions
+INFO: Data format versions: current=3.0 previous=2.2
+ERROR: Old upload version found that is incompatible with this version of XCA
+Do you want an environment for a new version of your data creating? (Y/N)y
+INFO: migrating data for new data format version 3.0
+INFO: creating new working dir wdir/upload-v3
+INFO: copying config.yaml and assemblies.yaml
+INFO: removing wdir/upload-current symlink
+INFO: creating symlink wdir/upload-current -> wdir/upload-v3
+INFO: A new directory upload-v3 for data format version 3.0 has been created and the current config.yaml and assemblies.yaml have been copied there.
+      It is possible that you might need to update those files.
+      The old data is in a directory named upload_v? where ? is the old version number
+      Once ready you can re-run collator using the same command you just used.
+```
+
+After that just re-run your `collator` command and it will perform its work in the new directory it has created for the
+current version.
+
+Now we look into the `config.yaml` and `assemblies.yaml` files.
 
 Working with YAML files can be difficult at first. Free tools such as [yamlchecker.com](https://yamlchecker.com) may help you learn and check the syntax.
 
 ### 2.1. The Config Yaml
 
-The config yaml defines what data to collect for collation. This includes raw crystalographic data, PanDDA data and ligand information.
+The config yaml defines what data to collect for collation. This includes raw crystallographic data, PanDDA data and ligand information.
 
 ```yaml
 # DO NOT USE TABS FOR THE WHITESPACE!
@@ -72,16 +159,15 @@ The config yaml defines what data to collect for collation. This includes raw cr
 target_name: Mpro        # The name of your target.
                          # ??~~If adding to data already on Fragalysis, use that 'target' name~~??
 
-base_dir: /some/path/to/test-data/inputs_1   # All _inputs_ are relative to this directory.
+base_dir: /                                  # All _inputs_ are relative to this directory.
                                              # This is usually '/', certainly at Diamond
+# NOTE: output_dir is no longer needed
 
-output_dir: /some/path/to/test-data/outputs  # Directory where ALL uploads folders go.
-                                             # Must be an absolute path, NOT relative to base_dir
 extra_files_dir: path/to/extra_files         # Optional directory where your extra files are located
-                                             # Defaults to extra_files in the output_dir
+                                             # Defaults to extra_files in the current version directory
 ref_datasets:        # List of datasets with reference conformations; these get aligned to every ligand binding site.
                      # You generally want at least one for each major class of conformation
-- Mpro-IBM0045       # Provide here the crystal ids as they appears in the model_building directory
+- Mpro-IBM0045       # Provide here the crystal ids as they appear in the model_building directory
 - Mpro-IBM0175
 
 panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
@@ -201,8 +287,8 @@ soaked SMILES of smiles3. Only use space to separate the modeled and soaked SMIL
 There is support for adding arbitrary extra files to the upload. These files are not used by Fragalysis but
 will be added to any downloads from Fragalysis.
 
-To add these either create a `extra_files` directory in your `output_dir` or if they are located elsewhere
-specify this location with the `extra_files_dir` option in the config file. These files will be copied to your
+To add these either create a `extra_files` directory in your version directory (e.g `upload-v2`) or if they are located
+elsewhere specify this location with the `extra_files_dir` option in the config file. These files will be copied to your
 `upload_?` dir and included in the upload.
 
 Some `extra_files` are generated automatically for you. These comprise:
@@ -261,7 +347,7 @@ XCA looks for all `LINK` records, selects only those involving the relevant liga
 example) and grafts the protein atom onto the ligand for each record (of course, usually there will only be a single
 one for each ligand).
 
-### 2.2. The assemblies YAML
+### 2.3. The assemblies YAML
 
 This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs.
 YAML has a strict formatting specification. Make sure to use spaces and not tabs for whitespace.
@@ -274,11 +360,11 @@ the mapping between chains in the PDB file (`chains`) to chains in the assembly 
 i.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains
 **C,E,A** in the **largecellpdb**.
 
-### 2.3 Example configs
+### 2.4 Example configs
 
 Here are some example configs that you can look at and run to hel get your head round how all this works.
 
-#### 2.3.1 Minimal simple example.
+#### 2.4.1 Minimal simple example.
 
 This example illustrates only the minimal required configuration.
 You will probably need to use additional configuration features, but this should help you understand the basics.
@@ -302,12 +388,15 @@ TODO - create a more complex example.
 
 The first step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
 
-You will need to change into your output directory.
-
 ```commandline
-mkdir <path to your output_dir>/upload_1
-python -m xchemalign.collator -c <your upload config file>
+python -m xchemalign.collator -d <your working dir>
 ```
+
+If you are already in your working dir you can leave out the `-d <your working dir>` bit.
+
+If your working dir has not already been initialised then this will be done for you.
+Once complete create the `config.yaml` and `assemblies.yaml` as described above and run collator again.
+Collator will now prepare your files ready for alignment.
 
 Warning: collation can take a long time, please be patient.
 
@@ -316,9 +405,10 @@ Warning: collation can take a long time, please be patient.
 The next step is performing local alignments of your ligand bound models and their associated crystallographic maps.
 
 ```commandline
-python -m xchemalign.aligner -d <your upload directory> -a <your assemblies file>
+python -m xchemalign.aligner -d <your working directory>
 ```
-Note: the -a option is only needed if your assemblies file is not named `assemblies.yaml` and is not in `base_dir`.
+
+Again, skip the `-d <your working directory>` bit if you are already in that dir.
 
 Warning: aligner can take an even longer time, please be patient.
 
@@ -326,12 +416,14 @@ Warning: aligner can take an even longer time, please be patient.
 
 An automatic tool for Fragalysis upload has not yet been written.
 
-To generate the gzipped tar file needed to manually upload the data move into your output dir and run this command
+To generate the gzipped tar file needed to manually upload the data move into your version dir and run this command
 (updating it for the specific upload version and target name):
 
 ```
 tar cvfz <target_name>.tgz upload_1
 ```
+
+Change `upload_1` to whatever your current upload is.
 
 **Staging vs production: there are two live versions of Fragalysis. "Staging" is used for testing and is in constant development, therefore it may be buggier and/or have new features with respect to "production" which is the stable and public deployment. You should test if your upload works in staging, and verify that the data has been uploaded correctly before uploading to production. Data in staging is "at risk" as we may have to wipe the data occassionally for development reasons.**
 
@@ -357,12 +449,10 @@ The data in `upload_1` must remain. Create a new directory named `upload_2` in t
 and then re-run *collator* and *aligner*. The commands will look like this:
 
 ```commandline
-mkdir <path to your output_dir>/upload_2
-python -m xchemalign.collator -c <your upload config file>
-python -m xchemalign.aligner -d <your upload directory> -a <your assemblies file>
+mkdir <path to your current version dir>/upload_2
+python -m xchemalign.collator -d <your working dir>
+python -m xchemalign.aligner -d <your working dir>
 ```
-
-As before, the `-a` argument is not needed if you follow the conventions for the filename and locations.
 
 For a third version it's the same, just create and use a directory named `upload_3`.
 
@@ -543,8 +633,8 @@ conda activate /dls/science/groups/i04-1/software/xchem-align-staging/env_xchem_
 
 Just as before:
 ```commandline
-python -m xchemalign.collator -c <your upload config file>
-python -m xchemalign.aligner -d <your upload directory>
+python -m xchemalign.collator -d <your working dir>
+python -m xchemalign.aligner -d <your working dir>
 tar cvfz <target_name>.tgz upload_1
 ```
 
@@ -598,7 +688,6 @@ A `config.yaml` file will look like this:
 
 ```yaml
 target_name: Mpro
-output_dir: data/outputs/Mpro
 
 scp:
   server: ssh.diamond.ac.uk
