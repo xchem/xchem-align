@@ -373,6 +373,7 @@ def main():
     args = parser.parse_args()
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
     logger.info("copier: ", args)
+    utils.LOG = logger
 
     input_dir = args.input_dir
     base_dir = None

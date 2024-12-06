@@ -934,6 +934,7 @@ def main():
     logger = utils.Logger(logfile=log, level=args.log_level)
     logger.info("aligner: ", args)
     logger.info("Using {} for log file".format(str(log)))
+    utils.LOG = logger
 
     a = Aligner(args.dir, logger=logger)
     num_errors, num_warnings = a.validate()

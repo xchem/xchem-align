@@ -1398,6 +1398,7 @@ def main():
 
     logger = c.logger
     logger.info("collator: ", str(args))
+    utils.LOG = logger
 
     meta = c.validate()
 

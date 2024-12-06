@@ -287,6 +287,26 @@ class Logger:
                 print("ERROR:", msg)
 
 
+# this is a bit of a hack to allow non-class methods to use the logger
+# reset it to the particular logger you need to use
+LOG = Logger()
+
+
+def _log_info(*args, **kwargs):
+    global LOG
+    LOG.info(*args, **kwargs)
+
+
+def _log_warn(*args, **kwargs):
+    global LOG
+    LOG.warn(*args, **kwargs)
+
+
+def _log_error(*args, **kwargs):
+    global LOG
+    LOG.error(*args, **kwargs)
+
+
 def gen_sha256(file):
     sha256_hash = hashlib.sha256()
     with open(file, "rb") as f:
@@ -403,12 +423,13 @@ def gen_mols_from_cif(cif_file):
 
         atoms = {}
         ligand_name = None
+        coords_ok = True
         for name, s, id, px, py, pz, charge in zip(comp_ids, atom_symbols, atom_ids, x, y, z, charges):
             # sometimes that atom ids are wrapped in double quotes
             if ligand_name is None:
                 ligand_name = name
             elif name != ligand_name:
-                print(
+                _log_info(
                     "WARNING: ligand name has changed from {} to {}. Old name will be used.".format(ligand_name, name)
                 )
 
@@ -424,8 +445,11 @@ def gen_mols_from_cif(cif_file):
             atom.SetIntProp('idx', idx)
             atoms[id] = atom
 
-            point = Geometry.Point3D(float(px), float(py), float(pz))
-            conf.SetAtomPosition(idx, point)
+            try:
+                point = Geometry.Point3D(float(px), float(py), float(pz))
+                conf.SetAtomPosition(idx, point)
+            except:
+                coords_ok = False
 
         atom1 = block.find_loop('_chem_comp_bond.atom_id_1')
         atom2 = block.find_loop('_chem_comp_bond.atom_id_2')
@@ -439,8 +463,15 @@ def gen_mols_from_cif(cif_file):
             )
 
         Chem.SanitizeMol(mol)
-        mol.AddConformer(conf)
-        Chem.AssignStereochemistryFrom3D(mol)
+        if coords_ok:
+            mol.AddConformer(conf)
+            Chem.AssignStereochemistryFrom3D(mol)
+        else:
+            msg = "3D coordinates missing for ligand {} in {}, stereochemistry may be incorrect".format(
+                ligand_name, cif_file
+            )
+            _log_warn(msg)
+
         mol = Chem.RemoveAllHs(mol)
 
         mol.SetProp('_Name', ligand_name)
