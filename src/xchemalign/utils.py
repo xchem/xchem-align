@@ -460,9 +460,15 @@ def gen_mols_from_cif(cif_file):
         try:
             for a1, a2, bt in zip(atom1, atom2, bond_type):
                 mol.AddBond(
-                    atoms[strip_quotes(a1)].GetIntProp('idx'), atoms[strip_quotes(a2)].GetIntProp('idx'), BOND_TYPES[bt]
+                    atoms[strip_quotes(a1)].GetIntProp('idx'),
+                    atoms[strip_quotes(a2)].GetIntProp('idx'),
+                    BOND_TYPES[bt],
                 )
         except:
+            print('CIF file')
+            print(cif_file)
+            print('Ligand')
+            print(ligand_name)
             print('atoms')
             print(atoms)
             print('comp ids')
