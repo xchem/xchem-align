@@ -1030,8 +1030,8 @@ class Collator:
 
                                     for i, mol in enumerate(mols):
                                         name = mol.GetProp("_Name")
-                                        smi = Chem.MolToSmiles(mol)
-                                        ligands[name] = {Constants.META_SMILES: smi}
+                                        smi = None
+                                        ligands[name] = {}
                                         if cpd_codes_is_valid:
                                             ligands[name][Constants.META_CMPD_CODE] = cpd_codes[i]
                                             compounds_auto.write(",".join((xtal_name, name, cpd_codes[i])) + "\n")
@@ -1042,6 +1042,13 @@ class Collator:
                                                 can_smi = Chem.MolToSmiles(m)
                                                 if can_smi:
                                                     ligands[name][Constants.META_MODELED_SMILES_CANON] = can_smi
+                                                    smi = can_smi
+                                                else:
+                                                    self._log_warning(
+                                                        "Could not generate canonical SMILES for the modelled SMILES "
+                                                        + "in SoakDB - instead using the non-canonical form"
+                                                    )
+                                                    smi = cpd_smiles[i][0]
                                             except:
                                                 self._log_warning(
                                                     'Failed to generate canonical smiles for '
@@ -1059,6 +1066,22 @@ class Collator:
                                                         'Failed to generate canonical smiles for '
                                                         + 'soaked molecule from soakDB'
                                                     )
+                                        if not smi:
+                                            try:
+                                                smi = Chem.MolToSmiles(mol)
+                                            except:
+                                                self._log_warning(
+                                                    "Failed to generate SMILES from CIF molecule for ligand " + name
+                                                )
+                                        if smi:
+                                            ligands[name][Constants.META_SMILES] = smi
+                                        else:
+                                            self._log_error(
+                                                "could not generate SMILES for "
+                                                + xtal_name
+                                                + " - not defined in SoakDB CompoundSMILES column "
+                                                + "and could not be generated from CIF file"
+                                            )
 
                                     if ligands:
                                         data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
