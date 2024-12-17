@@ -939,27 +939,43 @@ def main():
     logger.info("Using {} for log file".format(str(log)))
     utils.LOG = logger
 
-    a = Aligner(args.dir, logger=logger)
-    num_errors, num_warnings = a.validate()
+    try:
+        a = Aligner(args.dir, logger=logger)
+        num_errors, num_warnings = a.validate()
 
-    if not args.validate:
-        if num_errors:
-            logger.error("There are errors, cannot continue")
-            exit(1)
+        if not args.validate:
+            if num_errors:
+                logger.error("There are errors, cannot continue")
+                exit(1)
+            else:
+                t0 = time.time()
+                a.run()
+                t1 = time.time()
+                logger.info("Handled {} alignments in {} secs".format(a.num_alignments, round(t1 - t0)))
+                # write a summary of errors and warnings
+                logger.report()
+                logger.close()
+                if logger.logfilename:
+                    to_path = a.version_dir / 'aligner.log'
+                    print("copying log file", logger.logfilename, "to", to_path)
+                    f = shutil.copy2(logger.logfilename, to_path)
+                    if not f:
+                        print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
+    except:
+        # uncaught exception
+        tb = traceback.format_exc()
+        if args.dir:
+            wd = args.dir
         else:
-            t0 = time.time()
-            a.run()
-            t1 = time.time()
-            logger.info("Handled {} alignments in {} secs".format(a.num_alignments, round(t1 - t0)))
-            # write a summary of errors and warnings
-            logger.report()
-            logger.close()
-            if logger.logfilename:
-                to_path = a.version_dir / 'aligner.log'
-                print("copying log file", logger.logfilename, "to", to_path)
-                f = shutil.copy2(logger.logfilename, to_path)
-                if not f:
-                    print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
+            wd = Path.cwd()
+        logger.error(
+            "Unexpected fatal error occurred when running aligner\n"
+            + tb
+            + "\nPlease send this information to the XCA developers:\nLog file: "
+            + str(logger.logfilename)
+            + "\nWorking dir location: "
+            + str(wd)
+        )
 
 
 if __name__ == "__main__":
