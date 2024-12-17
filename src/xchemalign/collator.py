@@ -1378,20 +1378,6 @@ class Collator:
         return closest_event_maps
 
 
-def _check_working_dir(working_dir):
-    print("Using", working_dir, "as working dir")
-
-    if not working_dir.is_dir():
-        print("Working dir {} does not exist".format(working_dir))
-        exit(1)
-
-    current_dir = working_dir / 'upload-current'
-    if current_dir.is_symlink():
-        return 0
-    else:
-        return 1
-
-
 def main():
     parser = argparse.ArgumentParser(description="collator")
 
@@ -1408,7 +1394,11 @@ def main():
     else:
         working_dir = Path.cwd()
 
-    if _check_working_dir(working_dir):
+    wd = utils._verify_working_dir(working_dir)
+
+    if wd:
+        working_dir = wd
+    else:
         print("Working dir does not seem to have been initialised - missing 'upload_current' symlink")
         inp = input("Do you want the working dir to be initialised? (Y/N)")
         if inp == "Y" or inp == "y":
