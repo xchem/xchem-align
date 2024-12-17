@@ -219,23 +219,26 @@ class Aligner:
 
     def _find_version_dir(self, dir):
         if dir:
-            self.working_dir = Path(dir)
+            wd0 = Path(dir)
         else:
-            self.working_dir = Path.cwd()
+            wd0 = Path.cwd()
 
-        if not self.working_dir.is_dir():
-            self._log_error("Working dir {} does not exist".format(self.working_dir))
+        wd1 = utils._verify_working_dir(wd0)
+        if not wd1:
+            self._log_error("Working dir " + wd0 + " is not valid")
             exit(1)
 
+        self.working_dir = wd1
         current_dir = self.working_dir / 'upload-current'
-        if not current_dir.is_symlink():
-            self._log_error(
-                "Working dir {} does not seem well formed - missing 'upload_current' symlink".format(self.working_dir)
-            )
+
+        # check that we at least have an upload_1 dir
+        if not (current_dir / 'upload_1').is_dir():
+            self._log_error("Working dir " + dir + " does not contain and upload_? dirs")
             exit(1)
 
+        # now find the latest upload_? dir
         i = 0
-        while True:
+        while i < 100:
             i += 1
             version_dir = current_dir / ('upload_' + str(i))
             if version_dir.is_dir():
