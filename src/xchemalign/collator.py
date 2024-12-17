@@ -1061,6 +1061,9 @@ class Collator:
                                                     can_smi = Chem.MolToSmiles(m)
                                                     if can_smi:
                                                         ligands[name][Constants.META_MODELED_SMILES_CANON] = can_smi
+                                                        smi = can_smi
+                                                    else:
+                                                        smi = cpd_smiles[i][1]
                                                 except:
                                                     self._log_warning(
                                                         'Failed to generate canonical smiles for '
