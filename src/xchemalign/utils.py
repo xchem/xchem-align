@@ -13,6 +13,7 @@
 import atexit
 import datetime
 import hashlib
+import math
 import os
 from pathlib import Path
 import sys
@@ -33,14 +34,14 @@ class Constants:
     EVENT_TABLE_Y = "y"
     EVENT_TABLE_Z = "z"
     EVENT_TABLE_BDC = "1-BDC"
-    LIGAND_NAMES = ["LIG", "XXX"]
     PROCESSED_DATASETS_DIR = "processed_datasets"
     EVENT_MAP_TEMPLATES = [
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.ccp4",
         "{dtag}-event_{event_idx}_1-BDC_{bdc}_map.native.ccp4",
     ]
-    XTALFORMS_FILENAME = "crystalforms.yaml"
+    ASSEMBLIES_FILENAME = "assemblies.yaml"
     METADATA_XTAL_FILENAME = "meta_collator{}.yaml"
+    METADATA_COLLATOR_FILENAME = "meta_collator.yaml"
     METADATA_ALIGN_FILENAME = "meta_aligner.yaml"
     VERSION_DIR_PREFIX = "upload_"
     DEFAULT_SOAKDB_PATH = "processing/database/soakDBDataFile.sqlite"
@@ -48,6 +49,8 @@ class Constants:
     CONFIG_INPUTS = "inputs"
     CONFIG_TYPE = "type"
     CONFIG_DIR = "dir"
+    CONFIG_CWD = "collator_cwd"
+    CONFIG_CONFIG_FILE = "collator_config_file"
     CONFIG_SOAKDB = "soakdb"
     CONFIG_TYPE_MODEL_BUILDING = "model_building"
     CONFIG_TYPE_MANUAL = "manual"
@@ -56,6 +59,9 @@ class Constants:
     CONFIG_TARGET_NAME = "target_name"
     CONFIG_REF_DATASETS = "ref_datasets"
     CONFIG_EXCLUDE = 'exclude'
+    CONFIG_CODE_PREFIX = 'code_prefix'
+    CONFIG_CODE_PREFIX_TOOLTIP = 'code_prefix_tooltip'
+    CONFIG_PANDDAS_EVENT_FILES = "panddas_event_files"
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
     META_VERSION_NUM = "version_number"
@@ -64,7 +70,7 @@ class Constants:
     META_LAST_UPDATED = "last_updated"
     META_REFINEMENT_OUTCOME = "refinement_outcome"
     META_STATUS = "status"
-    META_STATUS_SUPERSEDES = "supersedes"
+    META_STATUS_SUPERSEDED = "superseded"
     META_STATUS_UNCHANGED = "unchanged"
     META_STATUS_NEW = "new"
     META_STATUS_DEPRECATED = "deprecated"
@@ -73,25 +79,31 @@ class Constants:
     META_REFERENCE = "reference"
     META_FILE = "file"
     META_SHA256 = "sha256"
+    META_SOURCE_FILE = "source_file"
     META_XTAL_FILES = "crystallographic_files"
     META_ALIGNED_FILES = "aligned_files"
     META_REFERENCE_ALIGNMENTS = "reference_aligned_files"
     META_XTAL_PDB = "xtal_pdb"
     META_XTAL_MTZ = "xtal_mtz"
     META_XTAL_CIF = "ligand_cif"
+    META_LIGANDS = "ligands"
     META_SMILES = "smiles"
-    META_BINDING_EVENT = "panddas_event_files"
+    META_BINDING_EVENT = "ligand_binding_events"
     META_PANDDAS_MISSING_OK = "panddas_missing_ok"
     META_PROT_MODEL = "model"
     META_PROT_CHAIN = "chain"
     META_PROT_RES = "res"
+    META_PROT_NAME = "name"
     META_PROT_INDEX = "index"
     META_PROT_BDC = "bdc"
     META_AIGNED_STRUCTURE = "structure"
     META_AIGNED_ARTEFACTS = "artefacts"
     META_AIGNED_EVENT_MAP = "event_map"
-    META_AIGNED_X_MAP = "2Fo-Fc_map"
-    META_AIGNED_DIFF_MAP = "Fo-Fc_map"
+    META_AIGNED_X_MAP = "sigmaa_map"
+    META_AIGNED_DIFF_MAP = "diff_map"
+    META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP = "event_map_crystallographic"
+    META_AIGNED_CRYSTALLOGRAPHIC_X_MAP = "sigmaa_map_crystallographic"
+    META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP = "diff_map_crystallographic"
     META_CONFORMER_SITES = "conformer_sites"
     META_CONFORMER_SITE_NAME = "name"
     META_CONFORMER_SITE_REFERENCE_LIG = "lig_ref"
@@ -115,29 +127,49 @@ class Constants:
     META_XTALFORM_SPACEGROUP = "xtalform_space_group"
     META_XTALFORM_CELL = "xtalform_cell"
     META_ASSEMBLIES_XTALFORMS = "assemblies_xtalforms"
-    META_XTALFORMS = "xtalforms"
+    META_XTALFORMS = "crystalforms"
     META_ASSEMBLIES = "assemblies"
     META_ASSEMBLIES_CHAINS = "chains"
     META_PDB_APO = "pdb_apo"
     META_PDB_APO_SOLV = "pdb_apo_solv"
     META_PDB_APO_DESOLV = "pdb_apo_desolv"
     META_LIGAND_MOL = "ligand_mol"
+    META_LIGAND_SDF = "ligand_sdf"
     META_LIGAND_PDB = "ligand_pdb"
+    META_LIGAND_NAME = "ligand_name"
+    META_LIGAND_SMILES_STRING = "ligand_smiles_string"
     META_LIGAND_SMILES = "ligand_smiles"
     META_TRANSFORMS = "transforms"
     META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES = "observation_to_conformer"
     META_TRANSFORMS_CONFORMER_SITES_TO_CANON = "conformer_to_canon"
     META_TRANSFORMS_CANON_SITES_TO_GLOBAL = "canon_to_global"
     META_TRANSFORMS_GLOBAL_REFERENCE_CANON_SITE_ID = "global_reference_canon_site_id"
+    META_CMPD_CODE = "compound_code"
+    META_MODELED_SMILES_SOAKDB = "modeled_smiles_soakdb"
+    META_MODELED_SMILES_CANON = "modeled_smiles_canon"
+    META_SOAKED_SMILES_SOAKDB = "soaked_smiles_soakdb"
+    META_SOAKED_SMILES_CANON = "soaked_smiles_canon"
+    META_GIT_INFO = "xca_git_info"
+    META_GIT_INFO_URL = "origin_url"
+    META_GIT_INFO_BRANCH = "branch"
+    META_GIT_INFO_SHA = "sha"
+    META_GIT_INFO_TAG = "tag"
+    META_GIT_INFO_DIRTY = "dirty"
+    META_CODE_PREFIX = "code_prefix"
+    META_CODE_PREFIX_TOOLTIPS = "code_prefix_tooltips"
+    META_DATA_FORMAT_VERSION = "data_format_version"
     SOAKDB_XTAL_NAME = "CrystalName"
-    SOAKDB_COL_PDB = "RefinementPDB_latest"
+    SOAKDB_COL_PDB = "RefinementBoundConformation"
     SOAKDB_COL_MTZ = "RefinementMTZ_latest"
     SOAKDB_COL_CIF = "RefinementCIF"
     SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
     SOAKDB_COL_REFINEMENT_OUTCOME = "RefinementOutcome"
+    SOAKDB_COL_COMPOUND_CODE = "CompoundCode"
+    SOAKDB_COL_COMPOUND_SMILES = "CompoundSMILES"
     CRYSTAL_NEW = "crystal_new"
     ASSEMBLIES_FILENAME = "assemblies.yaml"
     PREVIOUS_OUTPUT_DIR = ""
+    ENV_XCA_GIT_REPO = "XCA_GIT_REPO"
 
 
 BOND_TYPES = {
@@ -149,6 +181,9 @@ BOND_TYPES = {
     'TRIPLE': Chem.rdchem.BondType.TRIPLE,
     'aromatic': Chem.rdchem.BondType.AROMATIC,
     'deloc': Chem.rdchem.BondType.SINGLE,
+    'SING': Chem.rdchem.BondType.SINGLE,
+    'DOUB': Chem.rdchem.BondType.DOUBLE,
+    'TRIP': Chem.rdchem.BondType.TRIPLE,
 }
 
 
@@ -172,9 +207,11 @@ class Logger:
         self.errors = []
         if logfile:
             self.logfile = open(logfile, "w")
+            self.logfilename = logfile
             self.closed = False
         else:
             self.logfile = None
+            self.logfilename = None
             self.closed = True
         atexit.register(self.close)
         x = datetime.datetime.now()
@@ -250,6 +287,26 @@ class Logger:
                 print("ERROR:", msg)
 
 
+# this is a bit of a hack to allow non-class methods to use the logger
+# reset it to the particular logger you need to use
+LOG = Logger()
+
+
+def _log_info(*args, **kwargs):
+    global LOG
+    LOG.info(*args, **kwargs)
+
+
+def _log_warn(*args, **kwargs):
+    global LOG
+    LOG.warn(*args, **kwargs)
+
+
+def _log_error(*args, **kwargs):
+    global LOG
+    LOG.error(*args, **kwargs)
+
+
 def gen_sha256(file):
     sha256_hash = hashlib.sha256()
     with open(file, "rb") as f:
@@ -264,6 +321,7 @@ def to_datetime(datetime_str):
 
 
 def read_config_file(filename):
+    filename = str(filename)  # in case it's a path
     if os.path.isfile(filename):
         if filename.endswith(".yaml"):
             with open(filename, "r") as stream:
@@ -282,7 +340,12 @@ def read_config_file(filename):
 
 def find_property(my_dict, key, default=None):
     if key in my_dict:
-        return my_dict[key]
+        v = my_dict[key]
+        # value can be None if the YAML tag is defined but has no values
+        if v is None:
+            return default
+        else:
+            return v
     else:
         return default
 
@@ -309,59 +372,230 @@ def expand_path(p1, p2, expand=True):
         return p2
 
 
-def gen_mol_from_cif(cif_file):
-    mol = Chem.RWMol()
-    conf = Chem.Conformer()
+def gen_mols_from_cif(cif_file):
+    """
+    If the CIF file contains a block named 'comp_list' then that is inspected
+    for the names of the molecules that should be read.
+    If that block is not present then it is assumed that the CIF contains just a
+    single block that is the molecule.
 
-    doc = cif.read(cif_file)
-    block = doc.find_block('comp_LIG')
-    atom_ids = block.find_loop('_chem_comp_atom.atom_id')
-    atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
-    x = block.find_loop('_chem_comp_atom.x')
-    y = block.find_loop('_chem_comp_atom.y')
-    z = block.find_loop('_chem_comp_atom.z')
-    charges = [0] * len(atom_ids)
-    if block.find_loop('_chem_comp_atom.charge'):
-        charges = list(block.find_loop('_chem_comp_atom.charge'))
-    elif block.find_loop('_chem_comp_atom.partial_charge'):
-        charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
+    :param cif_file: The CIF file to read
+    :return: A list of molecules found in the CIF
+    """
+    doc = cif.read(str(cif_file))
 
-    atoms = {}
-    for s, i, px, py, pz, charge in zip(atom_symbols, atom_ids, x, y, z, charges):
-        if len(s) == 2:
-            s = s[0] + s[1].lower()
+    ligand_blocks = []
+    list_block = doc.find_block('comp_list')
+    if list_block:  # seems to be a multi-ligand CIF
+        components = list_block.find_loop('_chem_comp.id')
+        for component in components:
+            block = doc.find_block('comp_' + str(component))
+            ligand_blocks.append(block)
+    else:  # seems to be a single ligand CIF
+        block = doc.sole_block()
+        ligand_blocks.append(block)
 
-        atom = Chem.Atom(s)
-        atom.SetFormalCharge(round(float(charge)))
-        atom.SetProp('atom_id', i)
-        idx = mol.AddAtom(atom)
-        atom.SetIntProp('idx', idx)
-        atoms[i] = atom
+    # print('Found', len(ligand_blocks), 'ligand blocks')
 
-        point = Geometry.Point3D(float(px), float(py), float(pz))
-        conf.SetAtomPosition(idx, point)
+    mols = []
+    for block in ligand_blocks:
+        mol = Chem.RWMol()
+        conf = Chem.Conformer()
 
-    atom1 = block.find_loop('_chem_comp_bond.atom_id_1')
-    atom2 = block.find_loop('_chem_comp_bond.atom_id_2')
-    bond_type = block.find_loop('_chem_comp_bond.type')
+        comp_ids = block.find_loop('_chem_comp_atom.comp_id')
+        atom_ids = block.find_loop('_chem_comp_atom.atom_id')
+        atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
+        # coordinates are sometimes called "x" and sometimes "model_Cartn_x" etc.
+        x = block.find_loop('_chem_comp_atom.x')
+        if not x:
+            x = block.find_loop('_chem_comp_atom.model_Cartn_x')
+        y = block.find_loop('_chem_comp_atom.y')
+        if not y:
+            y = block.find_loop('_chem_comp_atom.model_Cartn_y')
+        z = block.find_loop('_chem_comp_atom.z')
+        if not z:
+            z = block.find_loop('_chem_comp_atom.model_Cartn_z')
+        charges = [0] * len(atom_ids)
+        if block.find_loop('_chem_comp_atom.charge'):
+            charges = list(block.find_loop('_chem_comp_atom.charge'))
+        elif block.find_loop('_chem_comp_atom.partial_charge'):
+            charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
 
-    for a1, a2, bt in zip(atom1, atom2, bond_type):
-        mol.AddBond(atoms[a1].GetIntProp('idx'), atoms[a2].GetIntProp('idx'), BOND_TYPES[bt])
+        atoms = {}
+        ligand_name = None
+        coords_ok = True
+        for name, s, id, px, py, pz, charge in zip(comp_ids, atom_symbols, atom_ids, x, y, z, charges):
+            # sometimes that atom ids are wrapped in double quotes
+            if ligand_name is None:
+                ligand_name = name
+            elif name != ligand_name:
+                _log_info(
+                    "WARNING: ligand name has changed from {} to {}. Old name will be used.".format(ligand_name, name)
+                )
 
-    Chem.SanitizeMol(mol)
-    mol.AddConformer(conf)
-    Chem.AssignStereochemistryFrom3D(mol)
-    mol = Chem.RemoveHs(mol)
+            id = strip_quotes(id)
 
-    return mol
+            if len(s) == 2:
+                s = s[0] + s[1].lower()
+
+            atom = Chem.Atom(s)
+            atom.SetFormalCharge(round(float(charge)))
+            atom.SetProp('atom_id', id)
+            idx = mol.AddAtom(atom)
+            atom.SetIntProp('idx', idx)
+            atoms[id] = atom
+
+            try:
+                point = Geometry.Point3D(float(px), float(py), float(pz))
+                conf.SetAtomPosition(idx, point)
+            except:
+                coords_ok = False
+
+        atom1 = block.find_loop('_chem_comp_bond.atom_id_1')
+        atom2 = block.find_loop('_chem_comp_bond.atom_id_2')
+        bond_type = block.find_loop('_chem_comp_bond.type')
+        if not bond_type:
+            bond_type = block.find_loop('_chem_comp_bond.value_order')
+
+        try:
+            for a1, a2, bt in zip(atom1, atom2, bond_type):
+                mol.AddBond(
+                    atoms[strip_quotes(a1)].GetIntProp('idx'),
+                    atoms[strip_quotes(a2)].GetIntProp('idx'),
+                    BOND_TYPES[bt],
+                )
+        except:
+            print('CIF file')
+            print(cif_file)
+            print('Ligand')
+            print(ligand_name)
+            print('atoms')
+            print(atoms)
+            print('comp ids')
+            print(comp_ids)
+            print('atom symbols')
+            print(atom_symbols)
+            print('atom ids')
+            print(atom_ids)
+            print('x')
+            print(x)
+            print('y')
+            print(y)
+            print('z')
+            print(z)
+            print('charges')
+            print(charges)
+            raise Exception
+
+        Chem.SanitizeMol(mol)
+        if coords_ok:
+            mol.AddConformer(conf)
+            Chem.AssignStereochemistryFrom3D(mol)
+        else:
+            msg = "3D coordinates missing for ligand {} in {}, stereochemistry may be incorrect".format(
+                ligand_name, cif_file
+            )
+            _log_warn(msg)
+
+        mol = Chem.RemoveAllHs(mol)
+
+        mol.SetProp('_Name', ligand_name)
+
+        mols.append(mol)
+
+    return mols
+
+
+def strip_quotes(val):
+    if val[0] == '"':
+        val = val[1:]
+    if val[-1] == '"':
+        val = val[:-1]
+    return val
+
+
+def parse_compound_smiles(val: str):
+    result = []
+    tokens1 = val.strip().split(';')
+    for token1 in tokens1:
+        tokens2 = token1.strip().split(' ')
+        result.append(tokens2)
+    return result
+
+
+# the integer part is the major version number (increment when the data format changes in an incompatible way)
+# the decimal part is the minor version number (something changed in XCA but does not impact the data format)
+DATA_FORMAT_VERSION = 2.2
+
+
+def check_data_format_version(ver_to_check):
+    """
+    Check the data format version
+    :param ver_to_check: the version of an older XCA run
+    :return: -1 if the major version has changed, +1 if the minor version has changed, 0 if the version is unchanged
+    """
+    my_major_ver = math.floor(DATA_FORMAT_VERSION)
+    check_major_ver = math.floor(ver_to_check)
+    if my_major_ver > check_major_ver:
+        return -1
+    if DATA_FORMAT_VERSION == ver_to_check:
+        return 0
+    else:
+        return 1
+
+
+def _verify_working_dir(working_dir):
+    """
+    Verifies that we can work out what the real working dir is. Preferably the user has specified it correctly,
+    but we allow then to specify one or 2 levels down from this.
+
+    :param working_dir: The working dir specified by the user
+    :return: The actual working dir, or None if we can't work it out
+    """
+    print("Trying", working_dir, "as working dir")
+
+    if not working_dir.is_dir():
+        print("Working dir {} does not exist".format(working_dir))
+        exit(1)
+
+    current_dir = working_dir / 'upload-current'
+    if current_dir.is_symlink():
+        return working_dir
+    else:
+        # check if working dir is already one or 2 levels under where it really needs to be
+        working_dir = working_dir.parent
+        current_dir = working_dir / 'upload-current'
+        if current_dir.is_symlink():
+            print(
+                "WARNING: you seem to have specified a directory one level under the true working dir. Using",
+                working_dir,
+            )
+            return working_dir
+        working_dir = working_dir.parent
+        current_dir = working_dir / 'upload-current'
+        if current_dir.is_symlink():
+            print(
+                "WARNING: you seem to have specified a directory two levels under the true working dir. Using",
+                working_dir,
+            )
+            return working_dir
+        else:
+            return None
 
 
 def main():
-    log = Logger(logfile="logfile.log", level=1)
+    # log = Logger(logfile="logfile.log", level=1)
+    #
+    # log.log("a", "b", "c", level=0)
+    # log.log("foo", "bar", "baz")
+    # log.log("foo", 99, "apples", level=2)
 
-    log.log("a", "b", "c", level=0)
-    log.log("foo", "bar", "baz")
-    log.log("foo", 99, "apples", level=2)
+    # mols = gen_mols_from_cif('data/Zx1674a.cif')
+    # for mol in mols:
+    #     molfile = Chem.MolToMolBlock(mol)
+    #     print(molfile)
+
+    print(_verify_working_dir(Path('data/std_test/lb32633-6_2024-11-22/upload-current/upload_1')))
 
 
 if __name__ == "__main__":

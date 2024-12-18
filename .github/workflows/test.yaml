@@ -16,56 +16,73 @@ name: test
 on:
 - push
 
+env:
+  XCA_GIT_REPO: ${{ github.workspace }}
+
 jobs:
   static-analysis:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+        - "3.10"
+        - "3.11"
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: ${{ matrix.python-version }}
     - name: Pre-commit check
       run: |
         pip install --upgrade pip
         pip install .[dev]
         pre-commit run --all-files
 
-  command-help:
+  command-execution:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+        - "3.10"
+        - "3.11"
     needs:
     - static-analysis
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-    - name: Test command help
+        python-version: ${{ matrix.python-version }}
+    - name: Install
       run: |
         pip install --upgrade pip
         pip install .
+    - name: Test command help
+      run: |
         python -m xchemalign.copier -h
         python -m xchemalign.collator -h
         python -m xchemalign.aligner -h
-
-  test-data:
-    runs-on: ubuntu-latest
-    needs:
-    - command-help
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
-    - name: Test test-data config
+    - name: Test config_1
       run: |
-        pip install --upgrade pip
-        pip install .
         mkdir -p test-data/outputs/upload_1
-        python -m xchemalign.collator -c test-data/config.yaml
-        python -m xchemalign.aligner -d test-data/outputs/upload_1 -x test-data/xtalforms.yaml
+        python -m xchemalign.collator -c test-data/config_1.yaml
+        python -m xchemalign.aligner -d test-data/outputs/upload_1
+
+# config-2 breaks with: -
+# ! "KeyError: 'Mpro-x0107_fake_P1'"
+#    - name: Test config_2
+#      run: |
+#        mkdir -p test-data/outputs/upload_2
+#        python -m xchemalign.collator -c test-data/config_2.yaml
+#        python -m xchemalign.aligner -d test-data/outputs/upload_2
+# config_3 fails with: -
+# ! ERROR: reference Mpro-IBM0045 is not in the set of crystals to be processed
+# ! ERROR: reference 5rgs is not in the set of crystals to be processed
+#    - name: Test config_3
+#      run: |
+#        mkdir -p test-data/outputs/upload_3
+#        python -m xchemalign.collator -c test-data/config_3.yaml
+#        python -m xchemalign.aligner -d test-data/outputs/upload_3

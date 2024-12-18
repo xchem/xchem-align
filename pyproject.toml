@@ -13,11 +13,13 @@ classifiers = [
 description = "Tools to generate data suitable for loading into Fragalysis"
 dependencies = [
     'rdkit == 2023.3.2',
+    'numpy == 1.26.4',
     'pandas == 1.5.3',
     'pyyaml == 6.0',
     'gemmi == 0.6.0',
     'im-standardize-molecule == 0.1.0',
     'scp == 0.14.5',
+    'GitPython == 3.1.41',
     'ligand_neighbourhood_alignment@git+https://github.com/xchem/ligand_neighbourhood_alignment',
     'pytest',
     'pytest-order'
@@ -25,7 +27,7 @@ dependencies = [
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12.0"
 
 #[tool.setuptools.packages.find]
 #where = ["src/xchemalign"]

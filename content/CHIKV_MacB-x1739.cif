@@ -1,0 +1,611 @@
+global_
+_lib_name         ?
+_lib_version      ?
+_lib_update       ?
+# ------------------------------------------------
+#
+# ---   LIST OF MONOMERS ---
+#
+data_comp_list
+loop_
+_chem_comp.id
+_chem_comp.three_letter_code
+_chem_comp.name
+_chem_comp.group
+_chem_comp.number_atoms_all
+_chem_comp.number_atoms_nh
+_chem_comp.desc_level
+LG1      LG1 'unknown                             ' .                  21  12 .
+LG2      LG2 'unknown                             ' .                  16  10 .
+LIG      LIG 'unknown                             ' .                  12   6 .
+# ------------------------------------------------------
+#
+# --- DESCRIPTION OF MONOMERS ---
+#
+data_comp_LG1
+#
+loop_
+_chem_comp_atom.comp_id
+_chem_comp_atom.atom_id
+_chem_comp_atom.type_symbol
+_chem_comp_atom.type_energy
+_chem_comp_atom.partial_charge
+_chem_comp_atom.x
+_chem_comp_atom.y
+_chem_comp_atom.z
+LG1 C  C CH3  0.000 3.382  3.584 2.273
+LG1 H1 H HCH3 0.000 3.834  3.973 1.362
+LG1 H2 H HCH3 0.000 4.054  2.820 2.661
+LG1 H3 H HCH3 0.000 3.338  4.402 2.990
+LG1 C1 C CR5  0.000 2.006  3.044 2.003
+LG1 C3 C CR5  0.000 0.847  3.749 1.682
+LG1 N1 N NR15 0.000 -0.130 2.826 1.534
+LG1 H  H HNR5 0.000 -1.107 2.969 1.300
+LG1 N  N NRD5 0.000 0.316  1.556 1.738
+LG1 C2 C CR15 0.000 1.608  1.697 2.021
+LG1 H4 H HCR  0.000 2.245  0.840 2.235
+LG1 C4 C CR6  0.000 0.586  5.191 1.507
+LG1 C8 C CR16 0.000 1.019  6.113 2.448
+LG1 H8 H HCR  0.000 1.563  5.829 3.348
+LG1 C7 C CR16 0.000 0.752  7.452 2.240
+LG1 H7 H HCR  0.000 1.070  8.214 2.949
+LG1 N2 N NRD6 0.000 0.094  7.920 1.175
+LG1 C6 C CR16 0.000 -0.317 7.020 0.276
+LG1 H6 H HCR  0.000 -0.849 7.434 -0.579
+LG1 C5 C CR16 0.000 -0.098 5.662 0.396
+LG1 H5 H HCR  0.000 -0.461 4.984 -0.376
+loop_
+_chem_comp_tree.comp_id
+_chem_comp_tree.atom_id
+_chem_comp_tree.atom_back
+_chem_comp_tree.atom_forward
+_chem_comp_tree.connect_type
+LG1 C  n/a C1 START
+LG1 H1 C   .  .
+LG1 H2 C   .  .
+LG1 H3 C   .  .
+LG1 C1 C   C3 .
+LG1 C3 C1  C4 .
+LG1 N1 C3  N  .
+LG1 H  N1  .  .
+LG1 N  N1  C2 .
+LG1 C2 N   H4 .
+LG1 H4 C2  .  .
+LG1 C4 C3  C8 .
+LG1 C8 C4  C7 .
+LG1 H8 C8  .  .
+LG1 C7 C8  N2 .
+LG1 H7 C7  .  .
+LG1 N2 C7  C6 .
+LG1 C6 N2  C5 .
+LG1 H6 C6  .  .
+LG1 C5 C6  H5 .
+LG1 H5 C5  .  END
+LG1 C1 C2  .  ADD
+LG1 C4 C5  .  ADD
+loop_
+_chem_comp_bond.comp_id
+_chem_comp_bond.atom_id_1
+_chem_comp_bond.atom_id_2
+_chem_comp_bond.type
+_chem_comp_bond.value_dist
+_chem_comp_bond.value_dist_esd
+LG1 C1 C  single   1.502 0.018
+LG1 C1 C2 aromatic 1.402 0.014
+LG1 C2 N  aromatic 1.329 0.010
+LG1 N  N1 aromatic 1.365 0.015
+LG1 H  N1 single   1.015 0.020
+LG1 N1 C3 aromatic 1.353 0.009
+LG1 C3 C1 aromatic 1.391 0.022
+LG1 C4 C3 aromatic 1.476 0.011
+LG1 C4 C5 aromatic 1.391 0.014
+LG1 C5 C6 aromatic 1.381 0.011
+LG1 C6 N2 aromatic 1.334 0.011
+LG1 N2 C7 aromatic 1.334 0.011
+LG1 C7 C8 aromatic 1.381 0.011
+LG1 C8 C4 aromatic 1.391 0.014
+LG1 H1 C  single   1.089 0.020
+LG1 H2 C  single   1.089 0.020
+LG1 H3 C  single   1.089 0.020
+LG1 H4 C2 single   1.089 0.020
+LG1 H5 C5 single   1.089 0.020
+LG1 H6 C6 single   1.089 0.020
+LG1 H7 C7 single   1.089 0.020
+LG1 H8 C8 single   1.089 0.020
+loop_
+_chem_comp_angle.comp_id
+_chem_comp_angle.atom_id_1
+_chem_comp_angle.atom_id_2
+_chem_comp_angle.atom_id_3
+_chem_comp_angle.value_angle
+_chem_comp_angle.value_angle_esd
+LG1 H1 C  H2 107.0 3.0
+LG1 H1 C  H3 107.4 3.0
+LG1 H2 C  H3 108.5 3.0
+LG1 H1 C  C1 111.0 3.0
+LG1 H2 C  C1 112.2 3.0
+LG1 H3 C  C1 110.6 3.0
+LG1 C  C1 C3 128.4 1.1
+LG1 C  C1 C2 126.9 3.0
+LG1 C3 C1 C2 104.5 0.7
+LG1 C1 C3 N1 106.3 0.6
+LG1 C1 C3 C4 131.5 1.5
+LG1 N1 C3 C4 121.5 1.3
+LG1 C3 N1 H  128.6 3.0
+LG1 C3 N1 N  112.7 0.5
+LG1 H  N1 N  118.8 3.0
+LG1 N1 N  C2 105.2 1.6
+LG1 N  C2 H4 121.8 3.0
+LG1 N  C2 C1 111.9 0.9
+LG1 H4 C2 C1 126.3 3.0
+LG1 C3 C4 C8 120.7 0.9
+LG1 C3 C4 C5 120.7 0.9
+LG1 C8 C4 C5 118.7 0.9
+LG1 C4 C8 H8 122.9 3.0
+LG1 C4 C8 C7 119.0 0.6
+LG1 H8 C8 C7 118.4 3.0
+LG1 C8 C7 H7 121.5 3.0
+LG1 C8 C7 N2 123.8 0.9
+LG1 H7 C7 N2 114.7 3.0
+LG1 C7 N2 C6 116.6 1.1
+LG1 N2 C6 H6 115.0 3.0
+LG1 N2 C6 C5 123.8 0.9
+LG1 H6 C6 C5 121.3 3.0
+LG1 C6 C5 H5 119.9 3.0
+LG1 C6 C5 C4 119.0 0.6
+LG1 H5 C5 C4 121.4 3.0
+loop_
+_chem_comp_tor.comp_id
+_chem_comp_tor.id
+_chem_comp_tor.atom_id_1
+_chem_comp_tor.atom_id_2
+_chem_comp_tor.atom_id_3
+_chem_comp_tor.atom_id_4
+_chem_comp_tor.value_angle
+_chem_comp_tor.value_angle_esd
+_chem_comp_tor.period
+LG1 other-001      H1 C  C1 C3 0.0   1000000.0 10
+LG1 CONST_ring5A-5 C2 C1 C3 N1 0.0   1000000.0 0
+LG1 CONST_ring5A-4 C3 C1 C2 N  0.0   1000000.0 0
+LG1 CONST_ring5A-1 C1 C3 N1 N  0.0   1000000.0 0
+LG1 qmf-01         C1 C3 C4 C8 180.0 1000000.0 2
+LG1 CONST_ring5A-2 C3 N1 N  C2 0.0   1000000.0 0
+LG1 CONST_ring5A-3 N1 N  C2 C1 0.0   1000000.0 0
+LG1 CONST_ring6A-6 C5 C4 C8 C7 0.0   1000000.0 0
+LG1 CONST_ring6A-5 C8 C4 C5 C6 0.0   1000000.0 0
+LG1 CONST_ring6A-1 C4 C8 C7 N2 0.0   1000000.0 0
+LG1 CONST_ring6A-2 C8 C7 N2 C6 0.0   1000000.0 0
+LG1 CONST_ring6A-3 C7 N2 C6 C5 0.0   1000000.0 0
+LG1 CONST_ring6A-4 N2 C6 C5 C4 0.0   1000000.0 0
+loop_
+_chem_comp_plane_atom.comp_id
+_chem_comp_plane_atom.plane_id
+_chem_comp_plane_atom.atom_id
+_chem_comp_plane_atom.dist_esd
+LG1 csd-C3   C3 0.020
+LG1 csd-C3   C1 0.020
+LG1 csd-C3   N1 0.020
+LG1 csd-C3   C4 0.020
+LG1 csd-C4   C4 0.020
+LG1 csd-C4   C3 0.020
+LG1 csd-C4   C8 0.020
+LG1 csd-C4   C5 0.020
+LG1 qm-C1    C1 0.020
+LG1 qm-C1    C  0.020
+LG1 qm-C1    C3 0.020
+LG1 qm-C1    C2 0.020
+LG1 qm-C2    C2 0.020
+LG1 qm-C2    C1 0.020
+LG1 qm-C2    N  0.020
+LG1 qm-C2    H4 0.020
+LG1 qm-C5    C5 0.020
+LG1 qm-C5    C4 0.020
+LG1 qm-C5    C6 0.020
+LG1 qm-C5    H5 0.020
+LG1 qm-C6    C6 0.020
+LG1 qm-C6    N2 0.020
+LG1 qm-C6    C5 0.020
+LG1 qm-C6    H6 0.020
+LG1 qm-C7    C7 0.020
+LG1 qm-C7    C8 0.020
+LG1 qm-C7    N2 0.020
+LG1 qm-C7    H7 0.020
+LG1 qm-C8    C8 0.020
+LG1 qm-C8    C4 0.020
+LG1 qm-C8    C7 0.020
+LG1 qm-C8    H8 0.020
+LG1 qm-N1    N1 0.020
+LG1 qm-N1    C3 0.020
+LG1 qm-N1    N  0.020
+LG1 qm-N1    H  0.020
+LG1 ring5A-1 C1 0.020
+LG1 ring5A-1 C3 0.020
+LG1 ring5A-1 N1 0.020
+LG1 ring5A-1 N  0.020
+LG1 ring5A-2 C3 0.020
+LG1 ring5A-2 N1 0.020
+LG1 ring5A-2 N  0.020
+LG1 ring5A-2 C2 0.020
+LG1 ring5A-3 N1 0.020
+LG1 ring5A-3 N  0.020
+LG1 ring5A-3 C2 0.020
+LG1 ring5A-3 C1 0.020
+LG1 ring5A-4 N  0.020
+LG1 ring5A-4 C2 0.020
+LG1 ring5A-4 C1 0.020
+LG1 ring5A-4 C3 0.020
+LG1 ring5A-5 C2 0.020
+LG1 ring5A-5 C1 0.020
+LG1 ring5A-5 C3 0.020
+LG1 ring5A-5 N1 0.020
+LG1 ring6A-1 C4 0.020
+LG1 ring6A-1 C8 0.020
+LG1 ring6A-1 C7 0.020
+LG1 ring6A-1 N2 0.020
+LG1 ring6A-2 C8 0.020
+LG1 ring6A-2 C7 0.020
+LG1 ring6A-2 N2 0.020
+LG1 ring6A-2 C6 0.020
+LG1 ring6A-3 C7 0.020
+LG1 ring6A-3 N2 0.020
+LG1 ring6A-3 C6 0.020
+LG1 ring6A-3 C5 0.020
+LG1 ring6A-4 N2 0.020
+LG1 ring6A-4 C6 0.020
+LG1 ring6A-4 C5 0.020
+LG1 ring6A-4 C4 0.020
+LG1 ring6A-5 C6 0.020
+LG1 ring6A-5 C5 0.020
+LG1 ring6A-5 C4 0.020
+LG1 ring6A-5 C8 0.020
+LG1 ring6A-6 C5 0.020
+LG1 ring6A-6 C4 0.020
+LG1 ring6A-6 C8 0.020
+LG1 ring6A-6 C7 0.020
+
+data_comp_LG2
+#
+loop_
+_chem_comp_atom.comp_id
+_chem_comp_atom.atom_id
+_chem_comp_atom.type_symbol
+_chem_comp_atom.type_energy
+_chem_comp_atom.partial_charge
+_chem_comp_atom.x
+_chem_comp_atom.y
+_chem_comp_atom.z
+ LG2           N      N    NH2       0.000      1.949    1.335    1.882
+ LG2           H      H    HNH2      0.000      2.056    0.389    2.233
+ LG2           H1     H    HNH2      0.000      2.687    2.002    2.084
+ LG2           C      C    CR5       0.000      0.860    1.659    1.181
+ LG2           N3     N    NR56      0.000      0.652    2.936    0.673
+ LG2           C1     C    CR56      0.000     -0.577    2.839    0.024
+ LG2           N2     N    NRD5      0.000     -1.068    1.613    0.131
+ LG2           N1     N    NRD5      0.000     -0.153    0.862    0.867
+ LG2           C5     C    CR16      0.000      1.371    4.115    0.707
+ LG2           H5     H    HCR       0.000      2.323    4.106    1.235
+ LG2           C4     C    CR16      0.000      0.876    5.212    0.096
+ LG2           H4     H    HCR       0.000      1.430    6.149    0.113
+ LG2           C3     C    CR16      0.000     -0.366    5.151   -0.571
+ LG2           H3     H    HCR       0.000     -0.742    6.051   -1.056
+ LG2           C2     C    CR16      0.000     -1.084    3.995   -0.612
+ LG2           H2     H    HCR       0.000     -2.045    3.920   -1.119
+loop_
+_chem_comp_tree.comp_id
+_chem_comp_tree.atom_id
+_chem_comp_tree.atom_back
+_chem_comp_tree.atom_forward
+_chem_comp_tree.connect_type
+ LG2      N      n/a    C      START
+ LG2      H      N      .      .
+ LG2      H1     N      .      .
+ LG2      C      N      N3     .
+ LG2      N3     C      C5     .
+ LG2      C1     N3     N2     .
+ LG2      N2     C1     N1     .
+ LG2      N1     N2     .      .
+ LG2      C5     N3     C4     .
+ LG2      H5     C5     .      .
+ LG2      C4     C5     C3     .
+ LG2      H4     C4     .      .
+ LG2      C3     C4     C2     .
+ LG2      H3     C3     .      .
+ LG2      C2     C3     H2     .
+ LG2      H2     C2     .      END
+ LG2      C      N1     .    ADD
+ LG2      C1     C2     .    ADD
+loop_
+_chem_comp_bond.comp_id
+_chem_comp_bond.atom_id_1
+_chem_comp_bond.atom_id_2
+_chem_comp_bond.type
+_chem_comp_bond.value_dist
+_chem_comp_bond.value_dist_esd
+ LG2      C      N         single      1.335    0.015
+ LG2      C      N1        double      1.327    0.009
+ LG2      N1     N2        single      1.395    0.017
+ LG2      N2     C1        double      1.323    0.013
+ LG2      C1     C2        single      1.414    0.015
+ LG2      C2     C3        double      1.363    0.017
+ LG2      C3     C4        single      1.412    0.019
+ LG2      C4     C5        double      1.349    0.011
+ LG2      C5     N3        single      1.380    0.011
+ LG2      N3     C         single      1.392    0.020
+ LG2      C1     N3        single      1.391    0.011
+ LG2      H      N         single      1.015    0.020
+ LG2      H1     N         single      1.015    0.020
+ LG2      H2     C2        single      1.089    0.020
+ LG2      H3     C3        single      1.089    0.020
+ LG2      H4     C4        single      1.089    0.020
+ LG2      H5     C5        single      1.089    0.020
+loop_
+_chem_comp_angle.comp_id
+_chem_comp_angle.atom_id_1
+_chem_comp_angle.atom_id_2
+_chem_comp_angle.atom_id_3
+_chem_comp_angle.value_angle
+_chem_comp_angle.value_angle_esd
+ LG2      H      N      H1      117.000    3.000
+ LG2      H      N      C       118.800    3.000
+ LG2      H1     N      C       121.300    3.000
+ LG2      N      C      N3      122.400    1.400
+ LG2      N      C      N1      127.000    1.100
+ LG2      N3     C      N1      110.800    0.900
+ LG2      C      N3     C1      103.800    3.000
+ LG2      C      N3     C5      134.200    3.000
+ LG2      C1     N3     C5      122.000    1.000
+ LG2      N3     C1     N2      110.600    3.000
+ LG2      N3     C1     C2      118.300    0.900
+ LG2      N2     C1     C2      132.600    2.100
+ LG2      C1     N2     N1      107.100    0.900
+ LG2      N2     N1     C       107.700    0.800
+ LG2      N3     C5     H5      117.500    3.000
+ LG2      N3     C5     C4      119.300    1.100
+ LG2      H5     C5     C4      123.200    3.000
+ LG2      C5     C4     H4      120.400    3.000
+ LG2      C5     C4     C3      120.100    1.100
+ LG2      H4     C4     C3      119.500    3.000
+ LG2      C4     C3     H3      118.600    3.000
+ LG2      C4     C3     C2      121.100    0.900
+ LG2      H3     C3     C2      120.400    3.000
+ LG2      C3     C2     H2      122.500    3.000
+ LG2      C3     C2     C1      119.700    1.300
+ LG2      H2     C2     C1      118.000    3.000
+loop_
+_chem_comp_tor.comp_id
+_chem_comp_tor.id
+_chem_comp_tor.atom_id_1
+_chem_comp_tor.atom_id_2
+_chem_comp_tor.atom_id_3
+_chem_comp_tor.atom_id_4
+_chem_comp_tor.value_angle
+_chem_comp_tor.value_angle_esd
+_chem_comp_tor.period
+ LG2      qmf-01           H      N      C      N3               180.000      1000000.000   2
+ LG2      CONST_ring5A-5   N1     C      N3     C1                 0.000            0.000   0
+ LG2      CONST_ring5A-4   N3     C      N1     N2                 0.000            0.000   0
+ LG2      CONST_ring6A-6   C5     N3     C1     C2                 0.000            0.000   0
+ LG2      CONST_ring6A-5   C1     N3     C5     C4                 0.000            0.000   0
+ LG2      CONST_ring5A-2   N3     C1     N2     N1                 0.000            0.000   0
+ LG2      CONST_ring6A-1   N3     C1     C2     C3                 0.000            0.000   0
+ LG2      CONST_ring5A-3   C1     N2     N1     C                  0.000            0.000   0
+ LG2      CONST_ring6A-4   N3     C5     C4     C3                 0.000            0.000   0
+ LG2      CONST_ring6A-3   C5     C4     C3     C2                 0.000            0.000   0
+ LG2      CONST_ring6A-2   C4     C3     C2     C1                 0.000            0.000   0
+loop_
+_chem_comp_plane_atom.comp_id
+_chem_comp_plane_atom.plane_id
+_chem_comp_plane_atom.atom_id
+_chem_comp_plane_atom.dist_esd
+ LG2      csd-C             C         0.020
+ LG2      csd-C             N         0.020
+ LG2      csd-C             N3        0.020
+ LG2      csd-C             N1        0.020
+ LG2      qm-C1             C1        0.020
+ LG2      qm-C1             N3        0.020
+ LG2      qm-C1             N2        0.020
+ LG2      qm-C1             C2        0.020
+ LG2      qm-C2             C2        0.020
+ LG2      qm-C2             C1        0.020
+ LG2      qm-C2             C3        0.020
+ LG2      qm-C2             H2        0.020
+ LG2      qm-C3             C3        0.020
+ LG2      qm-C3             C4        0.020
+ LG2      qm-C3             C2        0.020
+ LG2      qm-C3             H3        0.020
+ LG2      qm-C4             C4        0.020
+ LG2      qm-C4             C5        0.020
+ LG2      qm-C4             C3        0.020
+ LG2      qm-C4             H4        0.020
+ LG2      qm-C5             C5        0.020
+ LG2      qm-C5             N3        0.020
+ LG2      qm-C5             C4        0.020
+ LG2      qm-C5             H5        0.020
+ LG2      qm-N              N         0.020
+ LG2      qm-N              C         0.020
+ LG2      qm-N              H         0.020
+ LG2      qm-N              H1        0.020
+ LG2      qm-N3             N3        0.020
+ LG2      qm-N3             C         0.020
+ LG2      qm-N3             C1        0.020
+ LG2      qm-N3             C5        0.020
+ LG2      qmf-01            H         0.020
+ LG2      qmf-01            N         0.020
+ LG2      qmf-01            C         0.020
+ LG2      qmf-01            N3        0.020
+ LG2      ring5A-1          C         0.020
+ LG2      ring5A-1          N3        0.020
+ LG2      ring5A-1          C1        0.020
+ LG2      ring5A-1          N2        0.020
+ LG2      ring5A-2          N3        0.020
+ LG2      ring5A-2          C1        0.020
+ LG2      ring5A-2          N2        0.020
+ LG2      ring5A-2          N1        0.020
+ LG2      ring5A-3          C1        0.020
+ LG2      ring5A-3          N2        0.020
+ LG2      ring5A-3          N1        0.020
+ LG2      ring5A-3          C         0.020
+ LG2      ring5A-4          N2        0.020
+ LG2      ring5A-4          N1        0.020
+ LG2      ring5A-4          C         0.020
+ LG2      ring5A-4          N3        0.020
+ LG2      ring5A-5          N1        0.020
+ LG2      ring5A-5          C         0.020
+ LG2      ring5A-5          N3        0.020
+ LG2      ring5A-5          C1        0.020
+ LG2      ring6A-1          N3        0.020
+ LG2      ring6A-1          C1        0.020
+ LG2      ring6A-1          C2        0.020
+ LG2      ring6A-1          C3        0.020
+ LG2      ring6A-2          C1        0.020
+ LG2      ring6A-2          C2        0.020
+ LG2      ring6A-2          C3        0.020
+ LG2      ring6A-2          C4        0.020
+ LG2      ring6A-3          C2        0.020
+ LG2      ring6A-3          C3        0.020
+ LG2      ring6A-3          C4        0.020
+ LG2      ring6A-3          C5        0.020
+ LG2      ring6A-4          C3        0.020
+ LG2      ring6A-4          C4        0.020
+ LG2      ring6A-4          C5        0.020
+ LG2      ring6A-4          N3        0.020
+ LG2      ring6A-5          C4        0.020
+ LG2      ring6A-5          C5        0.020
+ LG2      ring6A-5          N3        0.020
+ LG2      ring6A-5          C1        0.020
+ LG2      ring6A-6          C5        0.020
+ LG2      ring6A-6          N3        0.020
+ LG2      ring6A-6          C1        0.020
+ LG2      ring6A-6          C2        0.020
+#
+data_comp_LIG
+#
+loop_
+_chem_comp_atom.comp_id
+_chem_comp_atom.atom_id
+_chem_comp_atom.type_symbol
+_chem_comp_atom.type_energy
+_chem_comp_atom.partial_charge
+_chem_comp_atom.x
+_chem_comp_atom.y
+_chem_comp_atom.z
+ LIG           O      O    O         0.000      2.562   -0.479   -1.997
+ LIG           C      C    C         0.000      2.856    0.046   -0.926
+ LIG           N1     N    NH1       0.000      4.085    0.112   -0.405
+ LIG           H5     H    H         0.000      4.920   -0.267   -0.841
+ LIG           C2     C    CH2       0.000      4.112    0.799    0.881
+ LIG           H3     H    H         0.000      4.507    0.166    1.675
+ LIG           H4     H    H         0.000      4.769    1.666    0.858
+ LIG           C1     C    CH2       0.000      2.648    1.170    1.099
+ LIG           H1     H    H         0.000      2.233    0.738    2.008
+ LIG           H2     H    H         0.000      2.500    2.244    1.205
+ LIG           N      N    NH1       0.000      1.996    0.643   -0.093
+ LIG           H      H    H         0.000      0.998    0.729   -0.255
+loop_
+_chem_comp_tree.comp_id
+_chem_comp_tree.atom_id
+_chem_comp_tree.atom_back
+_chem_comp_tree.atom_forward
+_chem_comp_tree.connect_type
+ LIG      O      n/a    C      START
+ LIG      C      O      N      .
+ LIG      N1     C2     H5     .
+ LIG      H5     N1     .      END
+ LIG      C2     C1     N1     .
+ LIG      H3     C2     .      .
+ LIG      H4     C2     .      .
+ LIG      C1     N      C2     .
+ LIG      H1     C1     .      .
+ LIG      H2     C1     .      .
+ LIG      N      C      C1     .
+ LIG      H      N      .      .
+ LIG      C      N1     .    ADD
+loop_
+_chem_comp_bond.comp_id
+_chem_comp_bond.atom_id_1
+_chem_comp_bond.atom_id_2
+_chem_comp_bond.type
+_chem_comp_bond.value_dist
+_chem_comp_bond.value_dist_esd
+ LIG      C      O         double      1.229    0.013
+ LIG      C      N         single      1.338    0.014
+ LIG      N      C1        single      1.457    0.013
+ LIG      C1     C2        single      1.525    0.016
+ LIG      C2     N1        single      1.457    0.013
+ LIG      N1     C         single      1.338    0.014
+ LIG      H      N         single      1.015    0.020
+ LIG      H1     C1        single      1.089    0.020
+ LIG      H2     C1        single      1.089    0.020
+ LIG      H3     C2        single      1.089    0.020
+ LIG      H4     C2        single      1.089    0.020
+ LIG      H5     N1        single      1.015    0.020
+loop_
+_chem_comp_angle.comp_id
+_chem_comp_angle.atom_id_1
+_chem_comp_angle.atom_id_2
+_chem_comp_angle.atom_id_3
+_chem_comp_angle.value_angle
+_chem_comp_angle.value_angle_esd
+ LIG      O      C      N1      125.700    1.000
+ LIG      O      C      N       125.700    1.000
+ LIG      N1     C      N       109.000    1.200
+ LIG      C      N1     H5      124.700    3.000
+ LIG      C      N1     C2      112.100    1.200
+ LIG      H5     N1     C2      122.600    3.000
+ LIG      N1     C2     H3      112.200    3.000
+ LIG      N1     C2     H4      111.700    3.000
+ LIG      N1     C2     C1      102.400    1.100
+ LIG      H3     C2     H4      105.100    3.000
+ LIG      H3     C2     C1      112.700    3.000
+ LIG      H4     C2     C1      112.900    3.000
+ LIG      C2     C1     H1      112.900    3.000
+ LIG      C2     C1     H2      112.700    3.000
+ LIG      C2     C1     N       102.400    1.100
+ LIG      H1     C1     H2      105.100    3.000
+ LIG      H1     C1     N       111.700    3.000
+ LIG      H2     C1     N       112.100    3.000
+ LIG      C1     N      H       122.600    3.000
+ LIG      C1     N      C       112.100    1.200
+ LIG      H      N      C       124.700    3.000
+loop_
+_chem_comp_tor.comp_id
+_chem_comp_tor.id
+_chem_comp_tor.atom_id_1
+_chem_comp_tor.atom_id_2
+_chem_comp_tor.atom_id_3
+_chem_comp_tor.atom_id_4
+_chem_comp_tor.value_angle
+_chem_comp_tor.value_angle_esd
+_chem_comp_tor.period
+ LIG      qmf-01           N      C      N1     C2               180.000      1000000.000   2
+ LIG      qmf-02           N1     C      N      C1               180.000      1000000.000   2
+ LIG      other-001        C      N1     C2     C1                 0.000      1000000.000  10
+ LIG      other-002        N1     C2     C1     N                  0.000      1000000.000  10
+ LIG      other-003        C2     C1     N      C                  0.000      1000000.000  10
+loop_
+_chem_comp_plane_atom.comp_id
+_chem_comp_plane_atom.plane_id
+_chem_comp_plane_atom.atom_id
+_chem_comp_plane_atom.dist_esd
+ LIG      csd-C             C         0.020
+ LIG      csd-C             O         0.020
+ LIG      csd-C             N1        0.020
+ LIG      csd-C             N         0.020
+ LIG      qm-N              N         0.020
+ LIG      qm-N              C         0.020
+ LIG      qm-N              C1        0.020
+ LIG      qm-N              H         0.020
+ LIG      qm-N1             N1        0.020
+ LIG      qm-N1             C         0.020
+ LIG      qm-N1             C2        0.020
+ LIG      qm-N1             H5        0.020
+ LIG      qmf-01            N         0.020
+ LIG      qmf-01            C         0.020
+ LIG      qmf-01            N1        0.020
+ LIG      qmf-01            C2        0.020
+ LIG      qmf-02            N1        0.020
+ LIG      qmf-02            C         0.020
+ LIG      qmf-02            N         0.020
+ LIG      qmf-02            C1        0.020
+# ------------------------------------------------------
+# ------------------------------------------------------

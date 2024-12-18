@@ -14,10 +14,13 @@ import argparse
 import os
 import traceback
 import shutil
+import time
 from pathlib import Path
 
 import yaml
 import gemmi
+
+from rich.traceback import install
 
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
@@ -47,6 +50,7 @@ from ligand_neighbourhood_alignment.cli import (
     _load_dataset_assignments,
     _load_ligand_neighbourhoods,
     _load_alignability_graph,
+    _load_connected_components,
     _load_ligand_neighbourhood_transforms,
     _load_conformer_sites,
     _load_conformer_site_transforms,
@@ -56,10 +60,13 @@ from ligand_neighbourhood_alignment.cli import (
     _load_reference_stucture_transforms,
     _update,
 )
+from ligand_neighbourhood_alignment import alignment_heirarchy as ah
 
 from xchemalign import utils
 from xchemalign.utils import Constants
 from xchemalign.pdb_xtal import PDBXtal
+
+install(show_locals=True)
 
 
 def try_make(path):
@@ -84,6 +91,8 @@ def path_to_relative_string(
         return str(rel_path)
     except AttributeError:
         return path
+    except ValueError:
+        return path
 
 
 def traverse_dictionary(dic, func):
@@ -91,6 +100,8 @@ def traverse_dictionary(dic, func):
         try:
             traverse_dictionary(value, func)
         except AttributeError:
+            dic[key] = func(value)
+        except ValueError:
             dic[key] = func(value)
 
 
@@ -102,7 +113,11 @@ def _get_xmap_path_or_none(output_path, binding_event):
         return None
 
 
-def get_datasets_from_crystals(crystals, output_path):
+def get_datasets_from_crystals(
+    crystals,
+    fs_model,
+    output_path,
+):
     # dataset_ids = [DatasetID(dtag=dtag) for dtag in crystals]
     # paths to files will be defined like this: upload_1/crystallographic_files/8dz1/8dz1.pdb
     # this is relative to the output_path variable that is defined from the metadata_file.yaml\
@@ -110,14 +125,17 @@ def get_datasets_from_crystals(crystals, output_path):
     reference_datasets = {}
     new_datasets = {}
     for dtag, crystal in crystals.items():
+        mtz_file = crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
+        if mtz_file is None:
+            mtz_path = None
+        else:
+            mtz_path = str(output_path / mtz_file)
+
         dataset = dt.Dataset(
             dtag=dtag,
             pdb=str(output_path / crystal[Constants.META_XTAL_FILES][Constants.META_XTAL_PDB][Constants.META_FILE]),
             xmap="",
-            mtz=str(
-                output_path
-                / crystal[Constants.META_XTAL_FILES].get(Constants.META_XTAL_MTZ, {}).get(Constants.META_FILE)
-            ),
+            mtz=mtz_path,
             # ligand_binding_events=LigandBindingEvents(
             #     ligand_ids=[
             #         LigandID(
@@ -156,6 +174,10 @@ def get_datasets_from_crystals(crystals, output_path):
         datasets[dtag] = dataset
         if crystal[Constants.META_STATUS] == Constants.META_STATUS_NEW:
             new_datasets[dtag] = dataset
+        if crystal[Constants.META_STATUS] == Constants.META_STATUS_SUPERSEDED:
+            new_datasets[dtag] = dataset
+        if dtag not in fs_model.alignments:
+            new_datasets[dtag] = dataset
         if crystal.get(Constants.META_REFERENCE):
             reference_datasets[dtag] = dataset
 
@@ -172,22 +194,59 @@ def get_datasets_from_crystals(crystals, output_path):
 
 
 class Aligner:
-    def __init__(self, version_dir, metadata, xtalforms, logger=None):
-        self.version_dir = Path(version_dir)  # e.g. path/to/upload_1
-        self.base_dir = self.version_dir.parent  # e.g. path/to
-        self.aligned_dir = self.version_dir / Constants.META_ALIGNED_FILES  # e.g. path/to/upload_1/aligned_files
-        self.xtal_dir = self.version_dir / Constants.META_XTAL_FILES  # e.g. path/to/upload_1/crystallographic_files
-        self.metadata_file = self.version_dir / metadata  # e.g. path/to/upload_1/meta_collator.yaml
-        if xtalforms:
-            self.xtalforms_file = Path(xtalforms)
-        else:
-            self.xtalforms_file = self.base_dir / Constants.XTALFORMS_FILENAME  # e.g. path/to/crystalforms.yaml
+    def __init__(self, dir, logger=None):
+        self.num_alignments = 0
+        self.errors = []
+        self.warnings = []
         if logger:
             self.logger = logger
         else:
             self.logger = utils.Logger()
-        self.errors = []
-        self.warnings = []
+        self._find_version_dir(dir)  # sets self.working_dir and self.version_dir
+        self.base_dir = self.version_dir.parent  # e.g. path/to
+        self.aligned_dir = (
+            self.version_dir / Constants.META_ALIGNED_FILES
+        )  # e.g. upload-current/upload_1/aligned_files
+        self.xtal_dir = (
+            self.version_dir / Constants.META_XTAL_FILES
+        )  # e.g. upload-current/upload_1/crystallographic_files
+        self.metadata_file = (
+            self.version_dir / Constants.METADATA_COLLATOR_FILENAME
+        )  # e.g. upload-current/upload_1/meta_collator.yaml
+        self.assemblies_file = (
+            self.base_dir / Constants.ASSEMBLIES_FILENAME
+        )  # e.g. upload-current/upload_1/assemblies.yaml
+
+    def _find_version_dir(self, dir):
+        if dir:
+            wd0 = Path(dir)
+        else:
+            wd0 = Path.cwd()
+
+        wd1 = utils._verify_working_dir(wd0)
+        if not wd1:
+            self._log_error("Working dir " + wd0 + " is not valid")
+            exit(1)
+
+        self.working_dir = wd1
+        current_dir = self.working_dir / 'upload-current'
+
+        # check that we at least have an upload_1 dir
+        if not (current_dir / 'upload_1').is_dir():
+            self._log_error("Working dir " + dir + " does not contain and upload_? dirs")
+            exit(1)
+
+        # now find the latest upload_? dir
+        i = 0
+        while i < 100:
+            i += 1
+            version_dir = current_dir / ('upload_' + str(i))
+            if version_dir.is_dir():
+                self.version_dir = version_dir
+            else:
+                break
+
+        self.logger.info("Using", version_dir, "as current version dir")
 
     def _log_error(self, msg):
         self.logger.error(msg)
@@ -199,29 +258,47 @@ class Aligner:
         elif not self.version_dir.is_dir():
             self._log_error("version dir {} is not a directory".format(self.version_dir))
         else:
+            output_meta_path = self.version_dir / Constants.METADATA_ALIGN_FILENAME
+            if output_meta_path.exists():
+                self._log_error(
+                    "aligner output {} already exists. You must run aligner on clean output from collator.".format(
+                        str(output_meta_path)
+                    )
+                )
+
             p = self.metadata_file
             if not p.exists():
                 self._log_error("metadata file {} does not exist. Did the collator step run successfully?".format(p))
             if not p.is_file():
                 self._log_error("metadata file {} is not a file. Did the collator step run successfully?".format(p))
 
-            p = Path(self.xtalforms_file)
+            p = self.assemblies_file
             if not p.exists():
-                self._log_error("xtalforms file {} does not exist".format(p))
+                self._log_error("assemblies.yaml file {} does not exist".format(p))
             elif not p.is_file():
-                self._log_error("xtalforms file {} is not a file".format(p))
+                self._log_error("assemblies.yaml file {} is not a file".format(p))
 
         return len(self.errors), len(self.warnings)
 
     def run(self):
         self.logger.info("Running aligner...")
         input_meta = utils.read_config_file(str(self.metadata_file))
+        collator_ver = input_meta.get(Constants.META_DATA_FORMAT_VERSION)
+        if utils.DATA_FORMAT_VERSION != collator_ver:
+            self._log_error(
+                "Collator was run with a different data format version ({}). Current version is {}. "
+                + "You must re-run collator so that it uses this version".format(
+                    collator_ver, utils.DATA_FORMAT_VERSION
+                )
+            )
+            exit(1)
+
         new_meta = self._perform_alignments(input_meta)
         self._write_output(input_meta, new_meta)
 
     def _write_output(self, collator_dict, aligner_dict):
-        # keep a copy of the xtaforms and assemblies configs
-        self._copy_file_to_version_dir(self.xtalforms_file)
+        # keep a copy of the assemblies config
+        self._copy_file_to_version_dir(self.assemblies_file)
 
         collator_dict[Constants.META_XTALFORMS] = aligner_dict[Constants.META_XTALFORMS]
         collator_dict[Constants.META_CONFORMER_SITES] = aligner_dict[Constants.META_CONFORMER_SITES]
@@ -231,9 +308,11 @@ class Aligner:
         xtals = collator_dict[Constants.META_XTALS]
         # print(aligner_dict)
         for k, v in aligner_dict[Constants.META_XTALS].items():
+            if k in xtals:
+                xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
+
             if Constants.META_ALIGNED_FILES in v:
                 if k in xtals:
-                    xtals[k][Constants.META_ASSIGNED_XTALFORM] = v[Constants.META_ASSIGNED_XTALFORM]
                     xtals[k][Constants.META_ALIGNED_FILES] = v[Constants.META_ALIGNED_FILES]
                     # print(f"TRAVERSING!")
                     # print(xtals[k][Constants.META_ALIGNED_FILES])
@@ -299,7 +378,7 @@ class Aligner:
 
         # Load the fs model for the new output dir
         fs_model = dt.FSModel.from_dir(output_path)
-        fs_model.xtalforms = self.xtalforms_file
+        fs_model.xtalforms = self.assemblies_file  # TODO change the name in LNA
         if source_fs_model:
             fs_model.alignments = source_fs_model.alignments
             fs_model.reference_alignments = source_fs_model.reference_alignments
@@ -314,46 +393,69 @@ class Aligner:
             os.mkdir(output_path)
 
         # Get the datasets
-        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, self.base_dir)
+        datasets, reference_datasets, new_datasets = get_datasets_from_crystals(crystals, fs_model, self.base_dir)
+        self.logger.info(f"Got {len(datasets)} datasets")
+        for dtag, dataset in datasets.items():
+            self.logger.info(f"Dataset {dtag} has {len(dataset.ligand_binding_events)} ligand binding events!")
+        self.logger.info(f"Got {len(reference_datasets)} reference datasets")
+        self.logger.info(f"Got {len(new_datasets)} new datasets")
+        # for dtag, dataset in datasets.items():
+        #     self.logger.info(f"{dtag} : {dataset.mtz}")
 
         # Get assemblies
         if source_fs_model:
-            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.xtalforms_file)
+            assemblies: dict[str, dt.Assembly] = _load_assemblies(
+                self.base_dir / source_fs_model.xtalforms, self.assemblies_file
+            )
         else:
-            assemblies = _load_assemblies(fs_model.xtalforms, self.xtalforms_file)
+            assemblies = _load_assemblies(fs_model.xtalforms, self.assemblies_file)
+        self.logger.info(f"Got {len(assemblies)} assemblies")
+
+        # # Derive alignment heirarchy
+        # alignment_heirarchy = _derive_alignment_heirarchy(assemblies)
 
         # # Get xtalforms
         if source_fs_model:
-            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.xtalforms_file)
+            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(
+                self.base_dir / source_fs_model.xtalforms, self.assemblies_file
+            )
         else:
-            xtalforms = _load_xtalforms(fs_model.xtalforms, self.xtalforms_file)
+            xtalforms = _load_xtalforms(fs_model.xtalforms, self.assemblies_file)
+        self.logger.info(f"Got {len(xtalforms)} xtalforms")
 
         # Get the dataset assignments
         if source_fs_model:
-            dataset_assignments = _load_dataset_assignments(Path(source_fs_model.dataset_assignments))
+            dataset_assignments = _load_dataset_assignments(Path(self.base_dir / source_fs_model.dataset_assignments))
         else:
             dataset_assignments = _load_dataset_assignments(Path(fs_model.dataset_assignments))
 
         # Get Ligand neighbourhoods
         if source_fs_model:
             ligand_neighbourhoods: dict[tuple[str, str, str], dt.Neighbourhood] = _load_ligand_neighbourhoods(
-                source_fs_model.ligand_neighbourhoods
+                self.base_dir / source_fs_model.ligand_neighbourhoods
             )
         else:
             ligand_neighbourhoods = _load_ligand_neighbourhoods(fs_model.ligand_neighbourhoods)
+        self.logger.info(f"Got {len(ligand_neighbourhoods)} ligand neighbourhoods")
 
         # Get alignability graph
         if source_fs_model:
-            alignability_graph = _load_alignability_graph(source_fs_model.alignability_graph)
+            alignability_graph = _load_alignability_graph(self.base_dir / source_fs_model.alignability_graph)
         else:
             alignability_graph = _load_alignability_graph(fs_model.alignability_graph)
+
+        # Get the connected components
+        if source_fs_model:
+            connected_components = _load_connected_components(self.base_dir / source_fs_model.connected_components)
+        else:
+            connected_components = _load_connected_components(fs_model.connected_components)
 
         #
         if source_fs_model:
             print(f"Have source fs model at {source_fs_model.ligand_neighbourhood_transforms}!")
             ligand_neighbourhood_transforms: dict[
                 tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform
-            ] = _load_ligand_neighbourhood_transforms(source_fs_model.ligand_neighbourhood_transforms)
+            ] = _load_ligand_neighbourhood_transforms(self.base_dir / source_fs_model.ligand_neighbourhood_transforms)
         else:
             ligand_neighbourhood_transforms = _load_ligand_neighbourhood_transforms(
                 fs_model.ligand_neighbourhood_transforms
@@ -362,47 +464,71 @@ class Aligner:
 
         # Get conformer sites
         if source_fs_model:
-            conformer_sites: dict[str, dt.ConformerSite] = _load_conformer_sites(source_fs_model.conformer_sites)
+            conformer_sites: dict[str, dt.ConformerSite] = _load_conformer_sites(
+                self.base_dir / source_fs_model.conformer_sites
+            )
         else:
             conformer_sites = _load_conformer_sites(fs_model.conformer_sites)
 
         #
         if source_fs_model:
             conformer_site_transforms: dict[tuple[str, str], dt.Transform] = _load_conformer_site_transforms(
-                source_fs_model.conformer_site_transforms
+                self.base_dir / source_fs_model.conformer_site_transforms
             )
         else:
             conformer_site_transforms = _load_conformer_site_transforms(fs_model.conformer_site_transforms)
 
         # Get canonical sites
         if source_fs_model:
-            canonical_sites: dict[str, dt.CanonicalSite] = _load_canonical_sites(source_fs_model.canonical_sites)
+            canonical_sites: dict[str, dt.CanonicalSite] = _load_canonical_sites(
+                self.base_dir / source_fs_model.canonical_sites
+            )
         else:
             canonical_sites = _load_canonical_sites(fs_model.canonical_sites)
 
         #
         if source_fs_model:
             canonical_site_transforms: dict[str, dt.Transform] = _load_canonical_site_transforms(
-                source_fs_model.conformer_site_transforms
+                self.base_dir / source_fs_model.conformer_site_transforms
             )
         else:
             canonical_site_transforms = _load_canonical_site_transforms(fs_model.conformer_site_transforms)
 
         # Get xtalform sites
         if source_fs_model:
-            xtalform_sites: dict[str, dt.XtalFormSite] = _load_xtalform_sites(source_fs_model.xtalform_sites)
+            xtalform_sites: dict[str, dt.XtalFormSite] = _load_xtalform_sites(
+                self.base_dir / source_fs_model.xtalform_sites
+            )
         else:
             xtalform_sites = _load_xtalform_sites(fs_model.xtalform_sites)
 
         # Get reference structure transforms
         if source_fs_model:
             reference_structure_transforms: dict[tuple[str, str], dt.Transform] = _load_reference_stucture_transforms(
-                source_fs_model.reference_structure_transforms
+                self.base_dir / source_fs_model.reference_structure_transforms
             )
         else:
             reference_structure_transforms = _load_reference_stucture_transforms(
                 fs_model.reference_structure_transforms
             )
+
+        # Get the assembly landmarks
+        working_fs_model = fs_model
+        if source_fs_model:
+            working_fs_model = fs_model
+
+        if working_fs_model.assembly_landmarks.exists():
+            assembly_landmarks = ah.load_yaml(
+                self.base_dir / working_fs_model.assembly_landmarks, ah.dict_to_assembly_landmarks
+            )
+        else:
+            assembly_landmarks = {}
+
+        # Get the assembly transforms
+        if working_fs_model.assembly_transforms.exists():
+            assembly_transforms = ah.load_yaml(self.base_dir / working_fs_model.assembly_transforms, lambda x: x)
+        else:
+            assembly_transforms = {}
 
         # Run the update
         updated_fs_model = _update(
@@ -415,12 +541,16 @@ class Aligner:
             dataset_assignments,
             ligand_neighbourhoods,
             alignability_graph,
+            connected_components,
             ligand_neighbourhood_transforms,
             conformer_sites,
             conformer_site_transforms,
             canonical_sites,
             xtalform_sites,
             reference_structure_transforms,
+            assembly_landmarks,
+            assembly_transforms,
+            self.version_dir.name[7:],
         )
 
         # Update the metadata_file with aligned file locations and site information
@@ -429,8 +559,8 @@ class Aligner:
         # Add the xtalform information
         meta_xtalforms = {}
         xtalforms = read_yaml(updated_fs_model.xtalforms)
-        for xtalform_id, xtalform in xtalforms['xtalforms'].items():
-            xtalform_reference = xtalform["reference"]
+        for xtalform_id, xtalform in xtalforms[Constants.META_XTALFORMS].items():
+            xtalform_reference = xtalform[Constants.META_REFERENCE]
             reference_structure = gemmi.read_structure(datasets[xtalform_reference].pdb)  # (xtalform_reference).pdb)
             reference_spacegroup = reference_structure.spacegroup_hm
             reference_unit_cell = reference_structure.cell
@@ -474,7 +604,7 @@ class Aligner:
         #     }
 
         # Add the canonical sites
-        canonical_sites = read_yaml(fs_model.canonical_sites)
+        canonical_sites = read_yaml(updated_fs_model.canonical_sites)
         new_meta[Constants.META_CANONICAL_SITES] = canonical_sites
         # canonical_sites_meta = new_meta[Constants.META_CANONICAL_SITES] = {}
         # for canonical_site_id, canonical_site in zip(canonical_sites.site_ids, canonical_sites.sites):
@@ -493,7 +623,7 @@ class Aligner:
         #     }
 
         # Add the xtalform sites - note the chain is that of the original crystal structure, NOT the assembly
-        xtalform_sites = read_yaml(fs_model.xtalform_sites)
+        xtalform_sites = read_yaml(updated_fs_model.xtalform_sites)
         new_meta[Constants.META_XTALFORM_SITES] = xtalform_sites
         # xtalform_sites_meta = new_meta[Constants.META_XTALFORM_SITES] = {}
         # for xtalform_site_id, xtalform_site in xtalform_sites.xtalform_sites.items():
@@ -509,7 +639,7 @@ class Aligner:
         #     }
 
         # Add the output aligned files
-        assigned_xtalforms = read_yaml(fs_model.dataset_assignments)
+        assigned_xtalforms = read_yaml(updated_fs_model.dataset_assignments)
 
         # for dtag, crystal in crystals.items():
         #     # Skip if no output for this dataset
@@ -543,56 +673,92 @@ class Aligner:
         new_meta[Constants.META_XTALS] = {}
         for dtag, crystal in crystals.items():
             self.logger.info('looking at', dtag)
-            # Skip if no output for this dataset
-            if dtag not in fs_model.alignments:
-                self.logger.warn('skipping {} as aligned structures not found'.format(dtag))
-                continue
 
             new_meta[Constants.META_XTALS][dtag] = {}
-            crystal_output = new_meta[Constants.META_XTALS][dtag] = {}
-            # aligned_files = crystal_output[Constants.META_ALIGNED_FILES]
+            crystal_output = new_meta[Constants.META_XTALS][dtag]
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
+            self.logger.info(f'assigning xtalform: {assigned_xtalforms[dtag]}')
             assigned_xtalform = assigned_xtalforms[dtag]
             crystal_output[Constants.META_ASSIGNED_XTALFORM] = assigned_xtalform
 
-            aligned_output = crystal_output[Constants.META_ALIGNED_FILES] = {}
-            dataset_output = fs_model.alignments[dtag]
+            # Skip if no output for this dataset
+            if dtag not in updated_fs_model.alignments:
+                self.logger.warn('skipping {} as aligned structures not found'.format(dtag))
+                continue
+
+            # We capture the ligand binding events info as we need to know whether the event map file is present
+            # This is a bit of a hack as the event map file location is generated by LNA even if there is no event map
+            # so we need to know whether to actually include it in the metadata.
+            # It would be better if LNA only included if it actually existed which would make the checking easier.
+            event_map_dict_list = crystal.get(Constants.META_XTAL_FILES, {}).get(Constants.META_BINDING_EVENT, {})
+
+            crystal_output[Constants.META_ALIGNED_FILES] = {}
+            aligned_output = crystal_output[Constants.META_ALIGNED_FILES]
+            dataset_output = updated_fs_model.alignments[dtag]
+            print(dataset_output)
             for chain_name, chain_output in dataset_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
+                i = 0
                 for ligand_residue, ligand_output in chain_output.items():
                     aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
-                    for site_id, aligned_structure_path in ligand_output.aligned_structures.items():
-                        aligned_artefacts_path = ligand_output.aligned_artefacts[site_id]
-                        aligned_event_map_path = ligand_output.aligned_event_maps[site_id]
-                        aligned_xmap_path = ligand_output.aligned_xmaps[site_id]
-                        aligned_diff_map_path = ligand_output.aligned_diff_maps[site_id]
-                        aligned_ligand_output[site_id] = {
-                            Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
-                            Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
-                            Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
-                            Constants.META_AIGNED_X_MAP: aligned_xmap_path,
-                            Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
-                        }
+                    for version, version_output in ligand_output.items():
+                        aligned_version_output = aligned_ligand_output[version] = {}
+                        for site_id, aligned_structure_path in version_output.aligned_structures.items():
+                            # Is the event map file present?
+                            # We do this assuming the order is the same as the info in the crystallographic files section
+                            event_map_present = True if Constants.META_FILE in event_map_dict_list[i] else False
+
+                            aligned_artefacts_path = version_output.aligned_artefacts[site_id]
+                            aligned_event_map_path = version_output.aligned_event_maps[site_id]
+                            aligned_xmap_path = version_output.aligned_xmaps[site_id]
+                            aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
+
+                            aligned_crystallographic_event_map_path = (
+                                version_output.aligned_event_maps_crystallographic[site_id]
+                            )
+                            aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[site_id]
+                            aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[
+                                site_id
+                            ]
+
+                            aligned_version_output[site_id] = {
+                                Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
+                                # Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
+                                # Constants.META_AIGNED_EVENT_MAP: aligned_event_map_path,
+                                Constants.META_AIGNED_X_MAP: aligned_xmap_path,
+                                Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_crystallographic_xmap_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_crystallographic_diff_map_path,
+                            }
+                            # if the event map is present then include it in the output
+                            if event_map_present:
+                                aligned_version_output[site_id][
+                                    Constants.META_AIGNED_EVENT_MAP
+                                ] = aligned_event_map_path
+                                aligned_version_output[site_id][
+                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP
+                                ] = aligned_crystallographic_event_map_path
+                    i += 1
 
         ## Add the reference alignments
         new_meta[Constants.META_REFERENCE_ALIGNMENTS] = {}
         for dtag, crystal in crystals.items():
             # Skip if no output for this dataset
-            if dtag not in fs_model.reference_alignments:
+            if dtag not in updated_fs_model.reference_alignments:
                 continue
 
             crystal_output = new_meta[Constants.META_REFERENCE_ALIGNMENTS][dtag] = {}
 
             # for dtag, canonical_site_aligned_files in fs_model.reference_alignments.items():
-            for canonical_site_id, aligned_files in fs_model.reference_alignments[dtag].items():
+            for canonical_site_id, aligned_files in updated_fs_model.reference_alignments[dtag].items():
                 crystal_output[canonical_site_id] = aligned_files
 
         new_meta[Constants.META_TRANSFORMS] = {}
 
         ## Get the observation to conformer site transforms
-        ligand_neighbourhood_transforms = read_yaml(fs_model.ligand_neighbourhood_transforms)
+        ligand_neighbourhood_transforms = read_yaml(updated_fs_model.ligand_neighbourhood_transforms)
         new_meta[Constants.META_TRANSFORMS][
             Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES
         ] = ligand_neighbourhood_transforms
@@ -617,7 +783,7 @@ class Aligner:
         #     new_meta[Constants.META_TRANSFORMS][Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES].append(transform_record)
 
         ## Get the conformer site to canonical site transforms
-        conformer_site_transforms = read_yaml(fs_model.conformer_site_transforms)
+        conformer_site_transforms = read_yaml(updated_fs_model.conformer_site_transforms)
         new_meta[Constants.META_TRANSFORMS][
             Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON
         ] = conformer_site_transforms
@@ -684,6 +850,7 @@ class Aligner:
         self.logger.info('extracting components')
 
         num_errors = 0
+        num_pdbs = 0
         for k1, v1 in aligner_meta.get(Constants.META_XTALS, {}).items():  # k = xtal
             if Constants.META_ALIGNED_FILES in v1:
                 self.logger.info('handling', k1)
@@ -693,85 +860,122 @@ class Aligner:
                     .get(Constants.META_XTAL_CIF, {})
                     .get(Constants.META_FILE)
                 )
-
                 for k2, v2 in v1[Constants.META_ALIGNED_FILES].items():  # chain
                     for k3, v3 in v2.items():  # ligand
-                        for k4, v4 in v3.items():  # conf site
-                            pdb = v4[Constants.META_AIGNED_STRUCTURE]
-                            self.logger.info("extracting components", k1, k2, k3, k4, pdb)
-                            # pth = self.version_dir / pdb
-                            pth = Path(pdb)
-                            if not pth.is_file():
-                                self.logger.error("can't find file", pth)
-                                num_errors += 1
-                            else:
-                                pdbxtal = PDBXtal(pth, pth.parent)
-                                errs = pdbxtal.validate()
-                                if errs:
-                                    self.logger.error("validation errors - can't extract components")
+                        for k4, v4 in v3.items():  # version
+                            for k5, v5 in v4.items():  # conf site
+                                pdb = v5[Constants.META_AIGNED_STRUCTURE]
+                                self.logger.info("extracting components", k1, k2, k3, k4, k5, pdb)
+                                # pth = self.version_dir / pdb
+                                pth = Path(pdb)
+                                if not pth.is_file():
+                                    self.logger.error("can't find file", pth)
                                     num_errors += 1
                                 else:
-                                    pdbxtal.create_apo_file()
-                                    pdbxtal.create_apo_solv_desolv()
+                                    pdbxtal = PDBXtal(pth, pth.parent, logger=self.logger)
+                                    errs = pdbxtal.validate()
+                                    if errs:
+                                        self.logger.error("validation errors - can't extract components")
+                                        num_errors += 1
+                                    else:
+                                        num_pdbs += 1
+                                        pdbxtal.create_apo_file()
+                                        pdbxtal.create_apo_solv_desolv()
 
-                                    v4[Constants.META_PDB_APO] = str(pdbxtal.apo_file.relative_to(self.base_dir))
-                                    v4[Constants.META_PDB_APO_SOLV] = str(
-                                        pdbxtal.apo_solv_file.relative_to(self.base_dir)
-                                    )
-                                    v4[Constants.META_PDB_APO_DESOLV] = str(
-                                        pdbxtal.apo_desolv_file.relative_to(self.base_dir)
-                                    )
-                                    if cif_file:
-                                        try:
-                                            pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
-                                            v4[Constants.META_LIGAND_MOL] = (
-                                                str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.mol'
-                                            )
-                                            v4[Constants.META_LIGAND_PDB] = (
-                                                str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.pdb'
-                                            )
-                                            v4[Constants.META_LIGAND_SMILES] = pdbxtal.smiles
-                                        except:
-                                            num_errors += 1
-                                            self.logger.warn(
-                                                "failed to create ligand for",
-                                                k1,
-                                                "Check that the ligand in PDB file and the CIF file are compatible",
-                                            )
-                                            traceback.print_exc()
+                                        v5[Constants.META_PDB_APO] = str(pdbxtal.apo_file.relative_to(self.base_dir))
+                                        v5[Constants.META_PDB_APO_SOLV] = str(
+                                            pdbxtal.apo_solv_file.relative_to(self.base_dir)
+                                        )
+                                        v5[Constants.META_PDB_APO_DESOLV] = str(
+                                            pdbxtal.apo_desolv_file.relative_to(self.base_dir)
+                                        )
+                                        if cif_file:
+                                            try:
+                                                pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
+                                                v5[Constants.META_LIGAND_MOL] = (
+                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.mol'
+                                                )
+                                                v5[Constants.META_LIGAND_SDF] = (
+                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.sdf'
+                                                )
+                                                v5[Constants.META_LIGAND_PDB] = (
+                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.pdb'
+                                                )
+                                                v5[Constants.META_LIGAND_SMILES] = (
+                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.smi'
+                                                )
+                                                v5[Constants.META_LIGAND_NAME] = pdbxtal.ligand_name
+                                                v5[Constants.META_LIGAND_SMILES_STRING] = pdbxtal.smiles
+                                            except:
+                                                num_errors += 1
+                                                self.logger.warn(
+                                                    "failed to create ligand for",
+                                                    k1,
+                                                    "Check that the ligand in PDB file and the CIF file are compatible",
+                                                )
+                                                traceback.print_exc()
 
+        self.num_alignments = num_pdbs
         return num_errors
 
 
 def main():
     parser = argparse.ArgumentParser(description="aligner")
 
-    parser.add_argument("-d", "--version-dir", required=True, help="Path to version dir")
-    parser.add_argument(
-        "-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME.format(""), help="Metadata YAML file"
-    )
-    parser.add_argument("-x", "--xtalforms", help="Crystal forms YAML file")
+    parser.add_argument("-d", "--dir", help="Working directory")
 
-    parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("--validate", action="store_true", help="Only perform validation")
 
     args = parser.parse_args()
-    print("aligner: ", args)
 
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    if args.dir:
+        log = str(Path(args.dir) / 'aligner.log')
+    else:
+        log = 'aligner.log'
 
-    a = Aligner(args.version_dir, args.metadata_file, args.xtalforms, logger=logger)
-    num_errors, num_warnings = a.validate()
+    logger = utils.Logger(logfile=log, level=args.log_level)
+    logger.info("aligner: ", args)
+    logger.info("Using {} for log file".format(str(log)))
+    utils.LOG = logger
 
-    if not args.validate:
-        if num_errors:
-            print("There are errors, cannot continue")
-            exit(1)
+    try:
+        a = Aligner(args.dir, logger=logger)
+        num_errors, num_warnings = a.validate()
+
+        if not args.validate:
+            if num_errors:
+                logger.error("There are errors, cannot continue")
+                exit(1)
+            else:
+                t0 = time.time()
+                a.run()
+                t1 = time.time()
+                logger.info("Handled {} alignments in {} secs".format(a.num_alignments, round(t1 - t0)))
+                # write a summary of errors and warnings
+                logger.report()
+                logger.close()
+                if logger.logfilename:
+                    to_path = a.version_dir / 'aligner.log'
+                    print("copying log file", logger.logfilename, "to", to_path)
+                    f = shutil.copy2(logger.logfilename, to_path)
+                    if not f:
+                        print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
+    except:
+        # uncaught exception
+        tb = traceback.format_exc()
+        if args.dir:
+            wd = args.dir
         else:
-            a.run()
-            # write a summary of errors and warnings
-            logger.report()
+            wd = Path.cwd()
+        logger.error(
+            "Unexpected fatal error occurred when running aligner\n"
+            + tb
+            + "\nPlease send this information to the XCA developers:\nLog file: "
+            + str(logger.logfilename)
+            + "\nWorking dir location: "
+            + str(wd)
+        )
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 See:
 * [User Guide](USER-GUIDE.md)
 * [Developer Guide](DEV-GUIDE.md)
+* [Algorithm Guide](ALGORITHM-GUIDE.md)
 
 Contributors:
 * Tim Dudgeon (Informatics Matters)
