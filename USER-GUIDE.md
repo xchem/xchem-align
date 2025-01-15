@@ -412,8 +412,6 @@ Warning: aligner can take an even longer time, please be patient.
 
 ## 5. Upload to Fragalysis
 
-An automatic tool for Fragalysis upload has not yet been written.
-
 To generate the gzipped tar file needed to manually upload the data move into your version dir and run this command
 (updating it for the specific upload version and target name):
 
@@ -422,6 +420,9 @@ tar cvfz <target_name>.tgz upload_1
 ```
 
 Change `upload_1` to whatever your current upload is.
+
+
+### Uploading using the API endpoint
 
 **Staging vs production: there are two live versions of Fragalysis. "Staging" is used for testing and is in constant development, therefore it may be buggier and/or have new features with respect to "production" which is the stable and public deployment. You should test if your upload works in staging, and verify that the data has been uploaded correctly before uploading to production. Data in staging is "at risk" as we may have to wipe the data occassionally for development reasons.**
 
@@ -438,6 +439,21 @@ Change `upload_1` to whatever your current upload is.
 The target access string will be the name of your proposal in UAS/ISpyB. Any Fed ID with access to your proposal will be able to see your data. If you have a private/closed data set, this means only logged in users with access configured via UAS will see your target dataset.
 
 Fill in your email and attach the `.tgz` archive. After clicking 'POST' you will see a URL which you can append to https://fragalysis.xchem.diamond.ac.uk/ (or https://fragalysis.diamond.ac.uk/ for production) to track the progress of the upload.
+
+
+### Uploading with the XCA uploader tool
+
+To use the XChemAlign uploader tool, first log in to Fragalysis and obtain the authentication token. Token can be obtained from:
+
+* Staging: https://fragalysis.xchem.diamond.ac.uk/api/token/
+* Production: https://fragalysis.diamond.ac.uk/api/token/
+
+Then run the upload command:
+
+```commandline
+python -m xchemalign.uploader -i <gzipped tar file> -u <fragalysis url> -p <proposal number> -t <token>
+```
+
 
 ## 6. Creating subsequent versions
 
