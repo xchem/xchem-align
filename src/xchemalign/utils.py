@@ -264,6 +264,15 @@ class Logger:
             if self.logfile:
                 print(key, *args, file=self.logfile, **kwargs)
 
+        # this is a hack to display messages coming from the server
+        # that are already prefixed with error level. not sure atm how
+        # to best integrate this with xca logging system
+        if level == -1:
+            if self.console:
+                print(*args, file=self.console, **kwargs)
+            if self.logfile:
+                print(*args, file=self.logfile, **kwargs)
+
     def get_num_messages(self):
         return len(self.infos), len(self.warnings), len(self.errors)
 
