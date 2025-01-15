@@ -264,10 +264,9 @@ class Logger:
             if self.logfile:
                 print(key, *args, file=self.logfile, **kwargs)
 
-        # this is a hack to display messages coming from the server to
-        # display messages that are already prefixed with error
-        # level. not sure atm how to best integrate this with xca
-        # logging system
+        # this is a hack to display messages coming from the server
+        # that are already prefixed with error level. not sure atm how
+        # to best integrate this with xca logging system
         if level == -1:
             if self.console:
                 print(*args, file=self.console, **kwargs)

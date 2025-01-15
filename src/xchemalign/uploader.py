@@ -28,8 +28,7 @@ from requests_toolbelt.multipart.encoder import (
 )
 
 
-# from xchemalign import utils
-import utils
+from xchemalign import utils
 
 
 LOGIN_URL = "/accounts/login/"
@@ -138,6 +137,9 @@ def upload(input_file, url, proposal, auth_token=None):
             upload_url,
             data=validation_data,
         )
+        if validation_result.url.find("keycloak") > 0:
+            logger.error("You are not logged in to Fragalysis")
+            return
 
         result_json = validation_result.json()
         if not result_json["success"]:
@@ -264,9 +266,6 @@ def main():
     args = parser.parse_args()
 
     upload(args.input, args.url, args.proposal, auth_token=args.token)
-
-    # normal upload
-    # python src/xchemalign/uploader.py -i ../test_data/A71EV2A_xca_staging_20241104_fake_aliases.tar.gz -u http://localhost:8080/ -p lb18145-1
 
 
 if __name__ == "__main__":
