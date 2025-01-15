@@ -11,28 +11,17 @@ from xchemalign.aligner import Aligner
 def main():
     parser = argparse.ArgumentParser(description="aligner")
 
-    parser.add_argument("-d", "--version-dir", required=True, help="Path to version dir")
-    parser.add_argument(
-        "-m", "--metadata_file", default=Constants.METADATA_XTAL_FILENAME.format(""), help="Metadata YAML file"
-    )
-    parser.add_argument("-a", "--assemblies", help="Assemblies YAML file")
+    parser.add_argument("-d", "--dir", help="Working directory")
 
-    parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("--validate", action="store_true", help="Only perform validation")
 
     args = parser.parse_args()
 
-    if args.log_file:
-        log = args.log_file
-    else:
-        log = str(Path(args.version_dir).parent / 'aligner.log')
-        print("Using {} for log file".format(str(log)))
+    print("aligner: ", args)
 
-    logger = utils.Logger(logfile=log, level=args.log_level)
-    logger.info("aligner: ", args)
-
-    a = Aligner(args.version_dir, args.metadata_file, args.assemblies, logger=logger)
+    a = Aligner(args.dir, log_level=args.log_level)
+    logger = a.logger
     num_errors, num_warnings = a.validate()
 
     if not args.validate:

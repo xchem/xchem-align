@@ -9,8 +9,13 @@ venv/
 xchemalign/xchem_align.egg-info/
 xchemalign/_version.py
 test-data/outputs/upload_*
+test-data/outputs/upload-v2/upload_*
+test-data/outputs/upload-v2/*.log
+test-data/outputs/upload-v2/config.yaml
+
+example-simple
+build
+
 *~
 \#*#
 \#*
-example-simple
-build
