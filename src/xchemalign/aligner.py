@@ -194,15 +194,16 @@ def get_datasets_from_crystals(
 
 
 class Aligner:
-    def __init__(self, dir, logger=None):
+    def __init__(self, dir, log_file=None, log_level=0):
         self.num_alignments = 0
         self.errors = []
         self.warnings = []
-        if logger:
-            self.logger = logger
-        else:
-            self.logger = utils.Logger()
+
         self._find_version_dir(dir)  # sets self.working_dir and self.version_dir
+        if not log_file:
+            log_file = self.working_dir / 'upload-current' / 'aligner.log'
+        self.logger = utils.Logger(logfile=log_file, level=log_level)
+        self.logger.info("Using", self.version_dir, "as current version dir")
         self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = (
             self.version_dir / Constants.META_ALIGNED_FILES
@@ -245,8 +246,6 @@ class Aligner:
                 self.version_dir = version_dir
             else:
                 break
-
-        self.logger.info("Using", version_dir, "as current version dir")
 
     def _log_error(self, msg):
         self.logger.error(msg)
@@ -934,32 +933,46 @@ def main():
     else:
         log = 'aligner.log'
 
-    logger = utils.Logger(logfile=log, level=args.log_level)
-    logger.info("aligner: ", args)
-    logger.info("Using {} for log file".format(str(log)))
-    utils.LOG = logger
+    try:
+        a = Aligner(args.dir, log_file=log, log_level=args.log_level)
+        logger = a.logger
+        utils.LOG = logger
 
-    a = Aligner(args.dir, logger=logger)
-    num_errors, num_warnings = a.validate()
+        num_errors, num_warnings = a.validate()
 
-    if not args.validate:
-        if num_errors:
-            logger.error("There are errors, cannot continue")
-            exit(1)
+        if not args.validate:
+            if num_errors:
+                logger.error("There are errors, cannot continue")
+                exit(1)
+            else:
+                t0 = time.time()
+                a.run()
+                t1 = time.time()
+                logger.info("Handled {} alignments in {} secs".format(a.num_alignments, round(t1 - t0)))
+                # write a summary of errors and warnings
+                logger.report()
+                logger.close()
+                if logger.logfilename:
+                    to_path = a.version_dir / 'aligner.log'
+                    print("copying log file", logger.logfilename, "to", to_path)
+                    f = shutil.copy2(logger.logfilename, to_path)
+                    if not f:
+                        print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
+    except:
+        # uncaught exception
+        tb = traceback.format_exc()
+        if args.dir:
+            wd = args.dir
         else:
-            t0 = time.time()
-            a.run()
-            t1 = time.time()
-            logger.info("Handled {} alignments in {} secs".format(a.num_alignments, round(t1 - t0)))
-            # write a summary of errors and warnings
-            logger.report()
-            logger.close()
-            if logger.logfilename:
-                to_path = a.version_dir / 'aligner.log'
-                print("copying log file", logger.logfilename, "to", to_path)
-                f = shutil.copy2(logger.logfilename, to_path)
-                if not f:
-                    print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
+            wd = Path.cwd()
+        logger.error(
+            "Unexpected fatal error occurred when running aligner\n"
+            + tb
+            + "\nPlease send this information to the XCA developers:\nLog file: "
+            + str(logger.logfilename)
+            + "\nWorking dir location: "
+            + str(wd)
+        )
 
 
 if __name__ == "__main__":

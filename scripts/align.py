@@ -18,17 +18,10 @@ def main():
 
     args = parser.parse_args()
 
-    if args.dir:
-        log = str(Path(args.dir) / 'aligner.log')
-    else:
-        log = 'aligner.log'
+    print("aligner: ", args)
 
-    logger = utils.Logger(logfile=log, level=args.log_level)
-    logger.info("aligner: ", args)
-    logger.info("Using {} for log file".format(str(log)))
-    utils.LOG = logger
-
-    a = Aligner(args.dir, logger=logger)
+    a = Aligner(args.dir, log_level=args.log_level)
+    logger = a.logger
     num_errors, num_warnings = a.validate()
 
     if not args.validate:

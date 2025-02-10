@@ -1,42 +1,23 @@
 import argparse
 import shutil
-from pathlib import Path
 
 from xchemalign import utils
-from xchemalign import setup
-from xchemalign.collator import Collator, _check_working_dir
+from xchemalign.collator import Collator
 
 
 def main():
     parser = argparse.ArgumentParser(description="collator")
 
     parser.add_argument("-d", "--dir", help="Working directory")
-    parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
-    parser.add_argument("--no-git-info", action="store_false", help="Don't add GIT info to metadata")
 
     args = parser.parse_args()
 
-    if args.dir:
-        working_dir = Path(args.dir)
-    else:
-        working_dir = Path.cwd()
+    print("collator: ", str(args))
 
-    if _check_working_dir(working_dir):
-        print("Working dir does not seem to have been initialised - missing 'upload_current' symlink")
-        inp = input("Do you want the working dir to be initialised? (Y/N)")
-        if inp == "Y" or inp == "y":
-            print("Initialising working dir")
-            s = setup.Setup(args.dir)
-            s.run()
-        exit(1)
-
-    c = Collator(working_dir, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
-
+    c = Collator(args.dir, log_level=args.log_level)
     logger = c.logger
-    logger.info("collator: ", str(args))
-    utils.LOG = logger
 
     meta = c.validate()
 

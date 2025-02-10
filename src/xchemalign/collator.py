@@ -1061,6 +1061,9 @@ class Collator:
                                                     can_smi = Chem.MolToSmiles(m)
                                                     if can_smi:
                                                         ligands[name][Constants.META_MODELED_SMILES_CANON] = can_smi
+                                                        smi = can_smi
+                                                    else:
+                                                        smi = cpd_smiles[i][1]
                                                 except:
                                                     self._log_warning(
                                                         'Failed to generate canonical smiles for '
@@ -1382,7 +1385,6 @@ def main():
     parser = argparse.ArgumentParser(description="collator")
 
     parser.add_argument("-d", "--dir", help="Working directory")
-    parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
     parser.add_argument("--no-git-info", action="store_false", help="Don't add GIT info to metadata")
@@ -1407,34 +1409,54 @@ def main():
             s.run()
         exit(1)
 
-    c = Collator(working_dir, log_file=args.log_file, log_level=args.log_level, include_git_info=args.no_git_info)
+    logger = None
+    try:
+        c = Collator(working_dir, log_level=args.log_level, include_git_info=args.no_git_info)
 
-    logger = c.logger
-    logger.info("collator: ", str(args))
-    utils.LOG = logger
+        logger = c.logger
+        logger.info("collator: ", str(args))
+        utils.LOG = logger
 
-    meta = c.validate()
+        meta = c.validate()
 
-    if not args.validate:
-        if meta is None or len(logger.errors) > 0:
-            logger.error("There are errors, cannot continue")
-            logger.report()
-            logger.close()
-            exit(1)
-        else:
-            t0 = time.time()
-            c.run(meta)
-            t1 = time.time()
-            # write a summary of errors and warnings
-            logger.info("Handled {} crystals in {} secs".format(c.num_crystals, round(t1 - t0)))
-            logger.report()
-            logger.close()
-            if logger.logfilename:
-                to_path = c.output_path / c.version_dir / 'collator.log'
-                print("copying log file", logger.logfilename, "to", to_path)
-                f = shutil.copy2(logger.logfilename, to_path)
-                if not f:
-                    print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
+        if not args.validate:
+            if meta is None or len(logger.errors) > 0:
+                logger.error("There are errors, cannot continue")
+                logger.report()
+                logger.close()
+                exit(1)
+            else:
+                t0 = time.time()
+                c.run(meta)
+                t1 = time.time()
+                # write a summary of errors and warnings
+                logger.info("Handled {} crystals in {} secs".format(c.num_crystals, round(t1 - t0)))
+                logger.report()
+                logger.close()
+                if logger.logfilename:
+                    to_path = c.output_path / c.version_dir / 'collator.log'
+                    print("copying log file", logger.logfilename, "to", to_path)
+                    f = shutil.copy2(logger.logfilename, to_path)
+                    if not f:
+                        print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
+
+    except Exception as err:
+        # uncaught exception
+        tb = traceback.format_exc()
+        if logger:
+            logger.error(
+                "Unexpected fatal error occurred when running collator\n"
+                + tb
+                + "\nPlease send this information to the XCA developers:\nLog file: "
+                + str(logger.logfilename)
+                + "\nWorking dir location: "
+                + str(wd)
+            )
+        else:  # couldn't even create the Collator object so log file will contain nothing useful
+            print(
+                "Unexpected fatal error occurred, most likely the configuration is wrong or collator was invoked "
+                + "incorrectly. Please send the command you ran and your current directory to the developers."
+            )
 
 
 if __name__ == "__main__":

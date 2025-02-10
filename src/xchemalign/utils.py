@@ -264,6 +264,15 @@ class Logger:
             if self.logfile:
                 print(key, *args, file=self.logfile, **kwargs)
 
+        # this is a hack to display messages coming from the server
+        # that are already prefixed with error level. not sure atm how
+        # to best integrate this with xca logging system
+        if level == -1:
+            if self.console:
+                print(*args, file=self.console, **kwargs)
+            if self.logfile:
+                print(*args, file=self.logfile, **kwargs)
+
     def get_num_messages(self):
         return len(self.infos), len(self.warnings), len(self.errors)
 
@@ -525,7 +534,7 @@ def parse_compound_smiles(val: str):
 
 # the integer part is the major version number (increment when the data format changes in an incompatible way)
 # the decimal part is the minor version number (something changed in XCA but does not impact the data format)
-DATA_FORMAT_VERSION = 2.1
+DATA_FORMAT_VERSION = 2.2
 
 
 def check_data_format_version(ver_to_check):

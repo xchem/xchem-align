@@ -276,7 +276,7 @@ class PDBXtal:
 
         old_name = mol.GetProp('_Name')
         self.ligand_name = old_name
-        self.ligand_base_file = self.output_dir / (self.filebase + "_ligand_" + old_name)
+        self.ligand_base_file = self.output_dir / (self.filebase + "_ligand")
         self.smiles = Chem.MolToSmiles(mol)
 
         for altloc, coords in coords_for_altlocs.items():

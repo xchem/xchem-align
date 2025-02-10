@@ -15,11 +15,11 @@ def constants():
         CONFIG_1_FILE = "test-data/config_1.yaml"
         CONFIG_2_FILE = "test-data/config_2.yaml"
         CONFIG_3_FILE = "test-data/config_3.yaml"
-        ASSEMBLIES_FILE = "test-data/outputs/assemblies.yaml"
         TEST_DIR = "test-data/outputs"
-        UPLOAD_1_DIR = "test-data/outputs/upload_1"
-        UPLOAD_2_DIR = "test-data/outputs/upload_2"
-        UPLOAD_3_DIR = "test-data/outputs/upload_3"
+        CONFIG_FILE = TEST_DIR + '/upload-current/config.yaml'
+        UPLOAD_1_DIR = TEST_DIR + '/upload-current/upload_1'
+        UPLOAD_2_DIR = TEST_DIR + '/upload-current/upload_2'
+        UPLOAD_3_DIR = TEST_DIR + '/upload-current/upload_3'
         METADATA_FILE = "meta_collator.yaml"
 
     return Constants()
@@ -50,9 +50,9 @@ def test_dir(constants):
 
 @pytest.fixture(scope="session")
 def upload_1_dir(constants, test_dir):
-    path = Path(constants.UPLOAD_1_DIR)
-    if path.exists():
-        shutil.rmtree(path)
+    for path in [Path(constants.UPLOAD_3_DIR), Path(constants.UPLOAD_2_DIR), Path(constants.UPLOAD_1_DIR)]:
+        if path.exists():
+            shutil.rmtree(path)
     os.mkdir(path)
 
     return path
@@ -60,9 +60,9 @@ def upload_1_dir(constants, test_dir):
 
 @pytest.fixture(scope="session")
 def upload_2_dir(constants, test_dir):
-    path = Path(constants.UPLOAD_2_DIR)
-    if path.exists():
-        shutil.rmtree(path)
+    for path in [Path(constants.UPLOAD_3_DIR), Path(constants.UPLOAD_2_DIR)]:
+        if path.exists():
+            shutil.rmtree(path)
     os.mkdir(path)
 
     return path
@@ -79,28 +79,11 @@ def upload_3_dir(constants, test_dir):
 
 
 @pytest.fixture(scope="session")
-def upload_1_data_dir(constants, test_dir):
-    path = Path(constants.INPUT_1_DIR)
-    return path
-
-
-@pytest.fixture(scope="session")
-def upload_2_data_dir(constants, test_dir):
-    path = Path(constants.INPUT_2_DIR)
-    return path
-
-
-@pytest.fixture(scope="session")
-def upload_3_data_dir(constants, test_dir):
-    path = Path(constants.INPUT_3_DIR)
-    return path
-
-
-@pytest.fixture(scope="session")
 def config_1_file(
     constants,
 ):
-    path = Path(constants.CONFIG_1_FILE)
+    path = Path(constants.CONFIG_FILE)
+    shutil.copy(constants.CONFIG_1_FILE, constants.CONFIG_FILE)
     return path
 
 
@@ -108,7 +91,8 @@ def config_1_file(
 def config_2_file(
     constants,
 ):
-    path = Path(constants.CONFIG_2_FILE)
+    path = Path(constants.CONFIG_FILE)
+    shutil.copy(constants.CONFIG_2_FILE, constants.CONFIG_FILE)
     return path
 
 
@@ -116,21 +100,6 @@ def config_2_file(
 def config_3_file(
     constants,
 ):
-    path = Path(constants.CONFIG_3_FILE)
-    return path
-
-
-@pytest.fixture(scope="session")
-def assemblies_file(
-    constants,
-):
-    path = Path(constants.ASSEMBLIES_FILE)
-    return path
-
-
-@pytest.fixture(scope="session")
-def xtalforms_file(
-    constants,
-):
-    path = Path(constants.XTAFLORMS_FILE)
+    path = Path(constants.CONFIG_FILE)
+    shutil.copy(constants.CONFIG_3_FILE, constants.CONFIG_FILE)
     return path
