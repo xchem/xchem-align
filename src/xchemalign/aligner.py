@@ -696,7 +696,9 @@ class Aligner:
             crystal_output[Constants.META_ALIGNED_FILES] = {}
             aligned_output = crystal_output[Constants.META_ALIGNED_FILES]
             dataset_output = updated_fs_model.alignments[dtag]
+            print(crystal)
             print(dataset_output)
+            print(event_map_dict_list)
             for chain_name, chain_output in dataset_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
                 i = 0
