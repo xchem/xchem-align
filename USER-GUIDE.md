@@ -353,7 +353,7 @@ The diagram below illustrates the format of the assemblies.yaml file:
 
 ![assemblies-yaml-example](https://github.com/xchem/xchem-align/assets/36866506/5c3ad74e-b1ff-4f44-8adb-3a76fbdc42b3)
 
-An example file can be found [here](test-data/outputs/assemblies.yaml). The `biomol` and `chains` directives specify
+An example file can be found [here](test-data/outputs/upload-v2/assemblies.yaml). The `biomol` and `chains` directives specify
 the mapping between chains in the PDB file (`chains`) to chains in the assembly (`biomol`).
 i.e. in the example above the assembly "dimer-inhibited" is formed of three chains **A,B,C** which correspond to chains
 **C,E,A** in the **largecellpdb**.
