@@ -167,7 +167,6 @@ class Constants:
     SOAKDB_COL_COMPOUND_CODE = "CompoundCode"
     SOAKDB_COL_COMPOUND_SMILES = "CompoundSMILES"
     CRYSTAL_NEW = "crystal_new"
-    ASSEMBLIES_FILENAME = "assemblies.yaml"
     PREVIOUS_OUTPUT_DIR = ""
     ENV_XCA_GIT_REPO = "XCA_GIT_REPO"
 

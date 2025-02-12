@@ -697,8 +697,8 @@ class Aligner:
             aligned_output = crystal_output[Constants.META_ALIGNED_FILES]
             dataset_output = updated_fs_model.alignments[dtag]
             print(crystal)
-            print(dataset_output)
-            print(event_map_dict_list)
+            # print(dataset_output)
+            # print(event_map_dict_list)
             for chain_name, chain_output in dataset_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
                 i = 0
@@ -709,6 +709,21 @@ class Aligner:
                         for site_id, aligned_structure_path in version_output.aligned_structures.items():
                             # Is the event map file present?
                             # We do this assuming the order is the same as the info in the crystallographic files section
+                            # But first do a check that event_map_dict_list contains the expected entry, as when the
+                            # ligand residue number changes between versions then you get an error, so we try to
+                            # handle this nicely. But there could be other things that cause this error.
+                            if i >= len(event_map_dict_list):
+                                msg = (
+                                    'Unexpected number of event maps found for ligand '
+                                    + ligand_residue
+                                    + ' in crystal '
+                                    + dtag
+                                    + '. '
+                                    + 'Maybe this is caused by the ligand residue number changing between versions. '
+                                    + 'If you can\'t correct this then add this crystal to the \`excludes\` list.'
+                                )
+                                self._log_error(msg)
+                                exit(1)
                             event_map_present = True if Constants.META_FILE in event_map_dict_list[i] else False
 
                             aligned_artefacts_path = version_output.aligned_artefacts[site_id]
