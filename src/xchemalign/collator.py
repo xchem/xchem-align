@@ -1212,7 +1212,7 @@ class Collator:
         new_or_updated_xtals = {}
 
         # get any user defined overrides
-        overrides = self.config.get("overrides", {})
+        overrides = self.config.get(Constants.CONFIG_OVERRIDES, {})
 
         count = 0
         for metad in self.meta_history:

@@ -718,9 +718,10 @@ class Aligner:
                                     + ligand_residue
                                     + ' in crystal '
                                     + dtag
-                                    + '. '
-                                    + 'Maybe this is caused by the ligand residue number changing between versions. '
-                                    + 'If you can\'t correct this then add this crystal to the \`excludes\` list.'
+                                    + '. One cause for this is the ligand residue number changing between versions;'
+                                    + ' if it\'s not that, the cause might be even more obscure.'
+                                    + ' Talk to a developer, and good luck.'
+                                    + ' If you can\'t correct this then you can add this crystal to the \`exclude\` list.'
                                 )
                                 self._log_error(msg)
                                 exit(1)

@@ -345,6 +345,22 @@ XCA looks for all `LINK` records, selects only those involving the relevant liga
 example) and grafts the protein atom onto the ligand for each record (of course, usually there will only be a single
 one for each ligand).
 
+#### Overriding status
+
+There is a mechanism to manually override the status of any crystal. Typically you would use this to deprecate a crystal
+that had previously been included, but you now want to exclude from analysis in Fragalysis. To do this add a section like
+this at the top level of your `config.yaml` file:
+
+```yaml
+overrides:
+  crystals:
+    A71EV2A-x0202:
+      status: deprecated
+      status_reason: bad karma
+```
+
+That example would mark the crystal `A71EV2A-x0202` as being of `deprecated` status.
+
 ### 2.3. The assemblies YAML
 
 This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs.
