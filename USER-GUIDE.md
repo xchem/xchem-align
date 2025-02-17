@@ -451,7 +451,14 @@ To use the XChemAlign uploader tool, first log in to Fragalysis and obtain the a
 Then run the upload command:
 
 ```commandline
-python -m xchemalign.uploader -i <gzipped tar file> -u <fragalysis url> -p <proposal number> -t <token>
+python -m xchemalign.uploader -u <fragalysis url> -p <proposal number> -t <token>
+```
+
+This will find the latest upload directory, compress it to a tarball, and then upload it to a given URL. If the tarball already exists, the compression step can be skipped by specifying either
+`-d` or `-c <path to custom tarball>` parameters. Instead of a full URL, a stack nickname can be used, if defined in the environment. To see the nicknames available, use the help command:
+
+```commandline
+python -m xchemalign.uploader -h
 ```
 
 
