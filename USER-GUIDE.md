@@ -412,18 +412,6 @@ Warning: aligner can take an even longer time, please be patient.
 
 ## 5. Upload to Fragalysis
 
-To generate the gzipped tar file needed to manually upload the data move into your version dir and run this command
-(updating it for the specific upload version and target name):
-
-```
-tar cvfz <target_name>.tgz upload_1
-```
-
-Change `upload_1` to whatever your current upload is.
-
-
-### Uploading using the API endpoint
-
 **Staging vs production: there are two live versions of Fragalysis. "Staging" is used for testing and is in constant development, therefore it may be buggier and/or have new features with respect to "production" which is the stable and public deployment. You should test if your upload works in staging, and verify that the data has been uploaded correctly before uploading to production. Data in staging is "at risk" as we may have to wipe the data occassionally for development reasons.**
 
 ### First to log in to Fragalysis and authenticate and log in with your FedID:
@@ -431,19 +419,10 @@ Change `upload_1` to whatever your current upload is.
 * Staging: https://fragalysis.xchem.diamond.ac.uk/viewer/react/landing
 * Production: https://fragalysis.diamond.ac.uk/viewer/react/landing
 
-### The gzipped tar file can then be uploaded to Fragalysis via:
-
-* Staging: https://fragalysis.xchem.diamond.ac.uk/api/upload_target_experiments/
-* Production: https://fragalysis.diamond.ac.uk/api/upload_target_experiments
-
-The target access string will be the name of your proposal in UAS/ISpyB. Any Fed ID with access to your proposal will be able to see your data. If you have a private/closed data set, this means only logged in users with access configured via UAS will see your target dataset.
-
-Fill in your email and attach the `.tgz` archive. After clicking 'POST' you will see a URL which you can append to https://fragalysis.xchem.diamond.ac.uk/ (or https://fragalysis.diamond.ac.uk/ for production) to track the progress of the upload.
-
 
 ### Uploading with the XCA uploader tool
 
-To use the XChemAlign uploader tool, first log in to Fragalysis and obtain the authentication token. Token can be obtained from:
+The preferred way to upload data to Fragalysis is using the uploader tool in XChemAlign. Once you've logged in, you can obtain the authentication token from:
 
 * Staging: https://fragalysis.xchem.diamond.ac.uk/api/token/
 * Production: https://fragalysis.diamond.ac.uk/api/token/
@@ -454,12 +433,35 @@ Then run the upload command:
 python -m xchemalign.uploader -u <fragalysis url> -p <proposal number> -t <token>
 ```
 
-This will find the latest upload directory, compress it to a tarball, and then upload it to a given URL. If the tarball already exists, the compression step can be skipped by specifying either
+This will find the latest upload directory, compress it to a tarball, and then upload it to the given URL. If the tarball already exists, the compression step can be skipped by specifying either
 `-d` or `-c <path to custom tarball>` parameters. Instead of a full URL, a stack nickname can be used, if defined in the environment. To see the nicknames available, use the help command:
 
 ```commandline
 python -m xchemalign.uploader -h
 ```
+
+
+### Uploading using the API endpoint
+
+An alternative is to use the API endpoint directly. For this you need to generate the gzipped tar file and manually upload the data. Move into your version dir and run this command
+(updating it for the specific upload version and target name):
+
+```
+tar cvfz <target_name>.tgz upload_1
+```
+
+Change `upload_1` to whatever your current upload is.
+
+
+The gzipped tar file can then be uploaded to Fragalysis via:
+
+* Staging: https://fragalysis.xchem.diamond.ac.uk/api/upload_target_experiments/
+* Production: https://fragalysis.diamond.ac.uk/api/upload_target_experiments
+
+The target access string will be the name of your proposal in UAS/ISpyB. Any Fed ID with access to your proposal will be able to see your data. If you have a private/closed data set, this means only logged in users with access configured via UAS will see your target dataset.
+
+Attach the `.tgz` archive by clicking the 'Choose file' button. The remaining fields, 'Data version' and 'Target name', are not necessary, these are used only by the uploader tool. After clicking 'POST' you will see a URL which you can append to https://fragalysis.xchem.diamond.ac.uk/ (or https://fragalysis.diamond.ac.uk/ for production) to track the progress of the upload.
+
 
 
 ## 6. Creating subsequent versions
