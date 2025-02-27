@@ -6,8 +6,8 @@ venv/
 **/__pycache__
 .mypy_cache/
 ./config.yaml
-xchemalign/xchem_align.egg-info/
-xchemalign/_version.py
+src/xchemalign.egg-info/
+src/xchemalign/_version.py
 test-data/outputs/upload_*
 test-data/outputs/upload-v2/upload_*
 test-data/outputs/upload-v2/*.log
