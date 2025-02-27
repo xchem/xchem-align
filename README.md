@@ -12,9 +12,9 @@ Tools to generate data suitable for loading into [Fragalysis](https://fragalysis
 This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
 See:
-* [User Guide](USER-GUIDE.md)
-* [Developer Guide](DEV-GUIDE.md)
-* [Algorithm Guide](ALGORITHM-GUIDE.md)
+* [User Guide](https://xchem-align.readthedocs.io/en/latest/USER-GUIDE.md)
+* [Developer Guide](https://xchem-align.readthedocs.io/en/latest/DEV-GUIDE.md)
+* [Algorithm Guide](https://xchem-align.readthedocs.io/en/latest/ALGORITHM-GUIDE.md)
 
 Contributors:
 * Tim Dudgeon (Informatics Matters)
