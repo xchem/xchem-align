@@ -10,12 +10,12 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 ## Overview
 
 There are a few steps involved.
-1. [**Enable**](#1-enabling-the-xchemalign-environment) the XChemAlign environment
-2. [**Declare**](#2-declaring-things) a few things about your data in two structured files in `yaml`[^1]
-3. [**Collate**](#3-collating-files) your files in a new (specific) directory structure
-4. [**Align**](#4-aligning-everything) all binding sites to common origins
-5. [**Release**](#5-upload-to-fragalysis) the data to Fragalysis
-6. [**Re-release**](#6-creating-subsequent-versions) additional data
+1. [**Enable**](#enabling-the-xchemalign-environment) the XChemAlign environment
+2. [**Declare**](#declaring-things) a few things about your data in two structured files in `yaml`[^1]
+3. [**Collate**](#collating-files) your files in a new (specific) directory structure
+4. [**Align**](#aligning-everything) all binding sites to common origins
+5. [**Release**](#upload-to-fragalysis) the data to Fragalysis
+6. [**Re-release**](#creating-subsequent-versions) additional data
 
 If you won't run this at Diamond, you will first have to set up your environment and copy over files. See the [instructions here](#non-diamond-instructions)
 
