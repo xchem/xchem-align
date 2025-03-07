@@ -76,6 +76,7 @@ class Constants:
     META_STATUS_NEW = "new"
     META_STATUS_DEPRECATED = "deprecated"
     META_STATUS_REASON = "status_reason"
+    META_EXClUDES = "excluded_crystals"
     META_XTALS = "crystals"
     META_REFERENCE = "reference"
     META_FILE = "file"

@@ -167,6 +167,7 @@ class Collator:
         self.meta_history = []
         self.all_xtals = None
         self.rejected_xtals = set()
+        self.all_excludes = set()
         self.new_or_updated_xtals = None
         self.compound_codes = {}
         self.compound_smiles = {}
@@ -185,7 +186,10 @@ class Collator:
             for input in inputs:
                 # Determine which datasets to exclude
                 excluded_datasets = utils.find_property(input, Constants.CONFIG_EXCLUDE)
-                if not excluded_datasets:
+                if excluded_datasets:
+                    for excl in excluded_datasets:
+                        self.all_excludes.add(excl)
+                else:
                     excluded_datasets = []
 
                 input_path = utils.find_path(input, Constants.CONFIG_DIR)
@@ -385,6 +389,9 @@ class Collator:
         }
         if git_info:
             meta[Constants.META_GIT_INFO] = git_info
+
+        if self.all_excludes:
+            meta[Constants.META_EXClUDES] = list(self.all_excludes)
 
         tooltips = {}
         for input in self.inputs:
@@ -1242,21 +1249,6 @@ class Collator:
                 new_or_updated_xtals[xtal_name] = xtal_data
             all_xtals[xtal_name] = xtal_data
 
-            # look for any user defined deprecations
-            xtal_override = overrides.get(Constants.META_XTALS, {}).get(xtal_name, {})
-            if xtal_override:
-                status_override = xtal_override.get(Constants.META_STATUS)
-                if status_override:
-                    xtal_data[Constants.META_STATUS] = status_override
-                    reason = xtal_override.get(Constants.META_STATUS_REASON)
-                    self.logger.info(
-                        "status for xtal {} is overridden by user to be {}".format(xtal_name, status_override)
-                    )
-                    if reason:
-                        xtal_data[Constants.META_STATUS_REASON] = reason
-                    else:
-                        self.logger.warn("status is overridden, but no reason was given")
-
         self.logger.info("metadata {} has {} items".format(count, total))
         self.logger.info(
             "munging resulted in {} total xtals, {} are new or updated".format(
@@ -1453,6 +1445,7 @@ def main():
                 + str(wd)
             )
         else:  # couldn't even create the Collator object so log file will contain nothing useful
+            print(tb)
             print(
                 "Unexpected fatal error occurred, most likely the configuration is wrong or collator was invoked "
                 + "incorrectly. Please send the command you ran and your current directory to the developers."

@@ -12,6 +12,7 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 There are a few steps involved.
 1. [**Enable**](#enabling-the-xchemalign-environment) the XChemAlign environment
 2. [**Declare**](#declaring-things) a few things about your data in two structured files in `yaml`[^1]
+2. [**Declare**](#declaring-things) a few things about your data in two structured files in `yaml`[^1]
 3. [**Collate**](#collating-files) your files in a new (specific) directory structure
 4. [**Align**](#aligning-everything) all binding sites to common origins
 5. [**Release**](#upload-to-fragalysis) the data to Fragalysis
@@ -347,19 +348,8 @@ one for each ligand).
 
 #### Overriding status
 
-There is a mechanism to manually override the status of any crystal. Typically you would use this to deprecate a crystal
-that had previously been included, but you now want to exclude from analysis in Fragalysis. To do this add a section like
-this at the top level of your `config.yaml` file:
-
-```yaml
-overrides:
-  crystals:
-    A71EV2A-x0202:
-      status: deprecated
-      status_reason: bad karma
-```
-
-That example would mark the crystal `A71EV2A-x0202` as being of `deprecated` status.
+There was previously a mechanism to manually override the status of any crystal. This feature has now been removed.
+Instead you should set the status is soakDB to `7 - Analysed & Rejected`.
 
 ### 2.3. The assemblies YAML
 
