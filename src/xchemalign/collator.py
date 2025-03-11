@@ -188,6 +188,8 @@ class Collator:
                 if not excluded_datasets:
                     excluded_datasets = []
 
+                self.logger.info("Excluded datasets:", excluded_datasets)
+
                 input_path = utils.find_path(input, Constants.CONFIG_DIR)
                 type = utils.find_property(input, Constants.CONFIG_TYPE)
                 code_prefix = utils.find_property(input, Constants.CONFIG_CODE_PREFIX)
@@ -606,6 +608,9 @@ class Collator:
         self.logger.info("found {} manual inputs".format(len(items)))
 
         for key, item in items.items():
+            if key in input.exclude:
+                self.logger.info("excluding manual crystal", key)
+                continue
             pdb = item[0]
             mtz = item[1]
             cif = item[2]

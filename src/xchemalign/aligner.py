@@ -424,7 +424,7 @@ class Aligner:
 
         # Get the dataset assignments
         if source_fs_model:
-            dataset_assignments = _load_dataset_assignments(Path(self.base_dir / source_fs_model.dataset_assignments))
+            dataset_assignments = _load_dataset_assignments(Path(source_fs_model.dataset_assignments))
         else:
             dataset_assignments = _load_dataset_assignments(Path(fs_model.dataset_assignments))
 
