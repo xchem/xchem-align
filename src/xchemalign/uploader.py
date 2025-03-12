@@ -50,7 +50,7 @@ FRAGALYSIS_URL_PREFIX = "XCHEMALIGN_FRAGALYSIS_URL_"
 DEFAULT_TARBALL_TEMPLATE = "{target}_v{version}_{upload_no}_{date}.tgz"
 
 
-DATA_DIR = "upload_current"
+DATA_DIR = "upload-current"
 
 
 # this needs to be kept more or less up to date
