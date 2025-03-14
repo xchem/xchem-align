@@ -50,7 +50,7 @@ FRAGALYSIS_URL_PREFIX = "XCHEMALIGN_FRAGALYSIS_URL_"
 DEFAULT_TARBALL_TEMPLATE = "{target}_v{version}_{upload_no}_{date}.tgz"
 
 
-DATA_DIR = "upload_current"
+DATA_DIR = "upload-current"
 
 
 # this needs to be kept more or less up to date
@@ -397,6 +397,7 @@ def upload(url, proposal, auth_token=None, use_default=False, use_custom=None):
                 # and once more
                 try:
                     task_status_url = jresp["task_status_url"]
+                    logger.info(f"task_status_url={urljoin(base_url, task_status_url)}")
                 except KeyError:
                     logger.error('Server response does not contain task url')
                     return
