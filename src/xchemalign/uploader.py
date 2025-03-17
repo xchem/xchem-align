@@ -124,9 +124,15 @@ def get_validation_data(meta, config):
     except KeyError as exc:
         raise KeyError(f"Key 'target_name' missing from {CONFIG_FILE}") from exc
 
+    try:
+        upload_version = meta["version_number"]
+    except KeyError as exc:
+        raise KeyError(f"Key 'version_number' missing from {META_ALIGNER}") from exc
+
     return {
         'data_version': data_version,
         'target_name': target_name,
+        'upload_version': upload_version,
     }
 
 
@@ -281,8 +287,9 @@ def upload(url, proposal, auth_token=None, use_default=False, use_custom=None):
             use_custom=use_custom,
         )
     except (FileNotFoundError, ValueError, KeyError) as exc:
+        # TODO: error formatting
         logger.error(exc.args)
-        logger.error(exc.args[0])
+        # logger.error(exc.args[0])
         return
 
     filename = Path(input_file).name
@@ -331,14 +338,16 @@ def upload(url, proposal, auth_token=None, use_default=False, use_custom=None):
             # data validation errors
             if "success" in result_json.keys():
                 if not result_json["success"]:
-                    logger.error(result_json["message"])
+                    for msg in result_json["message"]:
+                        logger.error(msg)
                     return
             elif "detail" in result_json.keys():
                 logger.error(result_json["detail"])
                 return
             else:
                 if result_json["message"]:
-                    logger.warn(result_json["message"])
+                    for msg in result_json["message"]:
+                        logger.warn(msg)
         else:
             # django validation errors. The only think that can be
             # here is propsal (which on the server is called
