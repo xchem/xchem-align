@@ -403,9 +403,7 @@ class Aligner:
 
         # Get assemblies
         if source_fs_model:
-            assemblies: dict[str, dt.Assembly] = _load_assemblies(
-                self.base_dir / source_fs_model.xtalforms, self.assemblies_file
-            )
+            assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.assemblies_file)
         else:
             assemblies = _load_assemblies(fs_model.xtalforms, self.assemblies_file)
         self.logger.info(f"Got {len(assemblies)} assemblies")
@@ -415,100 +413,111 @@ class Aligner:
 
         # # Get xtalforms
         if source_fs_model:
-            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(
-                self.base_dir / source_fs_model.xtalforms, self.assemblies_file
-            )
+            xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.assemblies_file)
         else:
             xtalforms = _load_xtalforms(fs_model.xtalforms, self.assemblies_file)
         self.logger.info(f"Got {len(xtalforms)} xtalforms")
 
         # Get the dataset assignments
         if source_fs_model:
-            dataset_assignments = _load_dataset_assignments(Path(source_fs_model.dataset_assignments))
+            dataset_assignments = _load_dataset_assignments(
+                Path(source_fs_model.dataset_assignments), fail_if_not_found=True
+            )
         else:
-            dataset_assignments = _load_dataset_assignments(Path(fs_model.dataset_assignments))
+            dataset_assignments = _load_dataset_assignments(
+                Path(fs_model.dataset_assignments), fail_if_not_found=False
+            )
 
         # Get Ligand neighbourhoods
         if source_fs_model:
             ligand_neighbourhoods: dict[tuple[str, str, str], dt.Neighbourhood] = _load_ligand_neighbourhoods(
-                self.base_dir / source_fs_model.ligand_neighbourhoods
+                source_fs_model.ligand_neighbourhoods, fail_if_not_found=True
             )
         else:
-            ligand_neighbourhoods = _load_ligand_neighbourhoods(fs_model.ligand_neighbourhoods)
+            ligand_neighbourhoods = _load_ligand_neighbourhoods(
+                fs_model.ligand_neighbourhoods, fail_if_not_found=False
+            )
         self.logger.info(f"Got {len(ligand_neighbourhoods)} ligand neighbourhoods")
 
         # Get alignability graph
         if source_fs_model:
-            alignability_graph = _load_alignability_graph(self.base_dir / source_fs_model.alignability_graph)
+            alignability_graph = _load_alignability_graph(source_fs_model.alignability_graph, fail_if_not_found=True)
         else:
-            alignability_graph = _load_alignability_graph(fs_model.alignability_graph)
+            alignability_graph = _load_alignability_graph(fs_model.alignability_graph, fail_if_not_found=False)
 
         # Get the connected components
         if source_fs_model:
-            connected_components = _load_connected_components(self.base_dir / source_fs_model.connected_components)
+            connected_components = _load_connected_components(
+                source_fs_model.connected_components, fail_if_not_found=True
+            )
         else:
-            connected_components = _load_connected_components(fs_model.connected_components)
+            connected_components = _load_connected_components(fs_model.connected_components, fail_if_not_found=False)
 
-        #
         if source_fs_model:
-            print(f"Have source fs model at {source_fs_model.ligand_neighbourhood_transforms}!")
+            self.logger.info(f"Have source fs model at {source_fs_model.ligand_neighbourhood_transforms}!")
             ligand_neighbourhood_transforms: dict[
                 tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform
-            ] = _load_ligand_neighbourhood_transforms(self.base_dir / source_fs_model.ligand_neighbourhood_transforms)
+            ] = _load_ligand_neighbourhood_transforms(
+                source_fs_model.ligand_neighbourhood_transforms, fail_if_not_found=True
+            )
         else:
             ligand_neighbourhood_transforms = _load_ligand_neighbourhood_transforms(
-                fs_model.ligand_neighbourhood_transforms
+                fs_model.ligand_neighbourhood_transforms, fail_if_not_found=False
             )
-        print(ligand_neighbourhood_transforms)
+        # print(ligand_neighbourhood_transforms)
 
         # Get conformer sites
         if source_fs_model:
             conformer_sites: dict[str, dt.ConformerSite] = _load_conformer_sites(
-                self.base_dir / source_fs_model.conformer_sites
+                source_fs_model.conformer_sites, fail_if_not_found=True
             )
         else:
-            conformer_sites = _load_conformer_sites(fs_model.conformer_sites)
+            conformer_sites = _load_conformer_sites(fs_model.conformer_sites, fail_if_not_found=False)
 
         #
         if source_fs_model:
             conformer_site_transforms: dict[tuple[str, str], dt.Transform] = _load_conformer_site_transforms(
-                self.base_dir / source_fs_model.conformer_site_transforms
+                source_fs_model.conformer_site_transforms, fail_if_not_found=True
             )
         else:
-            conformer_site_transforms = _load_conformer_site_transforms(fs_model.conformer_site_transforms)
+            conformer_site_transforms = _load_conformer_site_transforms(
+                fs_model.conformer_site_transforms, fail_if_not_found=False
+            )
 
         # Get canonical sites
         if source_fs_model:
             canonical_sites: dict[str, dt.CanonicalSite] = _load_canonical_sites(
-                self.base_dir / source_fs_model.canonical_sites
+                source_fs_model.canonical_sites, fail_if_not_found=True
             )
         else:
-            canonical_sites = _load_canonical_sites(fs_model.canonical_sites)
+            canonical_sites = _load_canonical_sites(fs_model.canonical_sites, fail_if_not_found=False)
 
         #
         if source_fs_model:
             canonical_site_transforms: dict[str, dt.Transform] = _load_canonical_site_transforms(
-                self.base_dir / source_fs_model.conformer_site_transforms
+                source_fs_model.conformer_site_transforms, fail_if_not_found=True
             )
         else:
-            canonical_site_transforms = _load_canonical_site_transforms(fs_model.conformer_site_transforms)
+            canonical_site_transforms = _load_canonical_site_transforms(
+                fs_model.conformer_site_transforms, fail_if_not_found=False
+            )
 
         # Get xtalform sites
         if source_fs_model:
             xtalform_sites: dict[str, dt.XtalFormSite] = _load_xtalform_sites(
-                self.base_dir / source_fs_model.xtalform_sites
+                source_fs_model.xtalform_sites, fail_if_not_found=True
             )
         else:
-            xtalform_sites = _load_xtalform_sites(fs_model.xtalform_sites)
+            xtalform_sites = _load_xtalform_sites(fs_model.xtalform_sites, fail_if_not_found=False)
 
         # Get reference structure transforms
         if source_fs_model:
             reference_structure_transforms: dict[tuple[str, str], dt.Transform] = _load_reference_stucture_transforms(
-                self.base_dir / source_fs_model.reference_structure_transforms
+                source_fs_model.reference_structure_transforms, fail_if_not_found=True
             )
         else:
             reference_structure_transforms = _load_reference_stucture_transforms(
-                fs_model.reference_structure_transforms
+                fs_model.reference_structure_transforms, fail_if_not_found=False
             )
 
         # Get the assembly landmarks
@@ -518,14 +527,21 @@ class Aligner:
 
         if working_fs_model.assembly_landmarks.exists():
             assembly_landmarks = ah.load_yaml(
-                self.base_dir / working_fs_model.assembly_landmarks, ah.dict_to_assembly_landmarks
+                # CONOR_CHECK_THIS - self.base_dir was removed as a prefix to the first arg to be consistent
+                # with other similar places, but no evidence that this is ever executed so not certain
+                # that this is correct
+                working_fs_model.assembly_landmarks,
+                ah.dict_to_assembly_landmarks,
             )
         else:
             assembly_landmarks = {}
 
         # Get the assembly transforms
         if working_fs_model.assembly_transforms.exists():
-            assembly_transforms = ah.load_yaml(self.base_dir / working_fs_model.assembly_transforms, lambda x: x)
+            # CONOR_CHECK_THIS - self.base_dir was removed as a prefix to the first arg to be consistent
+            # with other similar places, but no evidence that this is ever executed so not certain
+            # that this is correct
+            assembly_transforms = ah.load_yaml(working_fs_model.assembly_transforms, lambda x: x)
         else:
             assembly_transforms = {}
 
@@ -624,6 +640,7 @@ class Aligner:
         # Add the xtalform sites - note the chain is that of the original crystal structure, NOT the assembly
         xtalform_sites = read_yaml(updated_fs_model.xtalform_sites)
         new_meta[Constants.META_XTALFORM_SITES] = xtalform_sites
+        # print('added xtalform_sites:', xtalform_sites)
         # xtalform_sites_meta = new_meta[Constants.META_XTALFORM_SITES] = {}
         # for xtalform_site_id, xtalform_site in xtalform_sites.xtalform_sites.items():
         #     xtalform_sites_meta[xtalform_site_id] = {
@@ -678,7 +695,7 @@ class Aligner:
 
             # Otherwise iterate the output data structure, adding the aligned structure,
             # artefacts, xmaps and event maps to the metadata_file
-            self.logger.info(f'assigning xtalform: {assigned_xtalforms[dtag]}')
+            # self.logger.info(f'assigning xtalform: {assigned_xtalforms[dtag]}')
             assigned_xtalform = assigned_xtalforms[dtag]
             crystal_output[Constants.META_ASSIGNED_XTALFORM] = assigned_xtalform
 
@@ -696,7 +713,7 @@ class Aligner:
             crystal_output[Constants.META_ALIGNED_FILES] = {}
             aligned_output = crystal_output[Constants.META_ALIGNED_FILES]
             dataset_output = updated_fs_model.alignments[dtag]
-            print(crystal)
+            # print(crystal)
             # print(dataset_output)
             # print(event_map_dict_list)
             for chain_name, chain_output in dataset_output.items():
