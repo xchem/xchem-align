@@ -872,6 +872,7 @@ class Collator:
                     # handle the CIF file
                     cif = curr_xtal_data.get(Constants.META_XTAL_CIF)
                     ligand_names = []
+                    ligand_mols = []
                     if cif:
                         cif_file = cif[Constants.META_FILE]
                         cif_input = self.base_path / cif_file
@@ -887,9 +888,17 @@ class Collator:
                                 cif_output = dir / cif_name
                                 files_to_copy[Constants.META_XTAL_CIF] = (cif_input, cif_output, digest)
                             # read the CIF file to determine the ligand names
-                            ligand_mols = utils.gen_mols_from_cif(cif_input)
-                            ligand_names = [m.GetProp('_Name') for m in ligand_mols]
-                            self.logger.info('Found ligand names ' + str(ligand_names))
+                            try:
+                                ligand_mols = utils.gen_mols_from_cif(cif_input)
+                                ligand_names = [m.GetProp('_Name') for m in ligand_mols]
+                                self.logger.info('Found ligand names ' + str(ligand_names))
+                            except:
+                                tb = traceback.format_exc()
+                                self._log_error(
+                                    "Failed to handle CIF file " + str(cif_input) + " for crystal " + xtal_name
+                                )
+                                self.logger.info("Error was:\n" + tb)
+                                continue
 
                     elif type == Constants.CONFIG_TYPE_MODEL_BUILDING:
                         self.logger.warn("CIF entry missing for {}".format(xtal_name))
@@ -1019,11 +1028,10 @@ class Collator:
                                     Constants.META_SOURCE_FILE: str(fdata[0]),
                                 }
                                 try:
-                                    mols = utils.gen_mols_from_cif(str(self.output_path / fdata[1]))
                                     ligands = {}
 
                                     cpd_codes = self.compound_codes.get(xtal_name)
-                                    if cpd_codes and len(cpd_codes) == len(mols):
+                                    if cpd_codes and len(cpd_codes) == len(ligand_mols):
                                         cpd_codes_is_valid = True
                                     else:
                                         cpd_codes_is_valid = False
@@ -1032,7 +1040,7 @@ class Collator:
                                         # else:  no compound codes defined - this is OK
 
                                     cpd_smiles = self.compound_smiles.get(xtal_name)
-                                    if cpd_smiles and len(cpd_smiles) == len(mols):
+                                    if cpd_smiles and len(cpd_smiles) == len(ligand_mols):
                                         cpd_smiles_is_valid = True
                                     else:
                                         cpd_smiles_is_valid = False
@@ -1040,7 +1048,7 @@ class Collator:
                                             self._log_error("Invalid number of compound SMILES for " + xtal_name)
                                         # else:  no compound smiles defined - this is OK
 
-                                    for i, mol in enumerate(mols):
+                                    for i, mol in enumerate(ligand_mols):
                                         name = mol.GetProp("_Name")
                                         smi = None
                                         ligands[name] = {}
