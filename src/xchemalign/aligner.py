@@ -402,6 +402,7 @@ class Aligner:
         #     self.logger.info(f"{dtag} : {dataset.mtz}")
 
         # Get assemblies
+        self.logger.info("Loading assemblies...")
         if source_fs_model:
             assemblies: dict[str, dt.Assembly] = _load_assemblies(source_fs_model.xtalforms, self.assemblies_file)
         else:
@@ -412,6 +413,7 @@ class Aligner:
         # alignment_heirarchy = _derive_alignment_heirarchy(assemblies)
 
         # # Get xtalforms
+        self.logger.info("Loading xtalforms...")
         if source_fs_model:
             xtalforms: dict[str, dt.XtalForm] = _load_xtalforms(source_fs_model.xtalforms, self.assemblies_file)
         else:
@@ -419,6 +421,7 @@ class Aligner:
         self.logger.info(f"Got {len(xtalforms)} xtalforms")
 
         # Get the dataset assignments
+        self.logger.info("Loading dataset_assignments...")
         if source_fs_model:
             dataset_assignments = _load_dataset_assignments(
                 Path(source_fs_model.dataset_assignments), fail_if_not_found=True
@@ -429,6 +432,7 @@ class Aligner:
             )
 
         # Get Ligand neighbourhoods
+        self.logger.info("Loading ligand_neighbourhoods...")
         if source_fs_model:
             ligand_neighbourhoods: dict[tuple[str, str, str], dt.Neighbourhood] = _load_ligand_neighbourhoods(
                 source_fs_model.ligand_neighbourhoods, fail_if_not_found=True
@@ -440,12 +444,14 @@ class Aligner:
         self.logger.info(f"Got {len(ligand_neighbourhoods)} ligand neighbourhoods")
 
         # Get alignability graph
+        self.logger.info("Loading alignability_graph...")
         if source_fs_model:
             alignability_graph = _load_alignability_graph(source_fs_model.alignability_graph, fail_if_not_found=True)
         else:
             alignability_graph = _load_alignability_graph(fs_model.alignability_graph, fail_if_not_found=False)
 
         # Get the connected components
+        self.logger.info("Loading connected_components...")
         if source_fs_model:
             connected_components = _load_connected_components(
                 source_fs_model.connected_components, fail_if_not_found=True
@@ -453,6 +459,7 @@ class Aligner:
         else:
             connected_components = _load_connected_components(fs_model.connected_components, fail_if_not_found=False)
 
+        self.logger.info("Loading ligand_neighbourhood_transforms...")
         if source_fs_model:
             self.logger.info(f"Have source fs model at {source_fs_model.ligand_neighbourhood_transforms}!")
             ligand_neighbourhood_transforms: dict[
@@ -467,6 +474,7 @@ class Aligner:
         # print(ligand_neighbourhood_transforms)
 
         # Get conformer sites
+        self.logger.info("Loading conformer_sites...")
         if source_fs_model:
             conformer_sites: dict[str, dt.ConformerSite] = _load_conformer_sites(
                 source_fs_model.conformer_sites, fail_if_not_found=True
@@ -475,6 +483,7 @@ class Aligner:
             conformer_sites = _load_conformer_sites(fs_model.conformer_sites, fail_if_not_found=False)
 
         #
+        self.logger.info("Loading conformer_site_transforms...")
         if source_fs_model:
             conformer_site_transforms: dict[tuple[str, str], dt.Transform] = _load_conformer_site_transforms(
                 source_fs_model.conformer_site_transforms, fail_if_not_found=True
@@ -485,6 +494,7 @@ class Aligner:
             )
 
         # Get canonical sites
+        self.logger.info("Loading canonical_sites...")
         if source_fs_model:
             canonical_sites: dict[str, dt.CanonicalSite] = _load_canonical_sites(
                 source_fs_model.canonical_sites, fail_if_not_found=True
@@ -493,6 +503,7 @@ class Aligner:
             canonical_sites = _load_canonical_sites(fs_model.canonical_sites, fail_if_not_found=False)
 
         #
+        self.logger.info("Loading canonical_site_transforms...")
         if source_fs_model:
             canonical_site_transforms: dict[str, dt.Transform] = _load_canonical_site_transforms(
                 source_fs_model.conformer_site_transforms, fail_if_not_found=True
@@ -503,6 +514,7 @@ class Aligner:
             )
 
         # Get xtalform sites
+        self.logger.info("Loading xtalform_sites...")
         if source_fs_model:
             xtalform_sites: dict[str, dt.XtalFormSite] = _load_xtalform_sites(
                 source_fs_model.xtalform_sites, fail_if_not_found=True
@@ -511,6 +523,7 @@ class Aligner:
             xtalform_sites = _load_xtalform_sites(fs_model.xtalform_sites, fail_if_not_found=False)
 
         # Get reference structure transforms
+        self.logger.info("Loading reference_structure_transforms...")
         if source_fs_model:
             reference_structure_transforms: dict[tuple[str, str], dt.Transform] = _load_reference_stucture_transforms(
                 source_fs_model.reference_structure_transforms, fail_if_not_found=True
