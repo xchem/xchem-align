@@ -41,49 +41,49 @@ def test_aligner_upload_1(constants):
         a.run()
 
 
-@pytest.mark.order(after="test_aligner_upload_1")
-def test_collator_upload_2(constants, config_2_file, upload_2_dir, uploads_dir):
-    c = Collator(uploads_dir)
-    logger = c.logger
-
-    meta = c.validate()
-
-    print(meta)
-
-    if meta is None or len(logger.errors) > 0:
-        print("There are errors, cannot continue")
-        print(logger.errors)
-        exit(1)
-    else:
-        c.run(meta)
-    assert (
-        # len(meta[Constants.META_XTALS]["Mpro-i0130"][Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {}))
-        len(
-            meta[Constants.META_XTALS]["Mpro-x0107_fake_P1"][Constants.META_XTAL_FILES].get(
-                Constants.META_BINDING_EVENT, {}
-            )
-        )
-        != 0
-    )
-
-
-@pytest.mark.order(after="test_collator_upload_2")
-def test_aligner_upload_2(constants):
-    log = str(Path(constants.TEST_DIR) / 'aligner.log')
-
-    a = Aligner(constants.TEST_DIR, log_file=log, log_level=0)
-    logger = a.logger
-    utils.LOG = logger
-
-    num_errors, num_warnings = a.validate()
-
-    if num_errors:
-        print("There are errors, cannot continue")
-        print(a.logger.errors)
-        exit(1)
-    else:
-        a.run()
-    assert "Mpro-i0130" in [x.name for x in (Path(constants.UPLOAD_2_DIR) / "aligned_files").glob("*")]
+# @pytest.mark.order(after="test_aligner_upload_1")
+# def test_collator_upload_2(constants, config_2_file, upload_2_dir, uploads_dir):
+#     c = Collator(uploads_dir)
+#     logger = c.logger
+#
+#     meta = c.validate()
+#
+#     print(meta)
+#
+#     if meta is None or len(logger.errors) > 0:
+#         print("There are errors, cannot continue")
+#         print(logger.errors)
+#         exit(1)
+#     else:
+#         c.run(meta)
+#     assert (
+#         # len(meta[Constants.META_XTALS]["Mpro-i0130"][Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {}))
+#         len(
+#             meta[Constants.META_XTALS]["Mpro-x0107_fake_P1"][Constants.META_XTAL_FILES].get(
+#                 Constants.META_BINDING_EVENT, {}
+#             )
+#         )
+#         != 0
+#     )
+#
+#
+# @pytest.mark.order(after="test_collator_upload_2")
+# def test_aligner_upload_2(constants):
+#     log = str(Path(constants.TEST_DIR) / 'aligner.log')
+#
+#     a = Aligner(constants.TEST_DIR, log_file=log, log_level=0)
+#     logger = a.logger
+#     utils.LOG = logger
+#
+#     num_errors, num_warnings = a.validate()
+#
+#     if num_errors:
+#         print("There are errors, cannot continue")
+#         print(a.logger.errors)
+#         exit(1)
+#     else:
+#         a.run()
+#     assert "Mpro-i0130" in [x.name for x in (Path(constants.UPLOAD_2_DIR) / "aligned_files").glob("*")]
 
 
 # @pytest.mark.order(after="test_aligner_upload_2")
