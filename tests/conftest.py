@@ -61,7 +61,8 @@ def uploads_dir(constants, test_dir):
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2')
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
-    # os.remove((Path(constants.TEST_DIR) / 'upload-current').resolve())
+    os.unlink((Path(constants.TEST_DIR) / 'upload-current').resolve())
+
     os.symlink(
         (Path(constants.TEST_DIR) / 'upload-current').resolve(),
         (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1').resolve(),
