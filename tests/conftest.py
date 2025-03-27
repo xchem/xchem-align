@@ -117,7 +117,7 @@ def config_2_file(
     constants,
     uploads_dir
 ):
-    os.remove(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
+    os.remove(Path(constants.TEST_DIR) /  'upload-current')
     os.symlink(
         (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2').resolve(),
         (Path(constants.TEST_DIR) / 'upload-current').resolve(),
