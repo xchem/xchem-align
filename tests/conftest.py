@@ -93,7 +93,7 @@ def config_1_file(
         uploads_dir,
 ):
     path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1' / constants.CONFIG_2_FILE)
-    shutil.copy(Path(constants.TEST_DATA) / constants.CONFIG_2_FILE, path)
+    shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
     return path
 
 
@@ -103,7 +103,7 @@ def config_2_file(
     uploads_dir
 ):
     path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2' / constants.CONFIG_2_FILE)
-    shutil.copy(Path(constants.TEST_DATA) / constants.CONFIG_2_FILE, path)
+    shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
     return path
 
 
