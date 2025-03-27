@@ -13,6 +13,7 @@ def constants():
         INPUT_1_DIR = "test-data/input_1"
         INPUT_2_DIR = "test-data/input_2"
         INPUT_3_DIR = "test-data/input_3"
+        CONFIG_YAML = "config.yaml"
         CONFIG_1_FILE = "config_1.yaml"
         CONFIG_2_FILE = "config_2.yaml"
         CONFIG_3_FILE = "test-data/config_3.yaml"
@@ -97,7 +98,7 @@ def config_1_file(
     constants,
         uploads_dir,
 ):
-    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1' / constants.CONFIG_2_FILE)
+    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1' / constants.CONFIG_YAML)
     shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
     return path
 
@@ -111,7 +112,7 @@ def config_2_file(
     os.symlink((Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2').resolve(),
                (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current').resolve(),
                target_is_directory=True)
-    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2' / constants.CONFIG_2_FILE)
+    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2' / constants.CONFIG_YAML)
     shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
     return path
 
