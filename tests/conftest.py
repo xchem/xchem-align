@@ -38,7 +38,7 @@ def test_dir(constants):
     if path.exists():
         shutil.rmtree(path)
 
-    path = Path(constants.TEST_DIR) / 'upload-current'
+    path = (Path(constants.TEST_DIR) / 'upload-current').resolve()
     if path.exists():
         shutil.rmtree(path)
 
