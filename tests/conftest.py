@@ -58,7 +58,6 @@ def test_dir(constants):
 def uploads_dir(constants, test_dir):
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR)
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1')
-    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2')
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
     # os.unlink((Path(constants.TEST_DIR) / 'upload-current').resolve())
@@ -86,6 +85,8 @@ def upload_2_dir(constants, test_dir, uploads_dir):
     #     if path.exists():
     #         shutil.rmtree(path)
     # os.mkdir(path)
+    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2')
+
     path = Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2'
 
     return path
