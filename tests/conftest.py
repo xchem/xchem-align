@@ -53,9 +53,11 @@ def uploads_dir(constants, ):
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR)
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1')
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2')
-    # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
+    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
-    # os.symlink(self.version_dir, self.sym_dir, target_is_directory=True)
+    os.symlink(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1',
+               Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current',
+               target_is_directory=True)
 
 @pytest.fixture(scope="session")
 def upload_1_dir(constants, test_dir, uploads_dir):
