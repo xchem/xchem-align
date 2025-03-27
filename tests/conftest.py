@@ -49,7 +49,7 @@ def test_dir(constants):
     return path
 
 @pytest.fixture(scope="session")
-def uploads_dir(constants, ):
+def uploads_dir(constants, test_dir):
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR)
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1')
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2')
