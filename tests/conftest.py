@@ -59,6 +59,8 @@ def uploads_dir(constants, ):
                Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current',
                target_is_directory=True)
 
+    return Path(constants.TEST_DIR) / constants.VERSION_DIR
+
 @pytest.fixture(scope="session")
 def upload_1_dir(constants, test_dir, uploads_dir):
     # for path in [Path(constants.UPLOAD_3_DIR), Path(constants.UPLOAD_2_DIR), Path(constants.UPLOAD_1_DIR)]:
