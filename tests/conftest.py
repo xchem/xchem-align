@@ -116,12 +116,12 @@ def config_2_file(
     constants,
     uploads_dir
 ):
-    os.remove(Path(constants.TEST_DIR) / 'upload-current')
-    os.symlink(
-        (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2').resolve(),
-        (Path(constants.TEST_DIR) / 'upload-current').resolve(),
-
-        target_is_directory=True)
+    # os.remove(Path(constants.TEST_DIR) / 'upload-current')
+    # os.symlink(
+    #     (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2').resolve(),
+    #     (Path(constants.TEST_DIR) / 'upload-current').resolve(),
+    #
+    #     target_is_directory=True)
     path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2' / constants.CONFIG_YAML)
     shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
     return path
