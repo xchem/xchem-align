@@ -41,6 +41,7 @@ def test_dir(constants):
     path = (Path(constants.TEST_DIR) / 'upload-current').resolve()
     if path.exists():
         shutil.rmtree(path)
+        os.unlink(path)
 
     # path = Path(constants.UPLOAD_2_DIR)
     # if path.exists():
