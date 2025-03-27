@@ -64,9 +64,8 @@ def uploads_dir(constants, test_dir):
     # os.unlink((Path(constants.TEST_DIR) / 'upload-current').resolve())
 
     os.symlink(
-        (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1').resolve(),
+        (Path(constants.TEST_DIR) / constants.VERSION_DIR ).resolve(),
         (Path(constants.TEST_DIR) / 'upload-current').resolve(),
-
         target_is_directory=True)
 
     return Path(constants.TEST_DIR) / constants.VERSION_DIR
@@ -117,7 +116,7 @@ def config_2_file(
     constants,
     uploads_dir
 ):
-    os.remove(Path(constants.TEST_DIR) /  'upload-current')
+    os.remove(Path(constants.TEST_DIR) / 'upload-current')
     os.symlink(
         (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2').resolve(),
         (Path(constants.TEST_DIR) / 'upload-current').resolve(),
