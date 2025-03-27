@@ -60,8 +60,9 @@ def uploads_dir(constants, test_dir):
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2')
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
-    os.symlink((Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1').resolve(),
-               (Path(constants.TEST_DIR)  / 'upload-current').resolve(),
+    os.symlink(
+        (Path(constants.TEST_DIR) / 'upload-current').resolve(),
+        (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1').resolve(),
                target_is_directory=True)
 
     return Path(constants.TEST_DIR) / constants.VERSION_DIR
@@ -113,8 +114,9 @@ def config_2_file(
     uploads_dir
 ):
     os.remove(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
-    os.symlink((Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2').resolve(),
-               (Path(constants.TEST_DIR)  / 'upload-current').resolve(),
+    os.symlink(
+        (Path(constants.TEST_DIR) / 'upload-current').resolve(),
+        (Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2').resolve(),
                target_is_directory=True)
     path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2' / constants.CONFIG_YAML)
     shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
