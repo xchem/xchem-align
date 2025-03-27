@@ -106,7 +106,7 @@ def config_1_file(
     constants,
         uploads_dir,
 ):
-    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1' / constants.CONFIG_YAML)
+    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR  / constants.CONFIG_YAML)
     shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
     return path
 
@@ -122,7 +122,7 @@ def config_2_file(
     #     (Path(constants.TEST_DIR) / 'upload-current').resolve(),
     #
     #     target_is_directory=True)
-    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2' / constants.CONFIG_YAML)
+    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR  / constants.CONFIG_YAML)
     shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
     return path
 
