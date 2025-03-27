@@ -10,7 +10,7 @@ from xchemalign.utils import Constants
 
 
 def test_collator_upload_1(constants, test_dir, uploads_dir, config_1_file, upload_1_dir):
-    c = Collator(Path(constants.TEST_DIR) / )
+    c = Collator(upload_1_dir)
     logger = c.logger
 
     meta = c.validate()
@@ -43,7 +43,7 @@ def test_aligner_upload_1(constants):
 
 @pytest.mark.order(after="test_aligner_upload_1")
 def test_collator_upload_2(constants, config_2_file, upload_2_dir):
-    c = Collator(constants.TEST_DIR)
+    c = Collator(upload_2_dir)
     logger = c.logger
 
     meta = c.validate()
