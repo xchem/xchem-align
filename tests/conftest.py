@@ -61,20 +61,21 @@ def uploads_dir(constants, ):
 
 @pytest.fixture(scope="session")
 def upload_1_dir(constants, test_dir, uploads_dir):
-    for path in [Path(constants.UPLOAD_3_DIR), Path(constants.UPLOAD_2_DIR), Path(constants.UPLOAD_1_DIR)]:
-        if path.exists():
-            shutil.rmtree(path)
-    os.mkdir(path)
-
+    # for path in [Path(constants.UPLOAD_3_DIR), Path(constants.UPLOAD_2_DIR), Path(constants.UPLOAD_1_DIR)]:
+    #     if path.exists():
+    #         shutil.rmtree(path)
+    # os.mkdir(path)
+    path = Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1'
     return path
 
 
 @pytest.fixture(scope="session")
 def upload_2_dir(constants, test_dir, uploads_dir):
-    for path in [Path(constants.UPLOAD_3_DIR), Path(constants.UPLOAD_2_DIR)]:
-        if path.exists():
-            shutil.rmtree(path)
-    os.mkdir(path)
+    # for path in [Path(constants.UPLOAD_3_DIR), Path(constants.UPLOAD_2_DIR)]:
+    #     if path.exists():
+    #         shutil.rmtree(path)
+    # os.mkdir(path)
+    path = Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2'
 
     return path
 
