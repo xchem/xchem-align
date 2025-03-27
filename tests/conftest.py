@@ -13,14 +13,14 @@ def constants():
         INPUT_1_DIR = "test-data/input_1"
         INPUT_2_DIR = "test-data/input_2"
         INPUT_3_DIR = "test-data/input_3"
-        CONFIG_1_FILE = "test-data/config_1.yaml"
-        CONFIG_2_FILE = "test-data/config_2.yaml"
+        CONFIG_1_FILE = "config_1.yaml"
+        CONFIG_2_FILE = "config_2.yaml"
         CONFIG_3_FILE = "test-data/config_3.yaml"
         TEST_DIR = "test-data/outputs"
-        CONFIG_FILE = TEST_DIR + '/upload-current/config.yaml'
-        UPLOAD_1_DIR = TEST_DIR + '/upload-current/upload_1'
-        UPLOAD_2_DIR = TEST_DIR + '/upload-current/upload_2'
-        UPLOAD_3_DIR = TEST_DIR + '/upload-current/upload_3'
+        CONFIG_FILE = TEST_DIR + '/upload-v2/config.yaml'
+        UPLOAD_1_DIR = TEST_DIR + '/upload-v2/upload_1'
+        UPLOAD_2_DIR = TEST_DIR + '/upload-v2/upload_2'
+        UPLOAD_3_DIR = TEST_DIR + '/upload-v2/upload_3'
         METADATA_FILE = "meta_collator.yaml"
 
     return Constants()
@@ -93,7 +93,7 @@ def config_1_file(
         uploads_dir,
 ):
     path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1' / constants.CONFIG_2_FILE)
-    shutil.copy(constants.CONFIG_2_FILE, path)
+    shutil.copy(Path(constants.TEST_DATA) / constants.CONFIG_2_FILE, path)
     return path
 
 
@@ -103,7 +103,7 @@ def config_2_file(
     uploads_dir
 ):
     path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2' / constants.CONFIG_2_FILE)
-    shutil.copy(constants.CONFIG_2_FILE, path)
+    shutil.copy(Path(constants.TEST_DATA) / constants.CONFIG_2_FILE, path)
     return path
 
 
