@@ -10,7 +10,7 @@ from xchemalign.utils import Constants
 
 
 def test_collator_upload_1(constants, test_dir, uploads_dir, config_1_file, upload_1_dir, ):
-    c = Collator(uploads_dir)
+    c = Collator(test_dir)
     logger = c.logger
 
     meta = c.validate()
