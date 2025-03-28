@@ -140,6 +140,7 @@ def config_2_file(
     #
     #     target_is_directory=True)
     path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR  / constants.CONFIG_YAML)
+    os.remove(path)
     shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
     return path
 
