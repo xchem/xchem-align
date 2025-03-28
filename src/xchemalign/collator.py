@@ -915,6 +915,8 @@ class Collator:
                     # Determine the ligands present and their coordinates
                     dataset_ligands = self.get_dataset_ligands(pdb_input, ligand_names)
                     if xtal_name == 'Mpro-i0130':
+                        print(f'pdb_input: {pdb_input}')
+                        print(f'Ligand names: {ligand_names}')
                         print(f'Got ligands: {dataset_ligands}')
 
                     # Match ligand to panddas event maps if possible and determine if those maps are new
