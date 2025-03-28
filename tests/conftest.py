@@ -124,7 +124,7 @@ def config_1_file(
         uploads_dir,
 ):
     path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR  / constants.CONFIG_YAML)
-    shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_2_FILE, path)
+    shutil.copy(Path(constants.TEST_DATA_DIR) / constants.CONFIG_1_FILE, path)
     return path
 
 
@@ -145,11 +145,11 @@ def config_2_file(
     return path
 
 
-@pytest.fixture(scope="session")
-def config_3_file(
-    constants,
-):
-    path = Path(constants.CONFIG_FILE)
-    shutil.copy(constants.CONFIG_3_FILE, constants.CONFIG_FILE)
-    return path
+# @pytest.fixture(scope="session")
+# def config_3_file(
+#     constants,
+# ):
+#     path = Path(constants.CONFIG_FILE)
+#     shutil.copy(constants.CONFIG_3_FILE, constants.CONFIG_FILE)
+#     return path
 
