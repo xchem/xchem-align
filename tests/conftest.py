@@ -103,6 +103,15 @@ def upload_3_dir(constants, test_dir):
 
 
 @pytest.fixture(scope="session")
+def assemblies_file(
+    constants,
+        uploads_dir,
+):
+    path = Path(Path(constants.TEST_DIR) / constants.VERSION_DIR / constants.ASSEMBLIES_FILENAME)
+    shutil.copy(Path(constants.TEST_DATA_DIR) / constants.ASSEMBLIES_FILENAME, path)
+    return path
+
+@pytest.fixture(scope="session")
 def config_1_file(
     constants,
         uploads_dir,

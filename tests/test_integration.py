@@ -24,7 +24,7 @@ def test_collator_upload_1(constants, test_dir, uploads_dir, config_1_file, uplo
 
 
 @pytest.mark.order(after="test_collator_upload_1")
-def test_aligner_upload_1(constants):
+def test_aligner_upload_1(constants, assemblies_file):
     log = str(Path(constants.TEST_DIR) / 'aligner.log')
 
     a = Aligner(constants.TEST_DIR, log_file=log, log_level=0)
