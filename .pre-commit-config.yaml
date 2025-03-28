@@ -34,3 +34,4 @@ repos:
   - id: pylint
     args:
     - xchemalign
+    - "--ignore=src/ligand_neighbourhood_alignment/.*"

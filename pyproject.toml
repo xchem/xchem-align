@@ -20,7 +20,6 @@ dependencies = [
     'im-standardize-molecule == 0.1.0',
     'scp == 0.14.5',
     'GitPython == 3.1.41',
-    'ligand_neighbourhood_alignment@git+https://github.com/xchem/ligand_neighbourhood_alignment',
     'pytest',
     'pytest-order',
     'tqdm',
@@ -69,6 +68,12 @@ ignore_missing_imports = true
 install_types = true
 non_interactive = true
 check_untyped_defs = true
+
+
+[tool.pylint]
+# temporarily ignore code from lna package, this is just to get the
+# first commit in
+ignore-paths = ["src/ligand_neighbourhood_alignment/.*"]
 
 [tool.pylint.'MESSAGES CONTROL']
 disable = """
