@@ -62,7 +62,7 @@ def uploads_dir(constants, test_dir):
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
     if (Path(constants.TEST_DIR) / 'upload-current').resolve().exists():
-        os.unlink((Path(constants.TEST_DIR) / 'upload-current').resolve())
+        os.rmdir((Path(constants.TEST_DIR) / 'upload-current').resolve())
 
     os.symlink(
         (Path(constants.TEST_DIR) / constants.VERSION_DIR ).resolve(),
