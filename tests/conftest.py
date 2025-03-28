@@ -63,7 +63,8 @@ def uploads_dir(constants, test_dir):
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
     if (Path(constants.TEST_DIR) / 'upload-current').resolve().exists():
-        subprocess.Popen(f"rm {(Path(constants.TEST_DIR) / 'upload-current').resolve()}", shell=True)
+        p = subprocess.Popen(f"rm {(Path(constants.TEST_DIR) / 'upload-current').resolve()}", shell=True)
+        p.communicate()
 
     os.symlink(
         (Path(constants.TEST_DIR) / constants.VERSION_DIR ).resolve(),
