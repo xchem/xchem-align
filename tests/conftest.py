@@ -23,6 +23,7 @@ def constants():
         UPLOAD_2_DIR = TEST_DIR + '/upload-v2/upload_2'
         UPLOAD_3_DIR = TEST_DIR + '/upload-v2/upload_3'
         METADATA_FILE = "meta_collator.yaml"
+        ASSEMBLIES_FILENAME = "assemblies.yaml"
 
     return Constants()
 
