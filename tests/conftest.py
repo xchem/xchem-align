@@ -63,7 +63,7 @@ def uploads_dir(constants, test_dir):
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
     if (Path(constants.TEST_DIR) / 'upload-current').resolve().exists():
-        p = subprocess.Popen(f"rm {(Path(constants.TEST_DIR) / 'upload-current').resolve()}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(f"unlink {(Path(constants.TEST_DIR) / 'upload-current').resolve()}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
         print(stdout)
         print(stderr)
