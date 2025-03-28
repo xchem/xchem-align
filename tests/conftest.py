@@ -1,4 +1,5 @@
 import os
+import subprocess
 from pathlib import Path
 import shutil
 
@@ -62,7 +63,7 @@ def uploads_dir(constants, test_dir):
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
     if (Path(constants.TEST_DIR) / 'upload-current').resolve().exists():
-        os.rmdir((Path(constants.TEST_DIR) / 'upload-current').resolve())
+        subprocess.Popen(f"rm {(Path(constants.TEST_DIR) / 'upload-current').resolve()}", shell=True)
 
     os.symlink(
         (Path(constants.TEST_DIR) / constants.VERSION_DIR ).resolve(),
