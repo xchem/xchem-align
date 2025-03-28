@@ -66,8 +66,8 @@ def uploads_dir(constants, test_dir):
         # p = subprocess.Popen(f"unlink {(Path(constants.TEST_DIR) / 'upload-current')}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # stdout, stderr = p.communicate()
         os.remove((Path(constants.TEST_DIR) / 'upload-current'))
-        print(stdout)
-        print(stderr)
+        # print(stdout)
+        # print(stderr)
 
     os.symlink(
         (Path(constants.TEST_DIR) / constants.VERSION_DIR ).resolve(),
