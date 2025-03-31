@@ -865,7 +865,7 @@ def _align_xmap(
     #     continue
 
     logger.debug(f"Reference pdb: {referance_ds.pdb}")
-    logger.debug(f"Moving pdb: {system_data.get_dataset(DatasetID(dtag=lid.dtag)).pdb}")
+    # logger.debug(f"Moving pdb: {system_data.get_dataset(DatasetID(dtag=lid.dtag)).pdb}")
 
     # Get the ligand binding event
     dataset = system_data.get_dataset(DatasetID(dtag=lid.dtag))
