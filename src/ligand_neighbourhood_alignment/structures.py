@@ -146,7 +146,7 @@ def get_transforms(
     )
     # logger.debug(f"Superposition: rmsd {sup.rmsd} n {len(alignable_cas)}")
 
-    return sup.transform, [ligand_id for ligand_id in alignable_cas.keys()]
+    return sup.transform, list(alignable_cas.keys())
 
 
 def generate_assembly(xtalform: XtalForm, structure):

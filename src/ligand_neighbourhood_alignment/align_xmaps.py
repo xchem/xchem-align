@@ -830,7 +830,7 @@ def _align_xmap(
     # if not xmaps_dir.exists():
     #     os.mkdir(xmaps_dir)
 
-    logger.debug(f"Aligning site: {canonical_site_id}")
+    # logger.debug(f"Aligning site: {canonical_site_id}")
     # site_reference_id = site.members[0]
 
     #
@@ -843,7 +843,7 @@ def _align_xmap(
     reference_mtz_path = Path(referance_ds.mtz)
     reference_xmap = read_xmap_from_mtz(reference_mtz_path)
 
-    logger.debug(f"Aligning subsite: {conformer_site_id}")
+    # logger.debug(f"Aligning subsite: {conformer_site_id}")
     # Get the site reference
     # TODO: Make work
     conformer_site_reference_id = conformer_site.reference_ligand_id
@@ -854,7 +854,7 @@ def _align_xmap(
 
     # for lid, neighbourhood in zip(neighbourhoods.ligand_ids,
     # neighbourhoods.ligand_neighbourhoods):
-    logger.debug(f"Aligning xmap: {lid}")
+    # logger.debug(f"Aligning xmap: {lid}")
 
     dtag, chain, residue = (
         lid.dtag,

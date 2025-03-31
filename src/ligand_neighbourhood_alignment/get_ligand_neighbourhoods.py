@@ -1,6 +1,9 @@
 import gemmi
 from loguru import logger
 
+from ligand_neighbourhood_alignment import dt
+
+
 # import loguru
 from ligand_neighbourhood_alignment.data import (
     AssignedXtalForms,
@@ -277,16 +280,13 @@ def get_ligand_neighbourhood(
 
     # Cosntruct the neighbourhood
     ligand_neighbourhood: LigandNeighbourhood = LigandNeighbourhood(
-        atom_ids=[aid for aid in model_atoms.keys()],
-        atoms=[a for a in model_atoms.values()],
-        artefact_atom_ids=[aid for aid in artefact_atoms.keys()],
-        artefact_atoms=[a for a in artefact_atoms.values()],
+        atom_ids=list(model_atoms.keys()),
+        atoms=list(model_atoms.values()),
+        artefact_atom_ids=list(artefact_atoms.keys()),
+        artefact_atoms=list(artefact_atoms.values()),
     )
 
     return ligand_neighbourhood
-
-
-from ligand_neighbourhood_alignment import dt
 
 
 def _get_ligand_neighbourhood(
@@ -357,7 +357,7 @@ def _get_ligand_neighbourhood(
         )
         image_transform = atom_images[model_atom_id]
         model_atom_id: tuple[str, str, str] = (
-            str(cra.chain.name).split("~")[0],
+            str(cra.chain.name).split("~", maxsplit=1)[0],
             str(cra.residue.seqid.num),
             str(cra.atom.name),
         )
@@ -384,7 +384,7 @@ def _get_ligand_neighbourhood(
         )
         image_transform = atom_images[artefact_atom_id]
         artefact_atom_id: tuple[str, str, str] = (
-            str(cra.chain.name).split("~")[0],
+            str(cra.chain.name).split("~", maxsplit=1)[0],
             str(cra.residue.seqid.num),
             str(cra.atom.name),
         )
@@ -451,6 +451,6 @@ def get_ligand_neighbourhoods(
         ligand_neighbourhoods.update(dataset_ligand_neighbourhoods)
 
     return LigandNeighbourhoods(
-        ligand_ids=[lid for lid in ligand_neighbourhoods.keys()],
-        ligand_neighbourhoods=[lnb for lnb in ligand_neighbourhoods.values()],
+        ligand_ids=list(ligand_neighbourhoods.keys()),
+        ligand_neighbourhoods=list(ligand_neighbourhoods.values()),
     )

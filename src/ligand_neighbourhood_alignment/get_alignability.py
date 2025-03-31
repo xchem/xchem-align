@@ -3,6 +3,9 @@ import numpy as np
 from loguru import logger
 from rich import print as rprint
 
+from ligand_neighbourhood_alignment import dt
+
+
 from ligand_neighbourhood_alignment.data import (
     LigandNeighbourhood,
     LigandNeighbourhoods,
@@ -101,9 +104,6 @@ def get_alignability(
     logger.debug(connectivity)
 
     return np.array(connectivity), Transforms(ligand_ids=transform_ids, transforms=transforms)
-
-
-from ligand_neighbourhood_alignment import dt
 
 
 def _match_cas(

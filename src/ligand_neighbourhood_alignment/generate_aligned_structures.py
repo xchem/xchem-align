@@ -8,6 +8,9 @@ from loguru import logger
 import numpy as np
 from rich import print as rprint
 
+from ligand_neighbourhood_alignment import dt
+
+
 from ligand_neighbourhood_alignment.data import (  # Transform,; AlignableSite,; XtalForms,
     AssignedXtalForms,
     CanonicalSites,
@@ -262,9 +265,6 @@ def align_structure(
 
     # Write the fully aligned structure
     _structure.write_pdb(str(out_path))
-
-
-from ligand_neighbourhood_alignment import dt
 
 
 def _mark_atom_pos_to_ni_pos_tup(point, mark, st):

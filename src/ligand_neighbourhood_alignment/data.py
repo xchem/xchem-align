@@ -4,7 +4,7 @@ from typing import Generator
 import gemmi
 import networkx as nx
 from loguru import logger
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from ligand_neighbourhood_alignment import constants
 
@@ -428,14 +428,16 @@ class SystemSites(BaseModel):
     ligand_ids: list[LigandID]
     site_observation: dict[int, SiteObservation]
 
-    @validator("canonical_site")
+    @field_validator("canonical_site")
+    @classmethod
     def check_canonical_site_ids(cls, v: dict[LigandID, SiteObservation]):
         if not v:
             return
         for site_id, site in v.items():
             assert site_id == site.id
 
-    @validator("canonical_site")
+    @field_validator("canonical_site")
+    @classmethod
     def check_canonical_site_ids_sequential(
         cls,
         v: dict[LigandID, SiteObservation],
@@ -447,14 +449,16 @@ class SystemSites(BaseModel):
         for site_num in range(num_sites):
             assert site_num in site_nums
 
-    @validator("xtal_form_site")
+    @field_validator("xtal_form_site")
+    @classmethod
     def check_xtal_form_site_ids(cls, v: dict[int, XtalFormSite]):
         if not v:
             return
         for site_id, site in v.items():
             assert site_id == site.id
 
-    @validator("xtal_form_site")
+    @field_validator("xtal_form_site")
+    @classmethod
     def check_xtal_form_site_ids_sequential(
         cls,
         v: dict[int, XtalFormSite],
@@ -466,14 +470,16 @@ class SystemSites(BaseModel):
         for site_num in range(num_sites):
             assert site_num in site_nums
 
-    @validator("site_observation")
+    @field_validator("site_observation")
+    @classmethod
     def check_site_observation_ids(cls, v: dict[LigandID, SiteObservation]):
         if not v:
             return
         for site_id, site in v.items():
             assert site_id == site.ligand_id
 
-    @validator("site_observation")
+    @field_validator("site_observation")
+    @classmethod
     def check_site_observation_ids_sequential(
         cls,
         v: dict[LigandID, SiteObservation],

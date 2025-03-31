@@ -8,10 +8,11 @@ import pandas as pd
 import yaml
 from loguru import logger
 
+from ligand_neighbourhood_alignment import constants
+
+
 logger.remove()  # for someone not familiar with the lib, whats going on here?
 logger.add(sys.stdout, level="INFO")
-
-from ligand_neighbourhood_alignment import constants
 
 
 # from ligand_neighbourhood_alignment.make_data_json import (

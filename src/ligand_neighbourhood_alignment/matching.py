@@ -1,4 +1,5 @@
 from ligand_neighbourhood_alignment.data import Atom, AtomID, CanonicalSite, LigandNeighbourhood
+from ligand_neighbourhood_alignment import dt
 
 
 def match_atom(
@@ -20,9 +21,6 @@ def match_atom(
                     return True
 
     return False
-
-
-from ligand_neighbourhood_alignment import dt
 
 
 def _match_atom(

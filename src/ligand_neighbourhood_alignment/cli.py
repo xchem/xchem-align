@@ -13,14 +13,28 @@ import numpy as np
 import pandas as pd
 import yaml
 from loguru import logger
-from rich import print as rprint
 
-logger.remove()  # for someone not familiar with the lib, whats going on here?
-logger.add(sys.stdout, level="WARNING")
+import networkx as nx
+
 from rich import print
+
+# in the original code, the imports were like this:
+# from rich import print as rprint
+
+# logger.remove()  # for someone not familiar with the lib, whats going on here?
+# logger.add(sys.stdout, level="WARNING")
+# from rich import print
+# I wonder if this has some significance?
+
+import gemmi
+
+from ligand_neighbourhood_alignment import dt
 
 from ligand_neighbourhood_alignment import constants
 from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
+
+from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import _get_ligand_neighbourhood
+
 
 # from ligand_neighbourhood_alignment.get_system_sites import get_system_sites
 from ligand_neighbourhood_alignment.build_alignment_graph import build_alignment_graph
@@ -83,6 +97,10 @@ from ligand_neighbourhood_alignment.make_data_json import (
 from ligand_neighbourhood_alignment.generate_aligned_structures import _align_structure, _align_reference_structure
 from ligand_neighbourhood_alignment.align_xmaps import read_xmap, read_xmap_from_mtz, __align_xmap
 from ligand_neighbourhood_alignment import alignment_heirarchy
+
+
+logger.remove()  # for someone not familiar with the lib, whats going on here?
+logger.add(sys.stdout, level="WARNING")
 
 
 def cas_ligands():
@@ -372,10 +390,6 @@ def get_closest_xtalform(xtalforms: XtalForms, structures, dataset_id):
     return closest_xtalform, xtalform_deltas[closest_xtalform]
 
 
-from ligand_neighbourhood_alignment import dt
-import gemmi
-
-
 def _get_assigned_xtalforms(system_data, xtalforms):
     structures = read_structures(system_data)
 
@@ -640,9 +654,6 @@ def _get_structure_fragments(dataset: dt.Dataset, structure, version):
     return fragments
 
 
-from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import _get_ligand_neighbourhood
-
-
 def _get_dataset_neighbourhoods(
     dataset: dt.Dataset, xtalform: dt.XtalForm, assemblies: dict[str, dt.Assembly], version, max_radius: float = 9.0
 ) -> dict[tuple[str, str, str, str], dt.Neighbourhood]:
@@ -731,9 +742,6 @@ def _update_graph(
         #     alignability_graph.add_node(from_ligand_id)
         if (to_ligand_id, from_ligand_id) not in edges:
             alignability_graph.add_edge(to_ligand_id, from_ligand_id)
-
-
-import networkx as nx
 
 
 def _save_graph(fs_model, alignability_graph):
@@ -2495,10 +2503,10 @@ class CLI:
         logger.info("Getting transforms between sites...")
         site_transforms = get_site_transforms(canonical_sites, structures)
         site_transforms = SiteTransforms(
-            canonical_site_transform_ids=[key for key in site_transforms.keys()],
-            canonical_site_transforms=[tr for tr in site_transforms.values()],
-            conformer_site_transform_ids=[key for key in subsite_transforms.keys()],
-            conformer_site_transforms=[tr for tr in subsite_transforms.values()],
+            canonical_site_transform_ids=list(site_transforms.keys()),
+            canonical_site_transforms=list(site_transforms.values()),
+            conformer_site_transform_ids=list(subsite_transforms.keys()),
+            conformer_site_transforms=list(subsite_transforms.values()),
         )
         # Fully specify the output now that the sites are known
         output = read_output(Path(options.source_dir))

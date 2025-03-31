@@ -25,7 +25,7 @@ def _derive_alignment_heirarchy(assemblies: dict[str, dt.Assembly], debug=False)
     chain_priority = {}
     assembly_chains = {}
     chain_priority_count = 0
-    for _assembly_name, _j in assembly_priority.items():
+    for _assembly_name, _ in assembly_priority.items():
         assembly = assemblies[_assembly_name]
         assembly_chains[_assembly_name] = []
         for _generator in assembly.generators:
@@ -51,11 +51,7 @@ def _derive_alignment_heirarchy(assemblies: dict[str, dt.Assembly], debug=False)
 
         # Get the highest priority assembly in which it occurs
         reference_assembly = min(
-            [
-                _assembly_name
-                for _assembly_name in assembly_chains
-                if reference_chain in assembly_chains[_assembly_name]
-            ],
+            [_assembly_name for _assembly_name, chains in assembly_chains.items() if reference_chain in chains],
             key=lambda _x: assembly_priority[_x],
         )
         reference_assemblies[_assembly_name] = (reference_assembly, reference_chain)

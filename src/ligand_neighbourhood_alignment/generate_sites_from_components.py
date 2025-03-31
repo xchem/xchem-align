@@ -5,6 +5,7 @@ import numpy as np
 from loguru import logger
 
 from ligand_neighbourhood_alignment import constants
+from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import alignment_heirarchy
 from ligand_neighbourhood_alignment.data import (
     AssignedXtalForms,
@@ -230,9 +231,6 @@ def get_subsite_transforms(sites: CanonicalSites, structures):
             transforms[(site_id, 0, ssid)] = Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist())
 
     return transforms
-
-
-from ligand_neighbourhood_alignment import dt
 
 
 def _update_conformer_site_transforms(
@@ -465,10 +463,10 @@ def _generate_sites_from_components(_source_dir: Path):
     logger.info("Getting transforms between sites...")
     site_transforms = get_site_transforms(canonical_sites, structures)
     site_transforms = SiteTransforms(
-        canonical_site_transform_ids=[key for key in site_transforms.keys()],
-        canonical_site_transforms=[tr for tr in site_transforms.values()],
-        conformer_site_transform_ids=[key for key in subsite_transforms.keys()],
-        conformer_site_transforms=[tr for tr in subsite_transforms.values()],
+        canonical_site_transform_ids=list(site_transforms.keys()),
+        canonical_site_transforms=list(site_transforms.values()),
+        conformer_site_transform_ids=list(subsite_transforms.keys()),
+        conformer_site_transforms=list(subsite_transforms.values()),
     )
     save_site_transforms(site_transforms, _source_dir)
 

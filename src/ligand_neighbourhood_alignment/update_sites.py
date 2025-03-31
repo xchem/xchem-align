@@ -4,6 +4,8 @@ import networkx as nx
 import numpy as np
 from loguru import logger
 
+from ligand_neighbourhood_alignment import dt
+
 from ligand_neighbourhood_alignment.data import (
     AtomID,
     CanonicalSite,
@@ -201,10 +203,10 @@ def _update_sites(_source_dir: Path):
     logger.info("Getting transforms between sites...")
     site_transforms = get_site_transforms(sites, structures)
     site_transforms = SiteTransforms(
-        canonical_site_transform_ids=[key for key in site_transforms.keys()],
-        canonical_site_transforms=[tr for tr in site_transforms.values()],
-        conformer_site_transform_ids=[key for key in subsite_transforms.keys()],
-        conformer_site_transforms=[tr for tr in subsite_transforms.values()],
+        canonical_site_transform_ids=list(site_transforms.keys()),
+        canonical_site_transforms=list(site_transforms.values()),
+        conformer_site_transform_ids=list(subsite_transforms.keys()),
+        conformer_site_transforms=list(subsite_transforms.values()),
     )
     save_site_transforms(site_transforms, _source_dir)
 

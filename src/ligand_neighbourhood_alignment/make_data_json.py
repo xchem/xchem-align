@@ -7,6 +7,7 @@ import pandas as pd
 from loguru import logger
 
 from ligand_neighbourhood_alignment import constants
+from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment.data import (
     Dataset,
     DatasetID,
@@ -42,9 +43,6 @@ def get_closest_lig(structure, coord):
         return None, None
 
     return min(distances, key=lambda x: distances[x])
-
-
-from ligand_neighbourhood_alignment import dt
 
 
 def get_ligand_binding_events_from_structure(
