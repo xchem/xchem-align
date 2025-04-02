@@ -478,6 +478,7 @@ def main():
             scp_server=scp_server,
             scp_user=scp_username,
             scp_key=scp_key,
+            logger=logger,
         )
         errors, warnings = c.validate()
         if errors:
