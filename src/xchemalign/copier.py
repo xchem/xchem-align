@@ -459,6 +459,8 @@ def main():
     if args.scp_key:
         scp_key = args.scp_key
 
+    logger.info('Using input dirs:', input_dirs)
+
     for i, input_dir in enumerate(input_dirs):
         msg = (
             "Running copier using mode {}. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
@@ -490,9 +492,9 @@ def main():
             c.copy_files()
             ex = 0
 
-        logger.report()
-        logger.close()
-        exit(ex)
+    logger.report()
+    logger.close()
+    exit(ex)
 
 
 if __name__ == "__main__":
