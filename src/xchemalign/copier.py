@@ -258,7 +258,7 @@ class Copier:
         dest_dir_path = dest_path.parent
         dest_dir_path.mkdir(exist_ok=True, parents=True)
         dest_file = dest_dir_path / filepath.name
-        self.logger.warn("Copying CSV file {} to {}".format(csv_src, dest_file))
+        self.logger.info("Copying CSV file {} to {}".format(csv_src, dest_file))
         f = self.copier.do_copy(csv_src, dest_file)
         if not f:
             self.logger.warn("Failed to copy CSV file {} to {}".format(csv_src, dest_file))
@@ -401,11 +401,13 @@ def main():
             sys.exit(1)
 
         for input in inputs:
+            logger.info("Looking at input", input.get('dir'))
             if not input_dir or input.get('dir') == input_dir:
                 t = input.get('type')
                 if t != 'model_building':
                     logger.warn("Only copying of model_building types is currently supported. You specified type", t)
                     continue
+                logger.info("Adding input", input.get('dir'))
                 input_dirs.append(input.get('dir'))
                 soakdbfiles.append(input.get('soakdb', 'processing/database/soakDBDataFile.sqlite'))
                 panddas_files.append(input.get(utils.Constants.CONFIG_PANDDAS_EVENT_FILES, []))
@@ -457,6 +459,8 @@ def main():
     if args.scp_key:
         scp_key = args.scp_key
 
+    logger.info('Using input dirs:', input_dirs)
+
     for i, input_dir in enumerate(input_dirs):
         msg = (
             "Running copier using mode {}. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
@@ -476,6 +480,7 @@ def main():
             scp_server=scp_server,
             scp_user=scp_username,
             scp_key=scp_key,
+            logger=logger,
         )
         errors, warnings = c.validate()
         if errors:
@@ -487,9 +492,9 @@ def main():
             c.copy_files()
             ex = 0
 
-        logger.report()
-        logger.close()
-        exit(ex)
+    logger.report()
+    logger.close()
+    exit(ex)
 
 
 if __name__ == "__main__":
