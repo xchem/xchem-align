@@ -781,10 +781,39 @@ class Collator:
         self.logger.info("writing metadata ...")
         self._write_metadata(new_meta)
         self._copy_extra_files()
+        self._handle_soakdb()
         self.logger.info("copying config.yaml")
         self._copy_config()
         self.logger.info("run complete")
         return new_meta
+
+    def _handle_soakdb(self):
+        names = []
+        dataFrames = []
+        dbfiles = []
+        for input in self.inputs:
+            if input.type == Constants.CONFIG_TYPE_MODEL_BUILDING:
+                dbfile = input.get_soakdb_file_path()
+                self.logger.info("reading DB file:", dbfile)
+                name, df = dbreader.read_all(dbfile)
+                if name in names:
+                    self._log_error(
+                        "Name {} already exists in a previous input. "
+                        + "Make sure the LabVisit column in the soakDB table has distinct values"
+                    )
+                    return
+                names.append(name)
+                dataFrames.append(df)
+                dbfiles.append(dbfile)
+        i = 0
+        for name, df, dbfile in zip(names, dataFrames, dbfiles):
+            i += 1
+            outfile = str(self.output_path / self.version_dir / 'extra_files' / ('soakdb_' + name))
+            self.logger.info('writing soakdb data to', outfile)
+            df.to_csv(outfile + '.csv', index=False)
+            f = shutil.copy2(dbfile, outfile + '.sqlite')
+            if not f:
+                self.logger.error("Failed to copy SoakDB file {}".format(dbfile))
 
     def _copy_extra_files(self):
         extra_files_dir = self.config.get('extra_files_dir')

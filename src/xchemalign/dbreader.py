@@ -30,17 +30,35 @@ def read_dbmeta(dbfile):
     :return: Pandas dataframe with the contends of the table
     """
     # Create your connection.
-    cnx = sqlite3.connect(dbfile)
-    df = pd.read_sql_query(
-        """SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
-                            RefinementCIF, RefinementCIFStatus, RefinementBoundConformation, RefinementMTZ_latest,
-                            RefinementDate, RefinementOutcome, LastUpdated
-                            FROM mainTable WHERE RefinementOutcome IS NOT NULL""",
-        cnx,
-    )
+    with sqlite3.connect(dbfile) as cnx:
+        df = pd.read_sql_query(
+            """SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
+                                RefinementCIF, RefinementCIFStatus, RefinementBoundConformation, RefinementMTZ_latest,
+                                RefinementDate, RefinementOutcome, LastUpdated
+                                FROM mainTable WHERE RefinementOutcome IS NOT NULL""",
+            cnx,
+        )
 
-    df["LastUpdatedDate"] = pd.to_datetime(df["LastUpdated"], infer_datetime_format=True)
-    return df
+        df["LastUpdatedDate"] = pd.to_datetime(df["LastUpdated"], infer_datetime_format=True)
+        return df
+
+
+def read_all(dbfile):
+    """
+    Read the XCE metadata from the mainTable table of a sqlite db
+    :param dbfile: The sqlite db file
+    :return: Pandas dataframe with the contents of the table
+    """
+    # Create your connection.
+    with sqlite3.connect(dbfile) as cnx:
+        # there should only be a single row in this table
+        df1 = pd.read_sql_query("SELECT LabVisit FROM soakDB LIMIT 1", cnx)
+        name = df1["LabVisit"][0]
+        #  now read the whole of the "mainTable" table
+        df2 = pd.read_sql_query("SELECT * FROM mainTable", cnx)
+
+    df2["LastUpdatedDate"] = pd.to_datetime(df2["LastUpdated"], infer_datetime_format=True)
+    return name, df2
 
 
 def filter_dbmeta(dbfile, reference_datasets):
