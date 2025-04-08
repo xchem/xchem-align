@@ -702,90 +702,90 @@ def _align_xmaps(
                     )
 
 
-def _align_xmap(
-    system_data: SystemData,
-    canonical_sites: CanonicalSites,
-    conformer_sites: ConformerSites,
-    neighbourhoods: LigandNeighbourhoods,
-    g,
-    transforms: Transforms,
-    site_transforms: SiteTransforms,
-    output: Output,
-):
-    reference_lid: LigandID = canonical_site.reference_ligand_id
-    referance_ds: Dataset = system_data.get_dataset(DatasetID(dtag=reference_lid.dtag))
-    logger.debug(f"PDB: {referance_ds.pdb}")
-    reference_mtz_path = Path(referance_ds.mtz)
-    reference_xmap = read_xmap_from_mtz(reference_mtz_path)
+# def _align_xmap(
+#     system_data: SystemData,
+#     canonical_sites: CanonicalSites,
+#     conformer_sites: ConformerSites,
+#     neighbourhoods: LigandNeighbourhoods,
+#     g,
+#     transforms: Transforms,
+#     site_transforms: SiteTransforms,
+#     output: Output,
+# ):
+#     reference_lid: LigandID = canonical_site.reference_ligand_id
+#     referance_ds: Dataset = system_data.get_dataset(DatasetID(dtag=reference_lid.dtag))
+#     logger.debug(f"PDB: {referance_ds.pdb}")
+#     reference_mtz_path = Path(referance_ds.mtz)
+#     reference_xmap = read_xmap_from_mtz(reference_mtz_path)
 
-    # Get the site reference
-    # TODO: Make work
-    conformer_site_reference_id = conformer_site.reference_ligand_id
+#     # Get the site reference
+#     # TODO: Make work
+#     conformer_site_reference_id = conformer_site.reference_ligand_id
 
-    dtag, chain, residue = (
-        lid.dtag,
-        lid.chain,
-        lid.residue,
-    )
-    # if dtag != "Mpro-J0055":
-    #     continue
+#     dtag, chain, residue = (
+#         lid.dtag,
+#         lid.chain,
+#         lid.residue,
+#     )
+#     # if dtag != "Mpro-J0055":
+#     #     continue
 
-    logger.debug(f"Reference pdb: {referance_ds.pdb}")
+#     logger.debug(f"Reference pdb: {referance_ds.pdb}")
 
-    # Get the ligand binding event
-    dataset = system_data.get_dataset(DatasetID(dtag=lid.dtag))
-    lbe: LigandBindingEvent = dataset.ligand_binding_events[lid]
+#     # Get the ligand binding event
+#     dataset = system_data.get_dataset(DatasetID(dtag=lid.dtag))
+#     lbe: LigandBindingEvent = dataset.ligand_binding_events[lid]
 
-    # Get the xmap path
-    #
+#     # Get the xmap path
+#     #
 
-    if lbe.xmap != "None":
-        xmap_path: Path = Path(lbe.xmap)
-        logger.debug(f"Xmap path: {xmap_path}")
+#     if lbe.xmap != "None":
+#         xmap_path: Path = Path(lbe.xmap)
+#         logger.debug(f"Xmap path: {xmap_path}")
 
-        xmap = read_xmap(xmap_path)
-    else:
-        mtz_path: Path = Path(dataset.mtz)
-        logger.debug(f"Mtz path is: {mtz_path}")
+#         xmap = read_xmap(xmap_path)
+#     else:
+#         mtz_path: Path = Path(dataset.mtz)
+#         logger.debug(f"Mtz path is: {mtz_path}")
 
-        xmap = read_xmap_from_mtz(mtz_path)
+#         xmap = read_xmap_from_mtz(mtz_path)
 
-    aop = Path(output.source_dir)
+#     aop = Path(output.source_dir)
 
-    # Align the event map
-    output_path = aop / output.dataset_output[dtag][chain][residue].aligned_event_maps[canonical_site_id]
-    logger.debug("Aligning event map...")
-    align_xmap(
-        neighbourhoods,
-        g,
-        transforms,
-        site_transforms,
-        reference_xmap,
-        conformer_site_reference_id,
-        canonical_site_id,
-        conformer_site_id,
-        lid,
-        xmap,
-        output_path,
-    )
-    # Align the refined map
-    output_path = aop / output.dataset_output[dtag][chain][residue].aligned_xmaps[canonical_site_id]
+#     # Align the event map
+#     output_path = aop / output.dataset_output[dtag][chain][residue].aligned_event_maps[canonical_site_id]
+#     logger.debug("Aligning event map...")
+#     align_xmap(
+#         neighbourhoods,
+#         g,
+#         transforms,
+#         site_transforms,
+#         reference_xmap,
+#         conformer_site_reference_id,
+#         canonical_site_id,
+#         conformer_site_id,
+#         lid,
+#         xmap,
+#         output_path,
+#     )
+#     # Align the refined map
+#     output_path = aop / output.dataset_output[dtag][chain][residue].aligned_xmaps[canonical_site_id]
 
-    if dataset.mtz:
-        logger.debug("Aligning 2Fo-Fc map...")
+#     if dataset.mtz:
+#         logger.debug("Aligning 2Fo-Fc map...")
 
-        xmap = read_xmap_from_mtz(Path(dataset.mtz))
+#         xmap = read_xmap_from_mtz(Path(dataset.mtz))
 
-        align_xmap(
-            neighbourhoods,
-            g,
-            transforms,
-            site_transforms,
-            reference_xmap,
-            conformer_site_reference_id,
-            canonical_site_id,
-            conformer_site_id,
-            lid,
-            xmap,
-            output_path,
-        )
+#         align_xmap(
+#             neighbourhoods,
+#             g,
+#             transforms,
+#             site_transforms,
+#             reference_xmap,
+#             conformer_site_reference_id,
+#             canonical_site_id,
+#             conformer_site_id,
+#             lid,
+#             xmap,
+#             output_path,
+#         )

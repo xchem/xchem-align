@@ -394,133 +394,133 @@ class Dataset:
         self.ligand_binding_events = ligand_binding_events
 
 
-class SourceDataModel:
-    def __init__(
-        self,
-        fs_model: FSModel,
-        datasources: list[Datasource],
-        panddas: list[PanDDA],
-    ):
-        self.fs_model = fs_model
-        self.datasources = datasources
-        self.panddas = panddas
+# class SourceDataModel:
+#     def __init__(
+#         self,
+#         fs_model: FSModel,
+#         datasources: list[Datasource],
+#         panddas: list[PanDDA],
+#     ):
+#         self.fs_model = fs_model
+#         self.datasources = datasources
+#         self.panddas = panddas
 
-    @staticmethod
-    def from_fs_model(
-        fs_model: FSModel,
-        datasources,
-        datasource_types,
-        panddas,
-    ):
-        _datasources = []
-        for datasource_path, datasource_type in zip(datasources, datasource_types):
-            datasource = Datasource(datasource_path, datasource_type)
-            _datasources.append(datasource)
+#     @staticmethod
+#     def from_fs_model(
+#         fs_model: FSModel,
+#         datasources,
+#         datasource_types,
+#         panddas,
+#     ):
+#         _datasources = []
+#         for datasource_path, datasource_type in zip(datasources, datasource_types):
+#             datasource = Datasource(datasource_path, datasource_type)
+#             _datasources.append(datasource)
 
-        _panddas = []
-        for pandda_dir in panddas:
-            pandda = PanDDA(pandda_dir)
-            _panddas.append(pandda)
+#         _panddas = []
+#         for pandda_dir in panddas:
+#             pandda = PanDDA(pandda_dir)
+#             _panddas.append(pandda)
 
-        return SourceDataModel(fs_model, _datasources, _panddas)
+#         return SourceDataModel(fs_model, _datasources, _panddas)
 
-    def get_datasets(self):
-        datasets = {}
-        reference_datasets = {}
-        new_datasets = {}
+#     def get_datasets(self):
+#         datasets = {}
+#         reference_datasets = {}
+#         new_datasets = {}
 
-        # Get the pandda tables
-        pandda_event_tables = {pandda.path: pd.read_csv(pandda.event_table_path) for pandda in self.panddas}
+#         # Get the pandda tables
+#         pandda_event_tables = {pandda.path: pd.read_csv(pandda.event_table_path) for pandda in self.panddas}
 
-        # Get all the datasets attested in the data sources
-        for datasource in self.datasources:
-            logger.info(f"Parsing datasource: {datasource.path}")
-            if datasource.datasource_type == "model_building":
-                for model_dir in Path(datasource.path).glob("*"):
-                    dtag = model_dir.name
-                    if dtag in datasets:
-                        st = f"Dataset ID {dtag} already found! Using new!"
-                        logger.warning(st)
-                        continue
+#         # Get all the datasets attested in the data sources
+#         for datasource in self.datasources:
+#             logger.info(f"Parsing datasource: {datasource.path}")
+#             if datasource.datasource_type == "model_building":
+#                 for model_dir in Path(datasource.path).glob("*"):
+#                     dtag = model_dir.name
+#                     if dtag in datasets:
+#                         st = f"Dataset ID {dtag} already found! Using new!"
+#                         logger.warning(st)
+#                         continue
 
-                    pdb = model_dir / constants.MODEL_DIR_PDB
-                    xmap = model_dir / constants.MODEL_DIR_XMAP
-                    mtz = model_dir / constants.MODEL_DIR_MTZ
-                    if not pdb.exists():
-                        continue
+#                     pdb = model_dir / constants.MODEL_DIR_PDB
+#                     xmap = model_dir / constants.MODEL_DIR_XMAP
+#                     mtz = model_dir / constants.MODEL_DIR_MTZ
+#                     if not pdb.exists():
+#                         continue
 
-                    ligand_binding_events = _get_ligand_binding_events_from_panddas(
-                        pandda_event_tables,
-                        pdb,
-                        dtag,
-                    )
-                    if len(ligand_binding_events) == 0:
-                        logger.warning(f"Dataset {dtag} has no ligand binding events!")
-                        continue
-                    dataset = Dataset(
-                        dtag=dtag,
-                        pdb=str(pdb),
-                        xmap=str(xmap),
-                        mtz=str(mtz),
-                        ligand_binding_events=ligand_binding_events,
-                    )
-                    datasets[dtag] = dataset
-                    logger.debug(f"Added dataset: {dtag}")
+#                     ligand_binding_events = _get_ligand_binding_events_from_panddas(
+#                         pandda_event_tables,
+#                         pdb,
+#                         dtag,
+#                     )
+#                     if len(ligand_binding_events) == 0:
+#                         logger.warning(f"Dataset {dtag} has no ligand binding events!")
+#                         continue
+#                     dataset = Dataset(
+#                         dtag=dtag,
+#                         pdb=str(pdb),
+#                         xmap=str(xmap),
+#                         mtz=str(mtz),
+#                         ligand_binding_events=ligand_binding_events,
+#                     )
+#                     datasets[dtag] = dataset
+#                     logger.debug(f"Added dataset: {dtag}")
 
-            elif datasource.datasource_type == "manual":
-                for model_dir in Path(datasource.path).glob("*"):
-                    dtag = model_dir.name
+#             elif datasource.datasource_type == "manual":
+#                 for model_dir in Path(datasource.path).glob("*"):
+#                     dtag = model_dir.name
 
-                    if dtag in datasets:
-                        st = f"Dataset ID {dtag} already found! Using new!"
-                        logger.warning(st)
-                    try:
-                        pdb = next(model_dir.glob("*.pdb"))
-                    except Exception:
-                        raise Exception(f"Could not find pdb in dir: {model_dir}")
-                    try:
-                        xmap = next(model_dir.glob("*.ccp4"))
-                    except Exception as e:
-                        print(e)
-                        xmap = None
-                        logger.warning("No xmap!")
-                    try:
-                        mtz = next(model_dir.glob("*.mtz"))
-                    except Exception as e:
-                        print(e)
-                        mtz = None
-                        logger.warning("No mtz!")
+#                     if dtag in datasets:
+#                         st = f"Dataset ID {dtag} already found! Using new!"
+#                         logger.warning(st)
+#                     try:
+#                         pdb = next(model_dir.glob("*.pdb"))
+#                     except Exception:
+#                         raise Exception(f"Could not find pdb in dir: {model_dir}")
+#                     try:
+#                         xmap = next(model_dir.glob("*.ccp4"))
+#                     except Exception as e:
+#                         print(e)
+#                         xmap = None
+#                         logger.warning("No xmap!")
+#                     try:
+#                         mtz = next(model_dir.glob("*.mtz"))
+#                     except Exception as e:
+#                         print(e)
+#                         mtz = None
+#                         logger.warning("No mtz!")
 
-                    ligand_binding_events = _get_ligand_binding_events_from_structure(pdb, xmap, dtag)
-                    if len(ligand_binding_events) == 0:
-                        logger.warning(f"Dataset {dtag} has no ligand binding events!")
-                        continue
-                    dataset = Dataset(
-                        dtag=dtag,
-                        pdb=str(pdb),
-                        xmap=str(xmap),
-                        mtz=str(mtz),
-                        ligand_binding_events=ligand_binding_events,
-                    )
-                    datasets[dtag] = dataset
-                    reference_datasets[dtag] = dataset
-                    logger.debug(f"Added dataset: {dtag}")
-            else:
-                raise Exception(f"Source type {datasource.datasource_type} unknown!")
+#                     ligand_binding_events = _get_ligand_binding_events_from_structure(pdb, xmap, dtag)
+#                     if len(ligand_binding_events) == 0:
+#                         logger.warning(f"Dataset {dtag} has no ligand binding events!")
+#                         continue
+#                     dataset = Dataset(
+#                         dtag=dtag,
+#                         pdb=str(pdb),
+#                         xmap=str(xmap),
+#                         mtz=str(mtz),
+#                         ligand_binding_events=ligand_binding_events,
+#                     )
+#                     datasets[dtag] = dataset
+#                     reference_datasets[dtag] = dataset
+#                     logger.debug(f"Added dataset: {dtag}")
+#             else:
+#                 raise Exception(f"Source type {datasource.datasource_type} unknown!")
 
-        # Determine which of these are new using the fs_model output
-        for dtag, dataset in datasets.items():
-            if dtag not in self.fs_model.alignments:
-                new_datasets[dtag] = dataset
+#         # Determine which of these are new using the fs_model output
+#         for dtag, dataset in datasets.items():
+#             if dtag not in self.fs_model.alignments:
+#                 new_datasets[dtag] = dataset
 
-        return datasets, reference_datasets, new_datasets
+#         return datasets, reference_datasets, new_datasets
 
-    @staticmethod
-    def from_dict():
-        ...
+#     @staticmethod
+#     def from_dict():
+#         ...
 
-    def to_dict(self, path: Path):
-        ...
+#     def to_dict(self, path: Path):
+#         ...
 
 
 class Generator:
