@@ -33,4 +33,5 @@ repos:
   hooks:
   - id: pylint
     args:
-    - xchemalign
+    # - xchemalign
+    - "--ignore=src/ligand_neighbourhood_alignment/.*"

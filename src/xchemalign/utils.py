@@ -594,17 +594,6 @@ def _verify_working_dir(working_dir):
 
 
 def main():
-    # log = Logger(logfile="logfile.log", level=1)
-    #
-    # log.log("a", "b", "c", level=0)
-    # log.log("foo", "bar", "baz")
-    # log.log("foo", 99, "apples", level=2)
-
-    # mols = gen_mols_from_cif('data/Zx1674a.cif')
-    # for mol in mols:
-    #     molfile = Chem.MolToMolBlock(mol)
-    #     print(molfile)
-
     print(_verify_working_dir(Path('data/std_test/lb32633-6_2024-11-22/upload-current/upload_1')))
 
 

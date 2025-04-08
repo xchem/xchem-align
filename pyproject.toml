@@ -20,12 +20,17 @@ dependencies = [
     'im-standardize-molecule == 0.1.0',
     'scp == 0.14.5',
     'GitPython == 3.1.41',
-    'ligand_neighbourhood_alignment@git+https://github.com/xchem/ligand_neighbourhood_alignment',
     'pytest',
     'pytest-order',
     'tqdm',
     'requests',
-    'requests-toolbelt'
+    'requests-toolbelt',
+    # from lna
+    'loguru',
+    'pydantic==2.6.0',
+    'networkx',
+    'rich',
+    'fire',
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
@@ -49,6 +54,9 @@ dev = [
     "sphinx-design",
     "tox-direct",
     "types-mock",
+    # from lna
+    # "flake8-isort",
+    # "Flake8-pyproject",
 ]
 
 #[project.scripts]
@@ -70,6 +78,11 @@ install_types = true
 non_interactive = true
 check_untyped_defs = true
 
+
+[tool.pylint]
+# temporarily ignore code from lna package
+ignore-paths = ["src/ligand_neighbourhood_alignment/.*"]
+
 [tool.pylint.'MESSAGES CONTROL']
 disable = """
     c-extension-no-member,
@@ -88,6 +101,17 @@ disable = """
 [tool.isort]
 float_to_top = true
 profile = "black"
+
+
+[tool.flake8]
+extend-ignore = [
+    "E203", # See https://github.com/PyCQA/pycodestyle/issues/373
+    "F811", # support typing.overload decorator
+    "F722", # allow Annotated[typ, some_func("some string")]
+]
+max-line-length = 119 # Respect black's line length (default 88),
+exclude = [".tox", "venv"]
+
 
 [tool.black]
 line-length = 119
