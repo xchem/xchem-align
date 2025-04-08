@@ -81,7 +81,7 @@ check_untyped_defs = true
 
 [tool.pylint]
 # temporarily ignore code from lna package
-ignore-paths = ["src/ligand_neighbourhood_alignment/.*"]
+# ignore-paths = ["src/ligand_neighbourhood_alignment/.*"]
 
 [tool.pylint.'MESSAGES CONTROL']
 disable = """
