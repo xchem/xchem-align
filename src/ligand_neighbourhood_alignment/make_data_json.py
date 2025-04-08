@@ -121,10 +121,7 @@ def get_ligand_binding_events_from_panddas(pandda_event_csvs, pdb_path, dtag):
             bdc = row["1-BDC"]
             ligand_confidence = row["Ligand Confidence"]
 
-            # logger.debug(f"Processing {dtag} {event_id}")
-
             if ligand_confidence != "High":
-                # logger.debug("No high confidence ligand!")
                 continue
 
             if dtag != _dtag:

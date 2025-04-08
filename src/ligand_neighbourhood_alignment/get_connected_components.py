@@ -59,6 +59,4 @@ def get_connected_components_connected(arr, ligand_neighbourhoods):
     nx.draw(g, ax=ax)
     fig.savefig("./graph.png")
 
-    # logger.debug(g)
-
     return cliques, g

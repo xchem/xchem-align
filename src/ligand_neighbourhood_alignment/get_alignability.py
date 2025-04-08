@@ -161,15 +161,9 @@ def _update_ligand_neighbourhood_transforms(
     ligand_neighbourhoods: dict[tuple[str, str, str, str], dt.Neighbourhood],
     structures,
 ):
-    # connectivity = []
-    # transform_ids = []
-    # transforms = []
-
     # For each other ligand neighbourhood, see if atoms match and then if so record the transform that relates
     # them and its inverse
 
-    # for (ligand_1_id, ligand_1_neighbourhood) in ligand_neighbourhoods.items():
-    #     connectivities = []
     ligand_1_id = lid
     ligand_1_neighbourhood = ligand_neighbourhoods[lid]
     matches = []
@@ -181,20 +175,9 @@ def _update_ligand_neighbourhood_transforms(
         ca_match, transform, inverse_transform = _match_cas(ligand_1_neighbourhood, ligand_2_neighbourhood)
 
         if ca_match:
-            # connectivities.append(1)
-            # transform_ids.append((ligand_1_id, ligand_2_id))
-            # transforms.append(transform)
             ligand_neighbourhood_transforms[(ligand_1_id, ligand_2_id)] = transform
             ligand_neighbourhood_transforms[(ligand_2_id, ligand_1_id)] = inverse_transform
             matches.append(ligand_2_id)
 
     if len(matches) == 0:
         rprint(f"No Matches For {ligand_1_id}! No alignments will be generated!")
-
-        # else:
-        #     connectivities.append(0)
-
-        # connectivity.append(connectivities)
-
-    # logger.debug(connectivity)
-    # return ligand_neighbourhood_transforms

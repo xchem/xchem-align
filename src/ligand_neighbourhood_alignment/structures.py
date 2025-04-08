@@ -31,7 +31,6 @@ def get_transform_from_residues(rs: list[ResidueID], srs, ssrs):
             ssrsca = ssrsr["CA"][0]
             acs.append((srsca, ssrsca))
         except Exception as e:
-            # print(f"{chain} : {num}: : {srsr.name} {ssrsr.name} {e}")
             print(f"{chain} : {num} : {e}")
 
             continue
@@ -78,7 +77,6 @@ def _get_transform_from_residues(rs: list[tuple[str, str]], srs, ssrs, other_rs=
             ssrsca = ssrsr["CA"][0]
             acs.append((srsca, ssrsca))
         except Exception as e:
-            # print(f"{chain} : {num}: : {srsr.name} {ssrsr.name} {e}")
             print(f"{chain} : {num} : {e}")
 
             continue
@@ -144,7 +142,6 @@ def get_transforms(
         [alignable_ca[0] for alignable_ca in alignable_cas.values()],
         [alignable_ca[1] for alignable_ca in alignable_cas.values()],
     )
-    # logger.debug(f"Superposition: rmsd {sup.rmsd} n {len(alignable_cas)}")
 
     return sup.transform, list(alignable_cas.keys())
 

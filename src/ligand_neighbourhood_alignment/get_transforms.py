@@ -45,7 +45,6 @@ def get_transform(
         [alignable_ca[0] for alignable_ca in alignable_cas.values()],
         [alignable_ca[1] for alignable_ca in alignable_cas.values()],
     )
-    # logger.debug(f"Superposition: rmsd {sup.rmsd} n {len(alignable_cas)}")
 
     return sup.transform, list(alignable_cas.keys())
 

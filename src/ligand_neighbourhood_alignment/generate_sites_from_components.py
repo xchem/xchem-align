@@ -246,7 +246,6 @@ def _update_conformer_site_transforms(
         key = (canonical_site.reference_conformer_site_id, conformer_site_id)
         if key not in conformer_site_transforms:
             conformer_site = conformer_sites[conformer_site_id]
-            # conformer_site_residues = conformer_site.residues
 
             transform = _get_transform_from_residues(
                 [(x[0], x[1]) for x in canonical_site.residues],
@@ -255,20 +254,6 @@ def _update_conformer_site_transforms(
             )
 
             conformer_site_transforms[key] = dt.Transform(transform.vec.tolist(), transform.mat.tolist())
-
-    # transforms = {}
-    # for site_id, site in zip(sites.site_ids, sites.sites):
-    #     rss = site.reference_ligand_id.dtag
-    #     rs = site.residues
-    #     srs = structures[rss]
-    #
-    #     for ssid, ss in zip(site.subsite_ids, site.subsites):
-    #         ssr = ss.reference_ligand_id.dtag
-    #         ssrs = structures[ssr]
-    #         transform = get_transform_from_residues(rs, srs, ssrs)
-    #         transforms[(site_id, 0, ssid)] = Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist())
-
-    # return transforms
 
 
 def get_site_transforms(sites: CanonicalSites, structures):
@@ -295,7 +280,6 @@ def _update_canonical_site_transforms(
     canonical_site_transforms: dict[str, dt.Transform],
     canonical_site_id,
     canonical_site: dt.CanonicalSite,
-    # canonical_sites: dict[str, dt.CanonicalSite],
     conformer_sites: dict[str, dt.ConformerSite],
     structures,
 ):
@@ -353,20 +337,6 @@ def _update_reference_structure_transforms(
     }
     reference_structure_biochains_inv = {v: k for k, v in reference_structure_biochains.items()}
 
-    # # Get the reference residues whose image is the canonical site biochain aligned residues
-    # alignment_residues_ref_st = []
-    # alignment_residues_mov_st = []
-    # for rid in canonical_site.residues:
-    #     chain, res = rid[0], rid[1]
-    #     biochain = alignment_heirarchy._chain_to_biochain(
-    #         chain,
-    #         site_reference_ligand_xtalform,
-    #         assemblies
-    #     )
-    #     reference_structure_chain = reference_structure_biochains_inv[biochain]
-    #     alignment_residues_ref_st.append((reference_structure_chain, res))
-    #     alignment_residues_mov_st.append((reference_structure_chain, res))
-
     # # Align the reference to the biochain reference using the canonical site residues
     alignment_residues_ref_st = []
     alignment_residues_mov_st = []
@@ -392,17 +362,6 @@ def _update_reference_structure_transforms(
     )
     return transform
 
-    # DEP
-    # ress = [(x[0], x[1]) for x in canonical_site.residues]
-    # to_structure = structures[conformer_sites[canonical_site.reference_conformer_site_id].reference_ligand_id[0]]
-    # from_structure = structures[key[0]]
-    # transform = _get_transform_from_residues(ress, to_structure, from_structure, other_rs=other_rs)
-    # reference_structure_transforms[key] = dt.Transform(
-    #     transform.vec.tolist(),
-    #     transform.mat.tolist(),
-    # )
-    # return transform
-
 
 def _generate_sites_from_components(_source_dir: Path):
     logger.info(f"Source dir: {_source_dir}")
@@ -413,7 +372,6 @@ def _generate_sites_from_components(_source_dir: Path):
     system_data = read_system_data(_source_dir)
 
     # Get the assemblies
-    # assemblies = Assemblies.read(_source_dir / constants.ASSEMBLIES_FILE_NAME)
     assigned_xtalforms = AssignedXtalForms.read(_source_dir / constants.ASSIGNED_XTALFORMS_FILE_NAME)
 
     # Get the xtalforms

@@ -3,9 +3,6 @@ import numpy as np
 
 from ligand_neighbourhood_alignment.data import LigandNeighbourhoods
 
-# from loguru import logger
-# from matplotlib import pyplot as plt
-
 
 def get_graph(arr, ligand_neighbourhoods: LigandNeighbourhoods):
     ligand_ids = [ligand_id for ligand_id in ligand_neighbourhoods.ligand_ids]

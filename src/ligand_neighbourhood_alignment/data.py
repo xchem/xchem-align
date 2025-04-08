@@ -118,23 +118,6 @@ class AlignableSite(BaseModel):
     reference: LigandID
 
 
-# class CanonicalSite(BaseModel):
-#     id: int
-#     name: str
-#     refpdb: str
-#     atoms: dict[AtomID, Atom]
-#     literatureref: str
-#     members: list[LigandID]
-
-
-# class XtalForm(BaseModel):
-#     id: int
-#     space_group: int
-#     unit_cell: tuple[float, float, float, float, float, float]
-#     members: list[DatasetID]
-#     transforms: list[Transform]
-
-
 class AssemblyGenerator(BaseModel):
     id: int
     reference_chain: str
@@ -174,8 +157,6 @@ class XtalForm(BaseModel):
 
 
 class XtalForms(BaseModel):
-    # xtalform_ids: list[int]
-    # xtalforms: list[XtalForm]
     xtalforms: dict[int, XtalForm]
 
     def iter(self):
@@ -198,17 +179,6 @@ class XtalForms(BaseModel):
 
 class DatasetXtalforms(BaseModel):
     dataset_xtalforms: dict[str, int]
-
-
-# class XtalFormSite(BaseModel):
-#     id: int
-#     canon_site_id: int
-#     xtal_form_id: int
-#     code: str
-#     refpdb: str
-#     atoms: dict[AtomID, Atom]
-#     artefact_atoms: dict[AtomID, Atom]
-#     members: list[LigandID]
 
 
 class XtalFormSite(BaseModel):
@@ -272,10 +242,7 @@ class Dataset(BaseModel):
 
 class Datasource(BaseModel):
     path: str
-    # data_source_type: str
     datasource_type: str
-    # dataset_ids: list[DatasetID]
-    # datasets: list[Dataset]
 
 
 class PanDDA(BaseModel):
@@ -319,10 +286,6 @@ class LigandNeighbourhoods(BaseModel):
                 return _neighbourhood
 
 
-# class Site(BaseModel):
-#     members: list[LigandID]
-
-
 class Block(BaseModel):
     xi: int
     yi: int
@@ -353,13 +316,7 @@ class ConformerSite(BaseModel):
 
 
 class ConformerSites(BaseModel):
-    # subsites: list[ConformerSite]
-    # reference_subsite: int
     conformer_sites: dict[int, ConformerSite]
-
-    # def iter(self) -> Generator[tuple[int, ConformerSite], None, None]:
-    #     for subsite in self.subsites:
-    #         yield subsite.id, subsite
 
     def iter(self) -> Generator[tuple[int, ConformerSite], None, None]:
         for cs_id, cs in self.conformer_sites.items():
@@ -510,7 +467,6 @@ def gemmi_to_transform(transform):
 
 
 def get_box(neighbourhood: LigandNeighbourhood, xmap, transform):
-    # transform_gemmi = transform_to_gemmi(transform)
     transform_gemmi = transform
 
     box = gemmi.FractionalBox()
@@ -700,8 +656,6 @@ class ChainOutput(BaseModel):
 
 class DatasetOutput(BaseModel):
     aligned_chain_output: dict[str, ChainOutput]
-    # aligned_structures: dict[str, ChainOutput]
-    # aligned_xmaps: dict[str, ChainOutput]
 
     def __getitem__(self, item):
         return self.aligned_chain_output[item]

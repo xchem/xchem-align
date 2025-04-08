@@ -147,8 +147,6 @@ def _landmark_to_structure(lm):
     st.setup_entities()
     return st
 
-    ...
-
 
 def _get_atoms(st):
     atoms = {}
@@ -301,9 +299,6 @@ def _get_structure_chain_to_assembly_transform(st, chain, xtalform, assemblies, 
 
     # Get the landmarks of the structure
     mov_lm = structure_to_landmarks(assembly_st)
-    # if debug:
-    #     rprint(f'Moving structure landmarks')
-    #     rprint(mov_lm)
 
     assert (
         len(mov_lm) != 0
@@ -332,14 +327,6 @@ def load_yaml(path, dict_to_obj):
     return dict_to_obj(dic)
 
 
-# def _save_hierarchy(fs_model, hierarchy: dict[str, tuple[str, str]]):
-#     ...
-#
-#
-# def _save_biochain_priorities(fs_model, biochain_priorities: dict[str, int]):
-#     ...
-
-
 def assembly_landmarks_to_dict(assembly_landmarks: dict[tuple[str, tuple[str, str], str], tuple[float, float, float]]):
     dic = {}
     for assembly, data in assembly_landmarks.items():
@@ -349,15 +336,6 @@ def assembly_landmarks_to_dict(assembly_landmarks: dict[tuple[str, tuple[str, st
             dic[assembly][key] = v
 
     return dic
-
-    # def _save_assembly_transforms(fs_model, assembly_transforms: dict[str]):
-    # {
-    #     'vec': tr.vec.tolist(),
-    #     'mat': tr.mat.tolist(),
-    #     'rmsd': 0.0,
-    #     "count": 0
-    # }
-    ...
 
 
 def chain_to_assembly_transforms_to_dict(chain_to_assembly_transforms: dict[tuple[str, str]]):
@@ -387,6 +365,3 @@ def dict_to_assembly_landmarks(dic):
             obj[assembly][(chain, (rname, rid), aname)] = v
 
     return obj
-
-
-...

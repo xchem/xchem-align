@@ -491,9 +491,6 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             _chain for xtalform_assembly in xtalform.assemblies.values() for _chain in xtalform_assembly.chains
         ]
         dataset_protein_chains = _get_dataset_protein_chains(structure)
-        # print(f'Xtalform chains: {set(xtalform_protein_chains)}')
-        # print(f'Dataseet chains: {set(dataset_protein_chains)}')
-        # print(set(dataset_protein_chains) == set(xtalform_protein_chains))
 
         if set(dataset_protein_chains) != set(xtalform_protein_chains):
             continue
@@ -634,15 +631,6 @@ def _get_structure_fragments(dataset: dt.Dataset, structure, version):
             source_chain, biomol_chain, transform = chain.name.split("~")
             for residue in chain:  # .get_ligands():
                 for lbe in dataset.ligand_binding_events:
-                    # if (
-                    #     (residue.name == "LIG")
-                    #     & (lbe.chain == chain.name)
-                    #     & (lbe.residue == residue.seqid.num)
-                    # ):
-                    # if (lbe.chain == chain.name) & (lbe.residue == residue.seqid.num):
-                    #     ligand_id = (dataset.dtag, str(chain.name), str(lbe.residue),)
-                    #     fragments[ligand_id] = residue
-                    # lig_number = lig_number + 1
                     if (
                         (str(lbe[2]) == str(residue.seqid.num))
                         & (str(lbe[1]) == str(source_chain))
@@ -736,10 +724,6 @@ def _update_graph(
             alignability_graph.add_node(ligand_id)
 
     for to_ligand_id, from_ligand_id in ligand_neighbourhood_transforms:
-        # if to_ligand_id not in nodes:
-        #     alignability_graph.add_node(to_ligand_id)
-        # if from_ligand_id not in nodes:
-        #     alignability_graph.add_node(from_ligand_id)
         if (to_ligand_id, from_ligand_id) not in edges:
             alignability_graph.add_edge(to_ligand_id, from_ligand_id)
 
@@ -751,11 +735,6 @@ def _save_graph(fs_model, alignability_graph):
         str(fs_model.alignability_graph),
         # stringizer=lambda x: "/".join(x),
     )
-
-
-# def _get_connected_components(alignability_graph):
-#     cliques = list(nx.connected_components(alignability_graph))
-#     return cliques
 
 
 def _get_connected_components(alignability_graph, clusters, max_path_length=2):
@@ -1100,44 +1079,6 @@ def _update_xtalform_sites(
                 )
                 xtalform_sites[xtalform_site_id] = xtalform_site
 
-    # raise Exception
-    #
-    # matched = False
-    # # for xtalform_site_id, xtalform_site in xtalform_sites.items():
-    # #     if xtalform_site.canonical_site_id == canonical_site_id:
-    # #         for conformer_site_id in canonical_site.conformer_site_ids:
-    # #             conformer_site = conformer_sites[conformer_site_id]
-    # #             for member in conformer_site.members:
-    # #                 if dataset_assignments[member[0]] == xtalform_site.xtalform_id:
-    # #                     if member not in xtalform_site.members:
-    # #                         xtalform_site.members.append(member)
-    #
-    # xtalforms_dict = {
-    #     (xtalform_site.canonical_site_id, xtalform_site.xtalform_id): xtalform_site_id
-    #     for xtalform_site_id, xtalform_site in xtalform_sites.items()
-    # }
-    #
-    # for conformer_site_id in canonical_site.conformer_site_ids:
-    #     conformer_site = conformer_sites[conformer_site_id]
-    #     for member in conformer_site.members:
-    #         assignment = dataset_assignments[member[0]]
-    #         if (canonical_site_id, assignment) in xtalforms_dict:
-    #             xtalform_site = xtalform_sites[xtalforms_dict[(canonical_site_id, assignment)]]
-    #             if member not in xtalform_site.members:
-    #                 xtalform_site.members.append(member)
-    #         else:
-    #             xtalform_site_id = "/".join(member)
-    #             xtalform_site = dt.XtalFormSite(
-    #                 assignment,
-    #                 member[1],
-    #                 canonical_site_id,
-    #                 [
-    #                     member,
-    #                 ],
-    #             )
-    #             xtalform_sites[xtalform_site_id] = xtalform_site
-    #             xtalforms_dict[(xtalform_site.canonical_site_id, xtalform_site.xtalform_id)] = xtalform_site_id
-
     # Otherwise if not matched create a new xtalform site
     ...
 
@@ -1150,16 +1091,6 @@ def _save_xtalform_sites(fs_model, xtalform_sites: dict[str, dt.XtalFormSite]):
         yaml.safe_dump(dic, f)
 
 
-# def _update_conformer_site_transform(
-#                 conformer_site_transforms,
-#                 canonical_site,
-#                 conformer_site,
-#             ):
-#
-#
-#     ...
-
-
 def _save_conformer_site_transforms(
     fs_model: dt.FSModel, conformer_site_transforms: dict[tuple[str, str], dt.Transform]
 ):
@@ -1169,15 +1100,6 @@ def _save_conformer_site_transforms(
             dic["~".join(conformer_site_transform_id)] = conformer_site_transform.to_dict()
         yaml.safe_dump(dic, f)
     ...
-
-
-# def _update_canonical_site_transforms(
-#             canonical_site_transforms: dict[tuple[str,str], dt.Transform],
-#             canonical_site: dt.CanonicalSite,
-#             canonical_sites: dict[str, dt.CanonicalSite],
-#         ):
-
-# ...
 
 
 def _save_canonical_site_transforms(fs_model: dt.FSModel, canonical_site_transforms: dict[str, dt.Transform]):
@@ -1321,9 +1243,6 @@ def _update_fs_model(
                     / constants.ALIGNED_FILES_DIR
                     / dtag
                     / constants.ALIGNED_REFERENCE_XMAP_TEMPLATE.format(dtag=dtag, site=canonical_site_id),
-                    # 'aligned_event_maps': fs_model.source_dir / constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
-                    # dtag=dtag, chain=chain, residue=residue, site=canonical_site_id
-                    # ),
                 }
 
 
@@ -1425,12 +1344,6 @@ def _update(
     logger.info(f"Found {len(ligand_neighbourhoods)} ligand neighbourhoods!")
     _save_neighbourhoods(fs_model, ligand_neighbourhoods)
 
-    # for nid, neighbourhood in ligand_neighbourhoods.items():
-    #     print(nid)
-    #     for atom_id in neighbourhood.atoms:
-    #         if atom_id[2] == "CA":
-    #             print(atom_id)
-
     # Get chain to assembly transforms
     logger.info(f"Getting chain-to-assembly transforms...")
     chain_to_assembly_transforms = {}
@@ -1530,9 +1443,6 @@ def _update(
             dataset_assignments,
         )
     logger.info(f"Now have {len(conformer_sites)} conformer sites")
-    # for conformer_site_id, conformer_site in conformer_sites.items():
-    #     print(conformer_site_id)
-    #     print(conformer_site.members)
     _save_conformer_sites(fs_model, conformer_sites)
 
     # Update canonical sites
@@ -1578,22 +1488,7 @@ def _update(
             structures,
         )
     logger.info(f"Now have {len(conformer_site_transforms)} conformer site transforms")
-    # for conformer_site_transform_id, conformer_site_transform in conformer_site_transforms.items():
-    #     print(conformer_site_transform_id)
     _save_conformer_site_transforms(fs_model, conformer_site_transforms)
-
-    # Get canonical site tranforms
-    # logger.info(f"Previously had {len(canonical_site_transforms)} canonical site transforms...")
-    # for canonical_site_id, canonical_site in canonical_sites.items():
-    #     _update_canonical_site_transforms(
-    #         canonical_site_transforms,
-    #         canonical_site_id,
-    #         canonical_site,
-    #         conformer_sites,
-    #         structures
-    #     )
-    #     logger.info(f"Now have {len(canonical_site_transforms)} canonical site transforms")
-    # _save_canonical_site_transforms(fs_model, canonical_site_transforms)
 
     # Update the reference structure transforms
     logger.info(f"Previously had {len(reference_structure_transforms)} reference structure transforms")
@@ -1622,11 +1517,6 @@ def _update(
     # Update output: check if aligned data for each lid in canon site is already there and if not add it
     _update_fs_model(fs_model, canonical_sites, conformer_sites, reference_datasets, reference_structure_transforms)
     _save_fs_model(fs_model)
-
-    # Generate new aligned structures
-    # for canonical_site_id, canonical_site in canonical_sites.items():
-    #     for conformer_site_id, conformer_site in canonical_site.conformer_sites.items():
-    #         for lid in conformer_site.ligand_ids:
 
     for dtag, dataset_alignment_info in fs_model.alignments.items():
         for chain, chain_alignment_info in dataset_alignment_info.items():
@@ -1723,11 +1613,6 @@ def _update(
                         else:
                             logger.info(f"Already output structure!")
     # Generate alignments of references to each canonical site
-    # for canonical_site_id, canonical_site in canonical_sites.items():
-    #     for dtag, reference_dataset in reference_datasets.items():
-    # _update_reference_alignments(
-    #
-    # )
     for dtag, dataset_alignment_info in fs_model.reference_alignments.items():
         for canonical_site_id, alignment_info in dataset_alignment_info.items():
             aligned_structure_path = alignment_info["aligned_structures"]
@@ -1747,12 +1632,6 @@ def _update(
             else:
                 logger.info(f"Already output reference structure!")
 
-    # Generate new aligned maps
-    # for canonical_site_id, canonical_site in canonical_sites.items():
-    #     for conformer_site_id in canonical_site.conformer_site_ids:
-    #         conformer_site = conformer_sites[conformer_site_id]
-    #         for lid in conformer_site.members:
-    #             _update_aligned_xmaps()
     reference_xmap = read_xmap_from_mtz(datasets[[x for x in canonical_sites.values()][0].global_reference_dtag].mtz)
     logger.info(f"Outputting xmaps...")
     for dtag, dataset_alignment_info in fs_model.alignments.items():
@@ -1764,14 +1643,13 @@ def _update(
                         aligned_event_map_path,
                     ) in ligand_neighbourhood_output.aligned_event_maps.items():
                         logger.info(f"Writing to: {aligned_event_map_path}")
-                        # if not ( (fs_model.source_dir.parent / aligned_event_map_path).exists() | Path(aligned_event_map_path).exists()):
+
                         rel = True
                         try:
                             rel = Path(aligned_event_map_path).is_relative_to(fs_model.source_dir)
                         except:
                             rel = False
                         if rel:
-                            # print(fs_model.source_dir.parent / aligned_event_map_path)
                             _structure = structures[dtag].clone()
                             canonical_site = canonical_sites[canonical_site_id]
                             # Check for the matching conformer site
@@ -1787,7 +1665,6 @@ def _update(
 
                             moving_ligand_id = (dtag, chain, residue, version)
                             reference_ligand_id = conformer_site.reference_ligand_id
-                            # print(ligand_neighbourhoods)
 
                             xmap_path = datasets[dtag].ligand_binding_events[(dtag, chain, residue)].xmap
 
@@ -1801,8 +1678,6 @@ def _update(
                             # Get the site chain
                             site_chain = None
                             xtalform_site = None
-                            # site_reference_ligand_id = conformer_sites[
-                            #     canonical_site.reference_conformer_site_id].reference_ligand_id
                             site_reference_ligand_id = conformer_site.reference_ligand_id
                             site_reference_ligand_xtalform_id = dataset_assignments[site_reference_ligand_id[0]]
                             site_reference_ligand_xtalform = xtalforms[site_reference_ligand_xtalform_id]
@@ -1836,24 +1711,13 @@ def _update(
                                     ligand_neighbourhood_output.aligned_event_maps_crystallographic[canonical_site_id],
                                     aligned_res,
                                     chain_to_assembly_transform=chain_to_assembly_transforms[
-                                        (
-                                            conformer_site.reference_ligand_id[0],
-                                            # conformer_site.reference_ligand_id[1],
-                                            # alignment_heirarchy._chain_to_xtalform_assembly(
-                                            #     # conformer_site.reference_ligand_id[1],
-                                            #     site_chain,
-                                            #     xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
-                                            # )
-                                            site_chain
-                                            # conformer_site.reference_ligand_id[3]
-                                        )
+                                        (conformer_site.reference_ligand_id[0], site_chain)
                                     ],
                                     assembly_transform=assembly_transforms[
                                         xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
                                         .assemblies[
                                             alignment_heirarchy._chain_to_xtalform_assembly(
                                                 site_chain,
-                                                # conformer_site.reference_ligand_id[1],
                                                 xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]],
                                             )
                                         ]
@@ -1861,8 +1725,6 @@ def _update(
                                     ],
                                 )
                             mtz_path = datasets[dtag].mtz
-                            # print(f"Mtz path: {mtz_path}")
-                            # raise Exception
                             if mtz_path != "None":
                                 xmap = read_xmap_from_mtz(mtz_path, "2Fo-Fc")
                                 __align_xmap(
@@ -1881,23 +1743,12 @@ def _update(
                                     ligand_neighbourhood_output.aligned_xmaps_crystallographic[canonical_site_id],
                                     aligned_res,
                                     chain_to_assembly_transform=chain_to_assembly_transforms[
-                                        (
-                                            conformer_site.reference_ligand_id[0],
-                                            # conformer_site.reference_ligand_id[1],
-                                            site_chain
-                                            # alignment_heirarchy._chain_to_xtalform_assembly(
-                                            #     site_chain,
-                                            #     # conformer_site.reference_ligand_id[1],
-                                            #     xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
-                                            # )
-                                            # conformer_site.reference_ligand_id[3]
-                                        )
+                                        (conformer_site.reference_ligand_id[0], site_chain)
                                     ],
                                     assembly_transform=assembly_transforms[
                                         xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
                                         .assemblies[
                                             alignment_heirarchy._chain_to_xtalform_assembly(
-                                                # conformer_site.reference_ligand_id[1],
                                                 site_chain,
                                                 xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]],
                                             )
@@ -1922,19 +1773,13 @@ def _update(
                                     ligand_neighbourhood_output.aligned_diff_maps_crystallographic[canonical_site_id],
                                     aligned_res,
                                     chain_to_assembly_transform=chain_to_assembly_transforms[
-                                        (
-                                            conformer_site.reference_ligand_id[0],
-                                            # conformer_site.reference_ligand_id[1],
-                                            site_chain
-                                            # conformer_site.reference_ligand_id[3]
-                                        )
+                                        (conformer_site.reference_ligand_id[0], site_chain)
                                     ],
                                     assembly_transform=assembly_transforms[
                                         xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
                                         .assemblies[
                                             alignment_heirarchy._chain_to_xtalform_assembly(
                                                 site_chain,
-                                                # conformer_site.reference_ligand_id[1],
                                                 xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]],
                                             )
                                         ]
@@ -2061,7 +1906,6 @@ def _load_alignability_graph(alignability_graph, fail_if_not_found=False):
     if alignability_graph.exists():
         g_initial = nx.read_gml(
             str(alignability_graph),
-            # destringizer=lambda x: tuple(x.split("/")),
         )
 
         g = nx.relabel_nodes(g_initial, {x: tuple(x.split("/")) for x in g_initial})
@@ -2084,7 +1928,6 @@ def _load_connected_components(connected_components_yaml, fail_if_not_found=Fals
         if dic:
             for ligand_id, neighbourhood_info in dic.items():
                 dtag, chain, residue, version = ligand_id.split("+")
-                # neighbourhood = dt.Neighbourhood.from_dict(neighbourhood_info)
                 connected_components[(dtag, chain, residue, version)] = [
                     tuple([x for x in _ligand_id.split("+")]) for _ligand_id in neighbourhood_info
                 ]
@@ -2101,7 +1944,6 @@ def _load_ligand_neighbourhood_transforms(ligand_neighbourhood_transforms_yaml, 
             dic = yaml.safe_load(f)
 
         for ligand_transform_key, ligand_transform in dic.items():
-            # print(ligand_transform_key)
             ligand_1_id, ligand_2_id = ligand_transform_key.split("~")
             dtag_1, chain_1, residue_1, version_1 = ligand_1_id.split("/")
             dtag_2, chain_2, residue_2, version_2 = ligand_2_id.split("/")
@@ -2221,7 +2063,6 @@ class CLI:
 
     def update(self, options_json: str):
         options = Options.parse_file(options_json)
-        # logger.info(f"Options json path is: {options}")
         logger.info(f"Input dir is: {options.source_dir}")
         logger.info(f"Output dir is: {options.output_dir}")
 
@@ -2229,8 +2070,6 @@ class CLI:
             source_fs_model = dt.FSModel.from_dir(options.source_dir)
         else:
             source_fs_model = None
-        # else:
-        # source_fs_model = dt.FSModel.default()
 
         fs_model = dt.FSModel.from_dir(
             options.output_dir,
@@ -2248,9 +2087,6 @@ class CLI:
         if not aligned_files_dir.exists():
             os.mkdir(aligned_files_dir)
 
-        # aligned_xmap_dir = Path(options.output_dir) / constants.ALIGNED_XMAPS_DIR
-        # if not aligned_xmap_dir.exists():
-        #     os.mkdir(aligned_xmap_dir)
         fs_model.symlink_old_data()
 
         source_data_model = dt.SourceDataModel.from_fs_model(
@@ -2258,9 +2094,6 @@ class CLI:
         )
 
         datasets, reference_datasets, new_datasets = source_data_model.get_datasets()
-        # print(datasets)
-        # print(reference_datasets)
-        # print(new_datasets)
 
         # Get assemblies
         logger.info(f"Getting assemblies...")
@@ -2270,11 +2103,6 @@ class CLI:
             )
         else:
             assemblies = _load_assemblies(fs_model.assemblies, Path(options.assemblies_json))
-        # for key, assembly in assemblies.items():
-        #     print(assembly)
-        #     for gen in assembly.generators:
-        #         print([gen.chain, gen.reference_chain, gen.triplet])
-        # print(assemblies)
 
         # Get xtalforms
         logger.info(f"Getting xtalforms...")
@@ -2284,12 +2112,6 @@ class CLI:
             )
         else:
             xtalforms = _load_xtalforms(fs_model.xtalforms, Path(options.xtalforms_json))
-        # for key, xtalform in xtalforms.items():
-        #     print(xtalform)
-        #     for ass, xtalform_ass in xtalform.assemblies.items():
-        #         for chn, trns in zip(xtalform_ass.chains, xtalform_ass.transforms):
-        #             print([chn, trns])
-        # print(xtalforms)
 
         # Get the dataset assignments
         logger.info(f"Getting dataset assignments...")
@@ -2297,7 +2119,6 @@ class CLI:
             dataset_assignments = _load_dataset_assignments(Path(source_fs_model.dataset_assignments))
         else:
             dataset_assignments = _load_dataset_assignments(Path(fs_model.dataset_assignments))
-        # print(dataset_assignments)
 
         # Get Ligand neighbourhoods
         logger.info(f"Getting ligand neighbourhoods...")
@@ -2307,7 +2128,6 @@ class CLI:
             )
         else:
             ligand_neighbourhoods = _load_ligand_neighbourhoods(fs_model.ligand_neighbourhoods)
-        # print(ligand_neighbourhoods)
 
         # Get alignability graph
         logger.info(f"Getting alignability graph...")
@@ -2354,15 +2174,6 @@ class CLI:
             canonical_sites: dict[str, dt.CanonicalSite] = _load_canonical_sites(source_fs_model.canonical_sites)
         else:
             canonical_sites = _load_canonical_sites(fs_model.canonical_sites)
-
-        #
-        # logger.info(f"Getting canonical site transforms...")
-        # if source_fs_model:
-        #     canonical_site_transforms: dict[str, dt.Transform] = _load_canonical_site_transforms(
-        #         source_fs_model.conformer_site_transforms)
-        # else:
-        #     canonical_site_transforms = _load_canonical_site_transforms(
-        #         fs_model.conformer_site_transforms)
 
         # Get xtalform sites
         logger.info(f"Getting xtalform sites...")
@@ -2423,12 +2234,9 @@ class CLI:
             _add_pandda_to_system_data(system_data, Path(pandda_dir))
 
         # Copy the assembly json into the source directory (checking validity)
-        # assemblies = Assemblies.read(Path(options.assemblies_json))
-        # assemblies.save(Path(options.source_dir) / constants.ASSEMBLIES_FILE_NAME)
 
         # Copy the xtalform json into the source directory (checking validity)
         xtalforms = XtalForms.read(Path(options.xtalforms_json))
-        # xtalforms.save(Path(options.source_dir) / constants.XTALFORMS_FILE_NAME)
 
         # Parse the data sources and PanDDAs, matching ligands up to events
         system_data = _add_data_to_system_data(system_data)
@@ -2452,7 +2260,6 @@ class CLI:
         alignability_matrix, transforms = get_alignability(ligand_neighbourhoods, system_data)
         logger.info("Got alignability matrix!")
 
-        # logger.debug(alignability_matrix)
         logger.debug("Alignability matrix shape: {alignability_matrix.shape}")
 
         # Generate the graph
@@ -2485,14 +2292,6 @@ class CLI:
             reference_site=_sites[0],
             reference_site_id=_sites[0].id,
         )
-
-        # Get the xtalform sites
-        # xtalform_sites = get_xtalform_sites_from_canonical_sites(
-        #     canonical_sites,
-        #     assigned_xtalforms,
-        #     xtalforms,
-        #     # assemblies,
-        # )
 
         # Get the subsite transforms
         logger.info("Getting transfroms between subsites...")
@@ -2825,17 +2624,6 @@ class CLI:
         script += '\tset_nomenclature_errors_on_read("ignore")\n'
         script += "\tset_recentre_on_read_pdb(0) \n"
 
-        # str_dir = _source_dir / constants.ALIGNED_STRUCTURES_DIR
-
-        # for site_dir in str_dir.glob("*"):
-        #     if site_dir.name != f"{site_id}":
-        #         continue
-
-        #     for subsite_dir in site_dir.glob("*"):
-        #         for pdb in subsite_dir.glob("*"):
-        #             script += f'\tp = read_pdb("{pdb}")\n '
-        #             script += cas_ligands()
-
         for dtag, dataset_output in output.dataset_output.items():
             for chain, chain_output in dataset_output.aligned_chain_output.items():
                 for residue, residue_output in chain_output.aligned_ligands.items():
@@ -2854,10 +2642,8 @@ class CLI:
 
         p = subprocess.Popen(f"coot --script {script_path}", shell=True)
         p.communicate()
-        # os.remove(script_path)
 
     def merge_clusters(self, cluster_1: int, cluster_2: int, sites_path: str = "."):
-        # sites = read_sites(sites_path)
         ...
 
     def suggest_merges(self):
@@ -2878,16 +2664,6 @@ class CLI:
         self.generate_sites_from_components(source_dir)
         self.align_structures(source_dir)
         self.align_xmaps(source_dir)
-
-    # def update(self, system_data_dir: str, source_dir: str):
-    #
-    #     # _source_dir: Path = Path(source_dir)
-    #
-    #     self.build_system_data(system_data_dir, source_dir)
-    #     self.build_graph(source_dir)
-    #     # self.update_sites(source_dir)
-    #     self.align_structures(source_dir)
-    #     self.align_xmaps(source_dir)
 
     def build_graph(
         self,
@@ -2929,12 +2705,10 @@ class CLI:
 
     def align_structures(self, source_dir: str):
         _source_dir: Path = Path(source_dir)
-        # _output_dir: Path = Path(output_dir)
 
         g = read_graph(_source_dir)
         transforms: Transforms = read_transforms(_source_dir)
         neighbourhoods: LigandNeighbourhoods = read_neighbourhoods(_source_dir)
-        # xtalforms: XtalForms = read_xtalforms(_source_dir)
         assigned_xtalforms = read_assigned_xtalforms(_source_dir)
         canonical_sites: CanonicalSites = CanonicalSites.read(_source_dir / constants.CANONICAL_SITE_FILE)
         conformer_sites: ConformerSites = ConformerSites.read(_source_dir / constants.CONFORMER_SITE_FILE)
@@ -2963,13 +2737,10 @@ class CLI:
 
     def align_xmaps(self, source_dir: str):
         _source_dir: Path = Path(source_dir)
-        # _output_dir: Path = Path(output_dir)
 
         g = read_graph(_source_dir)
         transforms: Transforms = read_transforms(_source_dir)
         neighbourhoods: LigandNeighbourhoods = read_neighbourhoods(_source_dir)
-        # xtalforms: XtalForms = read_xtalforms(_source_dir)
-        # xtalforms = XtalForms(xtalforms=[])
         sites: CanonicalSites = CanonicalSites.read(_source_dir / constants.CANONICAL_SITE_FILE)
         conformer_sites = ConformerSites.read(_source_dir / constants.CONFORMER_SITE_FILE)
         system_data: SystemData = read_system_data(_source_dir)

@@ -110,7 +110,6 @@ class FSModel:
         conformer_sites,
         conformer_site_transforms,
         canonical_sites,
-        # canonical_site_transforms,
         xtalform_sites,
         reference_structure_transforms,
         alignments,
@@ -123,7 +122,6 @@ class FSModel:
     ):
         self.source_dir = source_dir
         self.fs_model = fs_model
-        # self.assemblies = assemblies
         self.xtalforms = xtalforms
         self.dataset_assignments = dataset_assignments
         self.ligand_neighbourhoods = ligand_neighbourhoods
@@ -133,7 +131,6 @@ class FSModel:
         self.conformer_sites = conformer_sites
         self.conformer_site_transforms = conformer_site_transforms
         self.canonical_sites = canonical_sites
-        # self.canonical_site_transforms = canonical_site_transforms
         self.xtalform_sites = xtalform_sites
         self.reference_structure_transforms = reference_structure_transforms
         self.alignments = alignments
@@ -208,7 +205,6 @@ class FSModel:
             if dic is not None:
                 return FSModel.from_dict(dic)
 
-        # assemblies = source_dir / constants.ASSEMBLIES_YAML_FILE_NAME
         xtalforms = source_dir / constants.XTALFORMS_YAML_FILE_NAME
         dataset_assignments = source_dir / constants.ASSIGNED_XTALFORMS_YAML_FILE_NAME
         ligand_neighbourhoods = source_dir / constants.NEIGHBOURHOODS_YAML_FILE_NAME
@@ -218,7 +214,6 @@ class FSModel:
         conformer_sites = source_dir / constants.CONFORMER_SITE_YAML_FILE
         conformer_site_transforms = source_dir / constants.CONFORMER_SITES_TRANSFORMS_YAML_FILE_NAME
         canonical_sites = source_dir / constants.CANONICAL_SITE_YAML_FILE
-        # canonical_site_trasnforms = source_dir / constants.CANONICAL_SITES_TRANSFORMS_YAML_FILE_NAME
         xtalform_sites = source_dir / constants.XTALFORM_SITE_YAML_FILE
         reference_structure_transforms = source_dir / constants.REFERENCE_STRUCTURE_TRANSFORMS_YAML
         alignments = {}
@@ -233,7 +228,6 @@ class FSModel:
         return FSModel(
             source_dir,
             fs_model,
-            # assemblies,
             xtalforms,
             dataset_assignments,
             ligand_neighbourhoods,
@@ -243,7 +237,6 @@ class FSModel:
             conformer_sites,
             conformer_site_transforms,
             canonical_sites,
-            # canonical_site_trasnforms,
             xtalform_sites,
             reference_structure_transforms,
             alignments,
@@ -267,19 +260,9 @@ class FSModel:
                     alignments[dtag][chain][residue] = {}
 
                     for version, ligand_neighbourhood_alignments in residue_alignments.items():
-                        # _dtag, _chain, _residue = ligand_neighbourhood.split("/")
                         alignments[dtag][chain][residue][version] = LigandNeighbourhoodOutput.from_dict(
                             ligand_neighbourhood_alignments, source_dir
                         )
-
-        # reference_alignments = {}
-        # for dtag, dataset_alignments in alignments["reference_alignments"].items():
-        #     alignments[dtag] = {}
-        #     for chain, chain_alignments in dataset_alignments.items():
-        #         alignments[dtag][chain] = {}
-        #         for ligand_neighbourhood, ligand_neighbourhood_alignments in chain_alignments.items():
-        #             alignments[dtag][chain][ligand_neighbourhood] = LigandNeighbourhoodOutput.from_dict(
-        #                 ligand_neighbourhood_alignments)
 
         reference_alignments = {}
         for dtag, canonical_site_alignments in dic["reference_alignments"].items():
@@ -303,7 +286,6 @@ class FSModel:
             conformer_sites=Path(dic["conformer_sites"]),
             conformer_site_transforms=Path(dic["conformer_site_transforms"]),
             canonical_sites=Path(dic["canonical_sites"]),
-            # canonical_site_transforms=Path(dic['canonical_site_transforms']),
             xtalform_sites=Path(dic["xtalform_sites"]),
             reference_structure_transforms=Path(dic["reference_structure_transforms"]),
             alignments=alignments,
@@ -353,7 +335,6 @@ class FSModel:
             "conformer_sites": str(self.conformer_sites),
             "conformer_site_transforms": str(self.conformer_site_transforms),
             "canonical_sites": str(self.canonical_sites),
-            # 'canonical_site_transforms': str(self.canonical_site_transforms),
             "xtalform_sites": str(self.xtalform_sites),
             "reference_structure_transforms": str(self.reference_structure_transforms),
             "alignments": alignments,
@@ -376,7 +357,6 @@ class PanDDA:
     def __init__(
         self,
         path: str,
-        # event_table_path: str
     ):
         self.path = Path(path)
         self.event_table_path = self.path / constants.PANDDA_ANALYSES_DIR / constants.PANDDA_EVENTS_INSPECT_TABLE_PATH
@@ -443,7 +423,6 @@ class SourceDataModel:
             _panddas.append(pandda)
 
         return SourceDataModel(fs_model, _datasources, _panddas)
-        ...
 
     def get_datasets(self):
         datasets = {}
@@ -485,7 +464,6 @@ class SourceDataModel:
                         mtz=str(mtz),
                         ligand_binding_events=ligand_binding_events,
                     )
-                    # dataset_ids.append(dataset_id)
                     datasets[dtag] = dataset
                     logger.debug(f"Added dataset: {dtag}")
 

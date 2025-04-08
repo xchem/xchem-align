@@ -141,7 +141,6 @@ def get_blocks(rglb, rgub, xmap):
                 # Transform mat: fractional to orth
                 orth_arr = np.array(cell.orth.mat.tolist())
                 # Transform mat: grid to frac
-                # frac_arr = np.diag([1 / cell.a, 1 / cell.b, 1 / cell.c])
                 frac_arr = np.diag([1 / xmap.nu, 1 / xmap.nv, 1 / xmap.nw])
 
                 block = Block(
@@ -183,14 +182,12 @@ def get_interpolation_range(neighbourhood: LigandNeighbourhood, transform, refer
     # Transform the bounds
     corners = []
     for xb, yb, zb in itertools.product([lb[0], ub[0]], [lb[1], ub[1]], [lb[2], ub[2]]):
-        # rlb, rub = transform_gemmi.apply(gemmi.Position(*lb)), transform_gemmi.apply(gemmi.Position(*ub))
         corner = transform_gemmi.apply(gemmi.Position(xb, yb, zb))
         corners.append([corner.x, corner.y, corner.z])
     corner_array = np.array(corners)
     logger.debug(f"Transformed Corner array: {corner_array}")
 
     # Get the new bounds
-    # tlb, tub = get_transformed_bounds(rlb, rub)
     tlb, tub = get_bounds(corner_array)
     logger.debug(f"Bounds of interpolation range bounds in reference frame are: {tlb} : {tub}")
 
@@ -223,14 +220,12 @@ def _get_interpolation_range(neighbourhood: dt.Neighbourhood, transform, referen
     # Transform the bounds
     corners = []
     for xb, yb, zb in itertools.product([lb[0], ub[0]], [lb[1], ub[1]], [lb[2], ub[2]]):
-        # rlb, rub = transform_gemmi.apply(gemmi.Position(*lb)), transform_gemmi.apply(gemmi.Position(*ub))
         corner = transform_gemmi.apply(gemmi.Position(xb, yb, zb))
         corners.append([corner.x, corner.y, corner.z])
     corner_array = np.array(corners)
     logger.debug(f"Transformed Corner array: {corner_array}")
 
     # Get the new bounds
-    # tlb, tub = get_transformed_bounds(rlb, rub)
     tlb, tub = get_bounds(corner_array)
     logger.debug(f"Bounds of interpolation range bounds in reference frame are: {tlb} : {tub}")
 
@@ -341,15 +336,6 @@ def align_xmap(
         # Apply the translation to the new frame
         previous_ligand_id = next_ligand_id
 
-    # Get the subsite transform
-    # subsite_transform = transform_to_gemmi(site_transforms.get_conformer_site_transform(site_id, subsite_id))
-
-    # Get the site transform
-    # site_transform = transform_to_gemmi(site_transforms.get_canonical_site_transform(site_id))
-
-    # Running transform
-    # running_transform = site_transform.combine(subsite_transform.combine(running_transform))
-
     logger.debug(
         f"Transform from native frame to subsite frame to site frame is: {gemmi_to_transform(running_transform)}"
     )
@@ -430,7 +416,6 @@ def _write_xmap(xmap, path: Path, neighbourhood: dt.Neighbourhood, transform):
         box_max = box.maximum
         box_min_str = f"{round(box_min.x, 2)} {round(box_min.y, 2)} {round(box_min.z, 2)}"
         box_max_str = f"{round(box_max.x, 2)} {round(box_max.y, 2)} {round(box_max.z, 2)}"
-        # logger.debug(f"Box Extent is: min {box_min_str} : max {box_max_str}")
         print(f"Box Extent is: min {box_min_str} : max {box_max_str}")
 
         ccp4.set_extent(box)
@@ -457,13 +442,10 @@ def get_frame_bounds(ligand_lower_bound, ligand_upper_bound, border, step):
     max_border = min_border + (np.ceil(((ligand_upper_bound + 5) - min_border) / step) * step)
     return min_border, max_border
 
-    ...
-
 
 def get_frame_array(frame_lower_bound, frame_upper_bound, step):
     interval = np.round((frame_upper_bound - frame_lower_bound) / step)
     return np.zeros((int(interval[0]), int(interval[1]), int(interval[2])), dtype=np.float32)
-    ...
 
 
 def get_frame_transform(frame_lower_bound, frame_array, step):
@@ -471,8 +453,6 @@ def get_frame_transform(frame_lower_bound, frame_array, step):
     tr.vec.fromlist([x for x in frame_lower_bound])
     tr.mat.fromlist((np.eye(3) * step).tolist())
     return tr
-
-    ...
 
 
 def get_cell(frame_array, step):
@@ -491,9 +471,6 @@ def get_new_map(cell, sample, frame_min, step):
     ccp4.grid.set_unit_cell(cell)
     ccp4.grid.spacegroup = gemmi.SpaceGroup("P1")
     ccp4.update_ccp4_header()
-    #     ccp4.set_header_float(50, frame_min[0]/step)
-    #     ccp4.set_header_float(51, frame_min[1]/step)
-    #     ccp4.set_header_float(52, frame_min[2]/step)
     ccp4.set_header_float(50, frame_min[0])
     ccp4.set_header_float(51, frame_min[1])
     ccp4.set_header_float(52, frame_min[2])
@@ -504,33 +481,16 @@ def resample_xmap(new_xmap, aligned_res):
     step = 0.5
     border = 7.5
     m = new_xmap
-    # st = gemmi.read_structure('XX01ZVNS2B-x0051_B_301_XX01ZVNS2B-x0429+B+203.pdb')
     lig = aligned_res
 
     ligand_lower_bound, ligand_upper_bound = get_ligand_bounds(lig, border)
-    # print(ligand_lower_bound)
-    # print(ligand_upper_bound)
-
     frame_lower_bound, frame_upper_bound = get_frame_bounds(ligand_lower_bound, ligand_upper_bound, border, step)
-    # print(frame_lower_bound)
-    # print(frame_upper_bound)
-    # print(frame_upper_bound - frame_lower_bound)
 
     frame_array = get_frame_array(frame_lower_bound, frame_upper_bound, step)
-    # print(frame_array.shape)
 
     frame_transform = get_frame_transform(frame_lower_bound, frame_array, step)
-    # print(frame_transform.vec.tolist())
-    # print(frame_transform.mat.tolist())
-
     m.interpolate_values(frame_array, frame_transform)
-    # print(frame_array.shape)
-
     cell = get_cell(frame_array, step)
-    # print(cell)
-
-    # print(f'Origin for xmap is now: {frame_lower_bound}')
-
     new_map = get_new_map(cell, frame_array, frame_lower_bound, step)
     return new_map
 
@@ -545,7 +505,6 @@ def __align_xmap(
     xmap,
     conformer_site_transforms,
     conformer_site_id,
-    # canonical_site_transforms,
     canonical_site_id,
     output_path: Path,
     crystallographic_output_path,
@@ -553,9 +512,6 @@ def __align_xmap(
     chain_to_assembly_transform,
     assembly_transform,
 ):
-    # Get the ligand neighbourhood
-    # neighbourhood: LigandNeighbourhood = neighbourhoods.get_neighbourhood(lid)
-
     # Get the xmap
 
     # Get the Transform to reference
@@ -577,15 +533,6 @@ def __align_xmap(
             running_transform = transform_to_gemmi(transform).combine(running_transform)
         # Apply the translation to the new frame
         previous_ligand_id = next_ligand_id
-
-    # Get the subsite transform
-    # print(conformer_site_transforms)
-    # conformer_site_transform = transform_to_gemmi(conformer_site_transforms[(canonical_site_id, conformer_site_id)])
-    # running_transform = conformer_site_transform.combine(running_transform)
-
-    # Get the site transform
-    # canonical_site_transform = transform_to_gemmi(canonical_site_transforms[canonical_site_id])
-    # running_transform = canonical_site_transform.combine()
 
     # Update the transform with the assembly alignment
     # # Get the xtalform to assembly transform
@@ -611,14 +558,6 @@ def __align_xmap(
 
     # Resample the xmap to the aligned structure frame
     resampled_xmap = resample_xmap(new_xmap, aligned_res)
-
-    # Output the xmap
-    # _write_xmap(
-    #     new_xmap,
-    #     output_path,
-    #     neighbourhood,
-    #     running_transform,
-    # )
 
     _write_xmap_from_ccp4(
         resampled_xmap,
@@ -674,36 +613,9 @@ def _align_xmaps(
     site_transforms: SiteTransforms,
     output: Output,
 ):
-    # Get the global reference
-    # reference_lid: LigandID = canonical_sites.reference_site.reference_ligand_id
-
-    # Get that dataset
-    # referance_ds: Dataset = system_data.get_dataset(DatasetID(dtag=reference_lid.dtag))
-    # reference_binding_site = referance_ds.ligand_binding_events[
-    # reference_lid]
-    # logger.debug(f"PDB: {referance_ds.pdb}")
-
-    # Reference_xmap_path
-    # reference_xmap_path: Path = Path(reference_binding_site.xmap)
-    # reference_mtz_path = Path(referance_ds.mtz)
-
-    # Load the site reference xmap
-    # reference_xmap = read_xmap(reference_xmap_path)
-    # reference_xmap = read_xmap_from_mtz(reference_mtz_path)
-
-    #
-    # xmaps_dir = _output_dir / "aligned_xmaps"
-    # if not xmaps_dir.exists():
-    #     os.mkdir(xmaps_dir)
-
     for canonical_site_id, canonical_site in canonical_sites.iter():
         logger.debug(f"Aligning site: {canonical_site_id}")
-        # site_reference_id = site.members[0]
 
-        #
-        # site_xmaps_dir = xmaps_dir / f"{site_id}"
-        # if not site_xmaps_dir.exists():
-        #     os.mkdir(site_xmaps_dir)
         reference_lid: LigandID = canonical_site.reference_ligand_id
         referance_ds: Dataset = system_data.get_dataset(DatasetID(dtag=reference_lid.dtag))
         logger.debug(f"PDB: {referance_ds.pdb}")
@@ -718,14 +630,8 @@ def _align_xmaps(
             # TODO: Make work
             conformer_site_reference_id = conformer_site.reference_ligand_id
 
-            # subsite_xmaps_dir = site_xmaps_dir / f"{subsite_id}"
-            # if not subsite_xmaps_dir.exists():
-            #     os.mkdir(subsite_xmaps_dir)
-
             # For each ligand neighbourhood, find the xmap and transform
             for lid in conformer_site.members:
-                # for lid, neighbourhood in zip(neighbourhoods.ligand_ids,
-                # neighbourhoods.ligand_neighbourhoods):
                 logger.debug(f"Aligning xmap: {lid}")
 
                 dtag, chain, residue = (
@@ -733,8 +639,6 @@ def _align_xmaps(
                     lid.chain,
                     lid.residue,
                 )
-                # if dtag != "Mpro-J0055":
-                #     continue
 
                 logger.debug(f"Reference pdb: {referance_ds.pdb}")
                 logger.debug(f"Moving pdb: {system_data.get_dataset(DatasetID(dtag=lid.dtag)).pdb}")
@@ -808,53 +712,15 @@ def _align_xmap(
     site_transforms: SiteTransforms,
     output: Output,
 ):
-    # Get the global reference
-    # reference_lid: LigandID = canonical_sites.reference_site.reference_ligand_id
-
-    # Get that dataset
-    # referance_ds: Dataset = system_data.get_dataset(DatasetID(dtag=reference_lid.dtag))
-    # reference_binding_site = referance_ds.ligand_binding_events[
-    # reference_lid]
-    # logger.debug(f"PDB: {referance_ds.pdb}")
-
-    # Reference_xmap_path
-    # reference_xmap_path: Path = Path(reference_binding_site.xmap)
-    # reference_mtz_path = Path(referance_ds.mtz)
-
-    # Load the site reference xmap
-    # reference_xmap = read_xmap(reference_xmap_path)
-    # reference_xmap = read_xmap_from_mtz(reference_mtz_path)
-
-    #
-    # xmaps_dir = _output_dir / "aligned_xmaps"
-    # if not xmaps_dir.exists():
-    #     os.mkdir(xmaps_dir)
-
-    # logger.debug(f"Aligning site: {canonical_site_id}")
-    # site_reference_id = site.members[0]
-
-    #
-    # site_xmaps_dir = xmaps_dir / f"{site_id}"
-    # if not site_xmaps_dir.exists():
-    #     os.mkdir(site_xmaps_dir)
     reference_lid: LigandID = canonical_site.reference_ligand_id
     referance_ds: Dataset = system_data.get_dataset(DatasetID(dtag=reference_lid.dtag))
     logger.debug(f"PDB: {referance_ds.pdb}")
     reference_mtz_path = Path(referance_ds.mtz)
     reference_xmap = read_xmap_from_mtz(reference_mtz_path)
 
-    # logger.debug(f"Aligning subsite: {conformer_site_id}")
     # Get the site reference
     # TODO: Make work
     conformer_site_reference_id = conformer_site.reference_ligand_id
-
-    # subsite_xmaps_dir = site_xmaps_dir / f"{subsite_id}"
-    # if not subsite_xmaps_dir.exists():
-    #     os.mkdir(subsite_xmaps_dir)
-
-    # for lid, neighbourhood in zip(neighbourhoods.ligand_ids,
-    # neighbourhoods.ligand_neighbourhoods):
-    # logger.debug(f"Aligning xmap: {lid}")
 
     dtag, chain, residue = (
         lid.dtag,
@@ -865,7 +731,6 @@ def _align_xmap(
     #     continue
 
     logger.debug(f"Reference pdb: {referance_ds.pdb}")
-    # logger.debug(f"Moving pdb: {system_data.get_dataset(DatasetID(dtag=lid.dtag)).pdb}")
 
     # Get the ligand binding event
     dataset = system_data.get_dataset(DatasetID(dtag=lid.dtag))

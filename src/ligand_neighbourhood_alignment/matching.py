@@ -28,9 +28,6 @@ def _match_atom(
     ligand_neighbourhood_atom_id: tuple[str, str, str],
     ignore_chain=False,
 ) -> bool:
-    # id_1 = canonical_site_atom.atom_id
-    # id_2 = ligand_neighbourhood_atom.atom_id
-
     if ignore_chain:
         if canonical_site_atom_id[2] == ligand_neighbourhood_atom_id[2]:
             if canonical_site_atom_id[1] == ligand_neighbourhood_atom_id[1]:
