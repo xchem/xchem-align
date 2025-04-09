@@ -15,9 +15,6 @@ import argparse
 import shutil
 from pathlib import Path
 
-from paramiko import SSHClient
-from scp import SCPClient
-
 import pandas as pd
 
 from xchemalign import dbreader, collator, utils
@@ -83,7 +80,7 @@ class ManualCopier:
             mtz = item[1]
             cif = item[2]
 
-            self.logger.info('copying manual file', item)
+            self.logger.info('copying manual files for', key)
 
             if pdb:
                 shutil.copy2(pdb, d, follow_symlinks=True)
@@ -353,123 +350,50 @@ class Copier:
         return inputpath, outputpath
 
 
-def main():
-    # Example:
-    #   python -m xchemalign.copier -c config.yaml -b / -o inputs -l copier.log
+def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
+    """
+    Works through the inputs and copies their data
 
-    parser = argparse.ArgumentParser(description="copier")
-
-    parser.add_argument("-c", "--config-file", default="config.yaml", help="Configuration file")
-
-    parser.add_argument("-b", "--base-dir", help="Base directory. If running against the Diamond file system use /")
-    parser.add_argument(
-        "-i",
-        "--input-dir",
-        help="Input directory (relative to base-dir) e.g. the dir with the data for your visit. "
-        + "e.g. dls/labxchem/data/2020/lb18145-153",
-    )
-    parser.add_argument(
-        "-s",
-        "--soakdb-file",
-        help="Path to soakdb file relative to input-dir. Default is processing/database/soakDBDataFile.sqlite",
-    )
-    parser.add_argument(
-        "-p", "--panddas-files", nargs="*", help="Paths to CSV files with panddas data relative to input-dir"
-    )
-    parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
-    parser.add_argument("-r", "--ref-datasets", nargs="*", help="Names of any reference datasets")
-    parser.add_argument("-l", "--log-file", help="File to write logs to")
-    parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
-
-    args = parser.parse_args()
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
-    logger.info("copier: ", args)
-    utils.LOG = logger
-
-    input_dir = args.input_dir
-    base_dir = None
-    soakdbfiles = []
+    :param base_dir:
+    :param inputs:
+    :param ref_datasets:
+    :param output_dir:
+    :param logger:
+    :return:
+    """
+    soakdb_files = []
     panddas_files = []
     input_dirs_model_building = []
     input_dirs_manual = []
     excludes_manual = []
-    ref_datasets = []
-    if args.config_file:
-        config = utils.read_config_file(args.config_file)
-        ref_datasets = config.get(Constants.CONFIG_REF_DATASETS, [])
 
-        inputs = config.get('inputs')
-        if not inputs:
-            logger.error("No inputs defined in config file")
-            sys.exit(1)
+    for input in inputs:
+        logger.info("Looking at input", input.get(Constants.CONFIG_DIR))
+        t = input.get(Constants.CONFIG_TYPE)
+        if t == Constants.CONFIG_TYPE_MANUAL:
+            input_dirs_manual.append(input.get(Constants.CONFIG_DIR))
+            excludes_manual.append(input.get(Constants.CONFIG_EXCLUDE, []))
+        else:
+            input_dirs_model_building.append(input.get(Constants.CONFIG_DIR))
+            soakdb_files.append(input.get(Constants.CONFIG_SOAKDB, 'processing/database/soakDBDataFile.sqlite'))
+            panddas_files.append(input.get(utils.Constants.CONFIG_PANDDAS_EVENT_FILES, []))
 
-        for input in inputs:
-            logger.info("Looking at input", input.get(Constants.CONFIG_DIR))
-            if not input_dir or input.get(Constants.CONFIG_DIR) == input_dir:
-                logger.info("Adding input", input.get(Constants.CONFIG_DIR))
-                t = input.get(Constants.CONFIG_TYPE)
-                if t == Constants.CONFIG_TYPE_MANUAL:
-                    input_dirs_manual.append(input.get(Constants.CONFIG_DIR))
-                    excludes_manual.append(input.get(Constants.CONFIG_EXCLUDE, []))
-                else:
-                    input_dirs_model_building.append(input.get(Constants.CONFIG_DIR))
-                    soakdbfiles.append(input.get(Constants.CONFIG_SOAKDB, 'processing/database/soakDBDataFile.sqlite'))
-                    panddas_files.append(input.get(utils.Constants.CONFIG_PANDDAS_EVENT_FILES, []))
-
-        # check we have at least one input
-        if len(input_dirs_model_building) == 0:
-            if input_dir:
-                # a specific input was requested but was not found
-                logger.error("Input {} not defined in config file".format(input_dir))
-            else:
-                # no input was requested and none were found
-                logger.error("No inputs found in config file")
-            sys.exit(1)
-
-    if args.base_dir:
-        base_dir = args.base_dir
-    if base_dir is None:
-        logger.error("base_dir must either be specified in the scp section of the config file or as an argument")
-        sys.exit(1)
-
-    # CLI soakdb_file arg override what is in the config file but only if a single input is defined
-    if args.soakdb_file:
-        if len(input_dirs_model_building) != 1:
-            logger.error(
-                "soakdb_file command line argument is ambiguous when processing multiple inputs. "
-                + "Specify this in each input section of the config file instead."
-            )
-            sys.exit(1)
-        soakdbfiles[0] = args.soakdb_file
-
-    # CLI panddas_files arg override what is in the config file but only if a single input is defined
-    if args.panddas_files:
-        if len(input_dirs_model_building) != 1:
-            logger.error(
-                "panddas_files command line argument is ambiguous when processing multiple inputs. "
-                + "Specify this in each input section of the config file instead."
-            )
-            sys.exit(1)
-        panddas_files[0] = args.panddas_files
-
-    if args.ref_datasets:
-        ref_datasets = args.ref_datasets
-
-    logger.info('Using input dirs:', input_dirs_model_building)
+    logger.info('Using model building input dirs:', input_dirs_model_building)
+    logger.info('Using manual input dirs:', input_dirs_manual)
 
     copiers = []
 
     for i, input_dir in enumerate(input_dirs_model_building):
         msg = "Running copier. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
-            base_dir, input_dir, args.output_dir, soakdbfiles[i], ", ".join(panddas_files[i])
+            base_dir, input_dir, output_dir, soakdb_files[i], ", ".join(panddas_files[i])
         )
         logger.info(msg)
 
         c = Copier(
             Path(base_dir),
             Path(input_dir),
-            Path(args.output_dir),
-            Path(soakdbfiles[i]),
+            Path(output_dir),
+            Path(soakdb_files[i]),
             [Path(p) for p in panddas_files[i]],
             ref_datasets,
             logger=logger,
@@ -484,7 +408,7 @@ def main():
             copiers.append(c)
 
     for input_dir, excludes in zip(input_dirs_manual, excludes_manual):
-        c = ManualCopier(Path(base_dir), Path(input_dir), Path(args.output_dir), excludes, logger)
+        c = ManualCopier(Path(base_dir), Path(input_dir), Path(output_dir), excludes, logger)
         errors, warnings = c.validate()
         if errors:
             logger.error("There are errors, cannot continue")
@@ -496,6 +420,41 @@ def main():
 
         for copier in copiers:
             copier.copy_files()
+
+
+def main():
+    # Example:
+    #   python -m xchemalign.copier -c config.yaml -o inputs -l copier.log
+
+    parser = argparse.ArgumentParser(description="copier")
+
+    parser.add_argument("-c", "--config-file", required=True, default="config.yaml", help="Configuration file")
+    parser.add_argument(
+        "-b", "--base-dir", help="Base directory. If not specified then value from config.yaml is used"
+    )
+    parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
+    parser.add_argument("-l", "--log-file", help="File to write logs to")
+    parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
+
+    args = parser.parse_args()
+    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    logger.info("copier: ", args)
+    utils.LOG = logger
+
+    config = utils.read_config_file(args.config_file)
+    ref_datasets = config.get(Constants.CONFIG_REF_DATASETS, [])
+
+    if args.base_dir:
+        base_dir = args.base_dir
+    else:
+        base_dir = config.get(Constants.CONFIG_BASE_DIR)
+
+    inputs = config.get(Constants.CONFIG_INPUTS)
+    if not inputs:
+        logger.error("No inputs defined in config file")
+        sys.exit(1)
+
+    handle_inputs(base_dir, inputs, ref_datasets, args.output_dir, logger)
 
     logger.report()
     logger.close()
