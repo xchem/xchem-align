@@ -593,6 +593,30 @@ def _verify_working_dir(working_dir):
             return None
 
 
+def collect_manual_files(manual_input_path: Path):
+    data = {}
+    for child in manual_input_path.iterdir():
+        if child.is_file():
+            key = child.stem
+            if key in data:
+                t = data[key]
+            else:
+                t = [None, None, None]
+                data[key] = t
+            if child.suffix == ".pdb":
+                t[0] = child
+            if child.suffix == ".mtz":
+                t[1] = child
+            if child.suffix == ".cif":
+                t[2] = child
+
+    for k in list(data.keys()):
+        if data[k][0] is None:
+            del data[k]
+
+    return data
+
+
 def main():
     print(_verify_working_dir(Path('data/std_test/lb32633-6_2024-11-22/upload-current/upload_1')))
 

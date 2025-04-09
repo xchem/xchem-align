@@ -682,25 +682,7 @@ class Collator:
                     )
 
     def _collect_manual_files(self, manual_input_path: Path):
-        data = {}
-        for child in manual_input_path.iterdir():
-            if child.is_file():
-                key = child.stem
-                if key in data:
-                    t = data[key]
-                else:
-                    t = [None, None, None]
-                    data[key] = t
-                if child.suffix == ".pdb":
-                    t[0] = child
-                if child.suffix == ".mtz":
-                    t[1] = child
-                if child.suffix == ".cif":
-                    t[2] = child
-
-        for k in list(data.keys()):
-            if data[k][0] is None:
-                del data[k]
+        data = utils.collect_manual_files(manual_input_path)
         self.logger.info(len(data), 'manual PDBs found for', manual_input_path)
         return data
 

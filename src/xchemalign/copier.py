@@ -37,6 +37,62 @@ def _generate_path(base_path: Path, input_path: Path, file_path):
             return file_path
 
 
+class ManualCopier:
+    def __init__(self, base_path: Path, input_path: Path, output_path: Path, excludes, logger):
+        self.base_path = base_path
+        self.input_path = input_path
+        self.output_path = output_path
+        self.excludes = excludes
+        self.logger = logger
+        self.errors = []
+        self.warnings = []
+
+    def _log_error(self, msg):
+        self.logger.error(msg)
+        self.errors.append(msg)
+
+    def _log_warning(self, msg):
+        self.logger.warn(msg)
+        self.warnings.append(msg)
+
+    def validate(self):
+        if not self.base_path:
+            self._log_error("base path must be defined")
+        if not self.input_path:
+            self._log_error("input path must be defined")
+        elif self.input_path.is_absolute():
+            self._log_error("input_path must be a path relative to base_path")
+        return len(self.errors), len(self.warnings)
+
+    def copy_files(self):
+        if self.base_path and self.input_path.is_absolute():
+            self.logger.warn("INFO: making input_path relative as a base_path is specified")
+            self.input_path = self.input_path.relative_to("/")
+
+        items = utils.collect_manual_files(self.base_path / self.input_path)
+        self.logger.info("found {} manual inputs".format(len(items)))
+
+        d = self.output_path / self.input_path
+        d.mkdir(exist_ok=True, parents=True)
+
+        for key, item in items.items():
+            if key in self.excludes:
+                self.logger.info("excluding manual crystal", key)
+                continue
+            pdb = item[0]
+            mtz = item[1]
+            cif = item[2]
+
+            self.logger.info('copying manual file', item)
+
+            if pdb:
+                shutil.copy2(pdb, d, follow_symlinks=True)
+            if mtz:
+                shutil.copy2(mtz, d, follow_symlinks=True)
+            if cif:
+                shutil.copy2(cif, d, follow_symlinks=True)
+
+
 class FileCopier:
     def __init__(self, logger):
         self.logger = logger
@@ -48,40 +104,6 @@ class FileCopier:
         return path_to_check.is_file()
 
 
-class SCPCopier:
-    def __init__(self, logger, username, server='ssh.diamond.ac.uk', key_filename=None):
-        self.logger = logger
-        self.server = server
-        self.ssh = SSHClient()
-        self.ssh.load_system_host_keys()
-        self.ssh.connect(self.server, username=username, key_filename=key_filename)
-        self.scp = SCPClient(self.ssh.get_transport())
-
-    def __del__(self):
-        try:
-            self.scp.close()
-        except NameError:
-            pass
-
-    def do_copy(self, from_path, to_path):
-        try:
-            self.logger.info("Copying", from_path, "to", to_path)
-            self.scp.get(str(from_path), str(to_path))
-            return to_path.is_file()
-        except IOError:
-            # file not found?
-            return False
-
-    def file_exists(self, path_to_check):
-        try:
-            sftp = self.ssh.open_sftp()
-            sftp.chdir(str(path_to_check.parent))  # changing to directory we want to search
-            sftp.stat(str(path_to_check))  # checking whether file exists or not
-            return True
-        except IOError:
-            return False
-
-
 class Copier:
     def __init__(
         self,
@@ -90,11 +112,7 @@ class Copier:
         output_path: Path,
         soakdb_file_path: Path,
         panddas_file_paths: list[Path],
-        mode: str,
         ref_datasets: list[str],
-        scp_user: str = None,
-        scp_server="ssh.diamond.ac.uk",
-        scp_key=None,
         logger=None,
     ):
         if logger:
@@ -107,16 +125,10 @@ class Copier:
         self.output_path = output_path
         self.soakdb_file_path = soakdb_file_path
         self.panddas_file_paths = panddas_file_paths
-        self.mode = mode
         self.ref_datasets = ref_datasets
         self.errors = []
         self.warnings = []
-        if mode == 'copy':
-            self.copier = FileCopier(self.logger)
-        elif mode == 'scp':
-            self.copier = SCPCopier(self.logger, scp_user, server=scp_server, key_filename=scp_key)
-        else:
-            raise ValueError("Invalid copy mode:", mode)
+        self.copier = FileCopier(self.logger)
 
     def _log_error(self, msg):
         self.logger.error(msg)
@@ -180,7 +192,7 @@ class Copier:
             file = row[Constants.SOAKDB_COL_PDB]
             if file:
                 path = Path(file)
-                self.check_path(path, expected_path)
+                # self.check_path(path, expected_path)
                 ok = self.copy_file(path, xtal_dir_path)
                 if ok:
                     num_files += 1
@@ -342,6 +354,9 @@ class Copier:
 
 
 def main():
+    # Example:
+    #   python -m xchemalign.copier -c config.yaml -b / -o inputs -l copier.log
+
     parser = argparse.ArgumentParser(description="copier")
 
     parser.add_argument("-c", "--config-file", default="config.yaml", help="Configuration file")
@@ -361,10 +376,6 @@ def main():
     parser.add_argument(
         "-p", "--panddas-files", nargs="*", help="Paths to CSV files with panddas data relative to input-dir"
     )
-    parser.add_argument("-m", "--mode", required=True, choices=['copy', 'scp'], help="Mode of file copying")
-    parser.add_argument("--scp-username", help="SCP username")
-    parser.add_argument("--scp-server", default="ssh.diamond.ac.uk", help="SCP server")
-    parser.add_argument("--scp-key", help="SSH key")
     parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
     parser.add_argument("-r", "--ref-datasets", nargs="*", help="Names of any reference datasets")
     parser.add_argument("-l", "--log-file", help="File to write logs to")
@@ -379,20 +390,12 @@ def main():
     base_dir = None
     soakdbfiles = []
     panddas_files = []
-    input_dirs = []
-    scp_server = None
-    scp_username = None
-    scp_key = None
+    input_dirs_model_building = []
+    input_dirs_manual = []
+    excludes_manual = []
     ref_datasets = []
     if args.config_file:
         config = utils.read_config_file(args.config_file)
-        scp_config = config.get('scp')
-        if scp_config:
-            scp_server = scp_config.get('server', 'ssh.diamond.ac.uk')
-            scp_username = scp_config.get('username')
-            scp_key = scp_config.get('key')
-            base_dir = scp_config.get('base_dir', '/')
-
         ref_datasets = config.get(Constants.CONFIG_REF_DATASETS, [])
 
         inputs = config.get('inputs')
@@ -401,19 +404,20 @@ def main():
             sys.exit(1)
 
         for input in inputs:
-            logger.info("Looking at input", input.get('dir'))
-            if not input_dir or input.get('dir') == input_dir:
-                t = input.get('type')
-                if t != 'model_building':
-                    logger.warn("Only copying of model_building types is currently supported. You specified type", t)
-                    continue
-                logger.info("Adding input", input.get('dir'))
-                input_dirs.append(input.get('dir'))
-                soakdbfiles.append(input.get('soakdb', 'processing/database/soakDBDataFile.sqlite'))
-                panddas_files.append(input.get(utils.Constants.CONFIG_PANDDAS_EVENT_FILES, []))
+            logger.info("Looking at input", input.get(Constants.CONFIG_DIR))
+            if not input_dir or input.get(Constants.CONFIG_DIR) == input_dir:
+                logger.info("Adding input", input.get(Constants.CONFIG_DIR))
+                t = input.get(Constants.CONFIG_TYPE)
+                if t == Constants.CONFIG_TYPE_MANUAL:
+                    input_dirs_manual.append(input.get(Constants.CONFIG_DIR))
+                    excludes_manual.append(input.get(Constants.CONFIG_EXCLUDE, []))
+                else:
+                    input_dirs_model_building.append(input.get(Constants.CONFIG_DIR))
+                    soakdbfiles.append(input.get(Constants.CONFIG_SOAKDB, 'processing/database/soakDBDataFile.sqlite'))
+                    panddas_files.append(input.get(utils.Constants.CONFIG_PANDDAS_EVENT_FILES, []))
 
         # check we have at least one input
-        if len(input_dirs) == 0:
+        if len(input_dirs_model_building) == 0:
             if input_dir:
                 # a specific input was requested but was not found
                 logger.error("Input {} not defined in config file".format(input_dir))
@@ -430,7 +434,7 @@ def main():
 
     # CLI soakdb_file arg override what is in the config file but only if a single input is defined
     if args.soakdb_file:
-        if len(input_dirs) != 1:
+        if len(input_dirs_model_building) != 1:
             logger.error(
                 "soakdb_file command line argument is ambiguous when processing multiple inputs. "
                 + "Specify this in each input section of the config file instead."
@@ -440,7 +444,7 @@ def main():
 
     # CLI panddas_files arg override what is in the config file but only if a single input is defined
     if args.panddas_files:
-        if len(input_dirs) != 1:
+        if len(input_dirs_model_building) != 1:
             logger.error(
                 "panddas_files command line argument is ambiguous when processing multiple inputs. "
                 + "Specify this in each input section of the config file instead."
@@ -451,21 +455,13 @@ def main():
     if args.ref_datasets:
         ref_datasets = args.ref_datasets
 
-    # CLI scp args override what is in the config file
-    if args.scp_server:
-        scp_server = args.scp_server
-    if args.scp_username:
-        scp_username = args.scp_username
-    if args.scp_key:
-        scp_key = args.scp_key
+    logger.info('Using input dirs:', input_dirs_model_building)
 
-    logger.info('Using input dirs:', input_dirs)
+    copiers = []
 
-    for i, input_dir in enumerate(input_dirs):
-        msg = (
-            "Running copier using mode {}. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
-                args.mode, base_dir, input_dir, args.output_dir, soakdbfiles[i], ", ".join(panddas_files[i])
-            )
+    for i, input_dir in enumerate(input_dirs_model_building):
+        msg = "Running copier. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
+            base_dir, input_dir, args.output_dir, soakdbfiles[i], ", ".join(panddas_files[i])
         )
         logger.info(msg)
 
@@ -475,11 +471,7 @@ def main():
             Path(args.output_dir),
             Path(soakdbfiles[i]),
             [Path(p) for p in panddas_files[i]],
-            args.mode,
             ref_datasets,
-            scp_server=scp_server,
-            scp_user=scp_username,
-            scp_key=scp_key,
             logger=logger,
         )
         errors, warnings = c.validate()
@@ -487,14 +479,26 @@ def main():
             logger.error("There are errors, cannot continue")
             logger.report()
             logger.close()
-            ex = 1
+            exit(1)
         else:
-            c.copy_files()
-            ex = 0
+            copiers.append(c)
+
+    for input_dir, excludes in zip(input_dirs_manual, excludes_manual):
+        c = ManualCopier(Path(base_dir), Path(input_dir), Path(args.output_dir), excludes, logger)
+        errors, warnings = c.validate()
+        if errors:
+            logger.error("There are errors, cannot continue")
+            logger.report()
+            logger.close()
+            exit(1)
+        else:
+            copiers.append(c)
+
+        for copier in copiers:
+            copier.copy_files()
 
     logger.report()
     logger.close()
-    exit(ex)
 
 
 if __name__ == "__main__":
