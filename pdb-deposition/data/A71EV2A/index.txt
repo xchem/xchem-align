@@ -1,0 +1,727 @@
+label: A71EV2A-x3379-ligand_bound
+model: A71EV2A-x3379.mmcif
+sf: A71EV2A-x3379_sf.mmcif
+
+label: A71EV2A-x3392-ligand_bound
+model: A71EV2A-x3392.mmcif
+sf: A71EV2A-x3392_sf.mmcif
+
+label: A71EV2A-x3403-ligand_bound
+model: A71EV2A-x3403.mmcif
+sf: A71EV2A-x3403_sf.mmcif
+
+label: A71EV2A-x3408-ligand_bound
+model: A71EV2A-x3408.mmcif
+sf: A71EV2A-x3408_sf.mmcif
+
+label: A71EV2A-x3435-ligand_bound
+model: A71EV2A-x3435.mmcif
+sf: A71EV2A-x3435_sf.mmcif
+
+label: A71EV2A-x3436-ligand_bound
+model: A71EV2A-x3436.mmcif
+sf: A71EV2A-x3436_sf.mmcif
+
+label: A71EV2A-x3522-ligand_bound
+model: A71EV2A-x3522.mmcif
+sf: A71EV2A-x3522_sf.mmcif
+
+label: A71EV2A-x3618-ligand_bound
+model: A71EV2A-x3618.mmcif
+sf: A71EV2A-x3618_sf.mmcif
+
+label: A71EV2A-x3621-ligand_bound
+model: A71EV2A-x3621.mmcif
+sf: A71EV2A-x3621_sf.mmcif
+
+label: A71EV2A-x3706-ligand_bound
+model: A71EV2A-x3706.mmcif
+sf: A71EV2A-x3706_sf.mmcif
+
+label: A71EV2A-x3858-ligand_bound
+model: A71EV2A-x3858.mmcif
+sf: A71EV2A-x3858_sf.mmcif
+
+label: A71EV2A-x3883-ligand_bound
+model: A71EV2A-x3883.mmcif
+sf: A71EV2A-x3883_sf.mmcif
+
+label: A71EV2A-x3897-ligand_bound
+model: A71EV2A-x3897.mmcif
+sf: A71EV2A-x3897_sf.mmcif
+
+label: A71EV2A-x3937-ligand_bound
+model: A71EV2A-x3937.mmcif
+sf: A71EV2A-x3937_sf.mmcif
+
+label: A71EV2A-x3938-ligand_bound
+model: A71EV2A-x3938.mmcif
+sf: A71EV2A-x3938_sf.mmcif
+
+label: A71EV2A-x4320-ligand_bound
+model: A71EV2A-x4320.mmcif
+sf: A71EV2A-x4320_sf.mmcif
+
+label: A71EV2A-x4406-ligand_bound
+model: A71EV2A-x4406.mmcif
+sf: A71EV2A-x4406_sf.mmcif
+
+label: A71EV2A-x4418-ligand_bound
+model: A71EV2A-x4418.mmcif
+sf: A71EV2A-x4418_sf.mmcif
+
+label: A71EV2A-x4426-ligand_bound
+model: A71EV2A-x4426.mmcif
+sf: A71EV2A-x4426_sf.mmcif
+
+label: A71EV2A-x4464-ligand_bound
+model: A71EV2A-x4464.mmcif
+sf: A71EV2A-x4464_sf.mmcif
+
+label: A71EV2A-x4467-ligand_bound
+model: A71EV2A-x4467.mmcif
+sf: A71EV2A-x4467_sf.mmcif
+
+label: A71EV2A-x4472-ligand_bound
+model: A71EV2A-x4472.mmcif
+sf: A71EV2A-x4472_sf.mmcif
+
+label: A71EV2A-x4494-ligand_bound
+model: A71EV2A-x4494.mmcif
+sf: A71EV2A-x4494_sf.mmcif
+
+label: A71EV2A-x4496-ligand_bound
+model: A71EV2A-x4496.mmcif
+sf: A71EV2A-x4496_sf.mmcif
+
+label: A71EV2A-x4510-ligand_bound
+model: A71EV2A-x4510.mmcif
+sf: A71EV2A-x4510_sf.mmcif
+
+label: A71EV2A-x4516-ligand_bound
+model: A71EV2A-x4516.mmcif
+sf: A71EV2A-x4516_sf.mmcif
+
+label: A71EV2A-x4526-ligand_bound
+model: A71EV2A-x4526.mmcif
+sf: A71EV2A-x4526_sf.mmcif
+
+label: A71EV2A-x4528-ligand_bound
+model: A71EV2A-x4528.mmcif
+sf: A71EV2A-x4528_sf.mmcif
+
+label: A71EV2A-x4546-ligand_bound
+model: A71EV2A-x4546.mmcif
+sf: A71EV2A-x4546_sf.mmcif
+
+label: A71EV2A-x4559-ligand_bound
+model: A71EV2A-x4559.mmcif
+sf: A71EV2A-x4559_sf.mmcif
+
+label: A71EV2A-x4563-ligand_bound
+model: A71EV2A-x4563.mmcif
+sf: A71EV2A-x4563_sf.mmcif
+
+label: A71EV2A-x4570-ligand_bound
+model: A71EV2A-x4570.mmcif
+sf: A71EV2A-x4570_sf.mmcif
+
+label: A71EV2A-x4571-ligand_bound
+model: A71EV2A-x4571.mmcif
+sf: A71EV2A-x4571_sf.mmcif
+
+label: A71EV2A-x4575-ligand_bound
+model: A71EV2A-x4575.mmcif
+sf: A71EV2A-x4575_sf.mmcif
+
+label: A71EV2A-x4580-ligand_bound
+model: A71EV2A-x4580.mmcif
+sf: A71EV2A-x4580_sf.mmcif
+
+label: A71EV2A-x4583-ligand_bound
+model: A71EV2A-x4583.mmcif
+sf: A71EV2A-x4583_sf.mmcif
+
+label: A71EV2A-x4586-ligand_bound
+model: A71EV2A-x4586.mmcif
+sf: A71EV2A-x4586_sf.mmcif
+
+label: A71EV2A-x4596-ligand_bound
+model: A71EV2A-x4596.mmcif
+sf: A71EV2A-x4596_sf.mmcif
+
+label: A71EV2A-x4606-ligand_bound
+model: A71EV2A-x4606.mmcif
+sf: A71EV2A-x4606_sf.mmcif
+
+label: A71EV2A-x4608-ligand_bound
+model: A71EV2A-x4608.mmcif
+sf: A71EV2A-x4608_sf.mmcif
+
+label: A71EV2A-x4611-ligand_bound
+model: A71EV2A-x4611.mmcif
+sf: A71EV2A-x4611_sf.mmcif
+
+label: A71EV2A-x4644-ligand_bound
+model: A71EV2A-x4644.mmcif
+sf: A71EV2A-x4644_sf.mmcif
+
+label: A71EV2A-x4650-ligand_bound
+model: A71EV2A-x4650.mmcif
+sf: A71EV2A-x4650_sf.mmcif
+
+label: A71EV2A-x4654-ligand_bound
+model: A71EV2A-x4654.mmcif
+sf: A71EV2A-x4654_sf.mmcif
+
+label: A71EV2A-x4669-ligand_bound
+model: A71EV2A-x4669.mmcif
+sf: A71EV2A-x4669_sf.mmcif
+
+label: A71EV2A-x4670-ligand_bound
+model: A71EV2A-x4670.mmcif
+sf: A71EV2A-x4670_sf.mmcif
+
+label: A71EV2A-x4673-ligand_bound
+model: A71EV2A-x4673.mmcif
+sf: A71EV2A-x4673_sf.mmcif
+
+label: A71EV2A-x4674-ligand_bound
+model: A71EV2A-x4674.mmcif
+sf: A71EV2A-x4674_sf.mmcif
+
+label: A71EV2A-x4675-ligand_bound
+model: A71EV2A-x4675.mmcif
+sf: A71EV2A-x4675_sf.mmcif
+
+label: A71EV2A-x4684-ligand_bound
+model: A71EV2A-x4684.mmcif
+sf: A71EV2A-x4684_sf.mmcif
+
+label: A71EV2A-x4689-ligand_bound
+model: A71EV2A-x4689.mmcif
+sf: A71EV2A-x4689_sf.mmcif
+
+label: A71EV2A-x4694-ligand_bound
+model: A71EV2A-x4694.mmcif
+sf: A71EV2A-x4694_sf.mmcif
+
+label: A71EV2A-x4695-ligand_bound
+model: A71EV2A-x4695.mmcif
+sf: A71EV2A-x4695_sf.mmcif
+
+label: A71EV2A-x4701-ligand_bound
+model: A71EV2A-x4701.mmcif
+sf: A71EV2A-x4701_sf.mmcif
+
+label: A71EV2A-x4703-ligand_bound
+model: A71EV2A-x4703.mmcif
+sf: A71EV2A-x4703_sf.mmcif
+
+label: A71EV2A-x4706-ligand_bound
+model: A71EV2A-x4706.mmcif
+sf: A71EV2A-x4706_sf.mmcif
+
+label: A71EV2A-x4707-ligand_bound
+model: A71EV2A-x4707.mmcif
+sf: A71EV2A-x4707_sf.mmcif
+
+label: A71EV2A-x4708-ligand_bound
+model: A71EV2A-x4708.mmcif
+sf: A71EV2A-x4708_sf.mmcif
+
+label: A71EV2A-x4710-ligand_bound
+model: A71EV2A-x4710.mmcif
+sf: A71EV2A-x4710_sf.mmcif
+
+label: A71EV2A-x4711-ligand_bound
+model: A71EV2A-x4711.mmcif
+sf: A71EV2A-x4711_sf.mmcif
+
+label: A71EV2A-x4712-ligand_bound
+model: A71EV2A-x4712.mmcif
+sf: A71EV2A-x4712_sf.mmcif
+
+label: A71EV2A-x4715-ligand_bound
+model: A71EV2A-x4715.mmcif
+sf: A71EV2A-x4715_sf.mmcif
+
+label: A71EV2A-x4721-ligand_bound
+model: A71EV2A-x4721.mmcif
+sf: A71EV2A-x4721_sf.mmcif
+
+label: A71EV2A-x4724-ligand_bound
+model: A71EV2A-x4724.mmcif
+sf: A71EV2A-x4724_sf.mmcif
+
+label: A71EV2A-x4727-ligand_bound
+model: A71EV2A-x4727.mmcif
+sf: A71EV2A-x4727_sf.mmcif
+
+label: A71EV2A-x4735-ligand_bound
+model: A71EV2A-x4735.mmcif
+sf: A71EV2A-x4735_sf.mmcif
+
+label: A71EV2A-x4736-ligand_bound
+model: A71EV2A-x4736.mmcif
+sf: A71EV2A-x4736_sf.mmcif
+
+label: A71EV2A-x4739-ligand_bound
+model: A71EV2A-x4739.mmcif
+sf: A71EV2A-x4739_sf.mmcif
+
+label: A71EV2A-x4742-ligand_bound
+model: A71EV2A-x4742.mmcif
+sf: A71EV2A-x4742_sf.mmcif
+
+label: A71EV2A-x4745-ligand_bound
+model: A71EV2A-x4745.mmcif
+sf: A71EV2A-x4745_sf.mmcif
+
+label: A71EV2A-x4746-ligand_bound
+model: A71EV2A-x4746.mmcif
+sf: A71EV2A-x4746_sf.mmcif
+
+label: A71EV2A-x4748-ligand_bound
+model: A71EV2A-x4748.mmcif
+sf: A71EV2A-x4748_sf.mmcif
+
+label: A71EV2A-x4751-ligand_bound
+model: A71EV2A-x4751.mmcif
+sf: A71EV2A-x4751_sf.mmcif
+
+label: A71EV2A-x4752-ligand_bound
+model: A71EV2A-x4752.mmcif
+sf: A71EV2A-x4752_sf.mmcif
+
+label: A71EV2A-x4753-ligand_bound
+model: A71EV2A-x4753.mmcif
+sf: A71EV2A-x4753_sf.mmcif
+
+label: A71EV2A-x4771-ligand_bound
+model: A71EV2A-x4771.mmcif
+sf: A71EV2A-x4771_sf.mmcif
+
+label: A71EV2A-x4774-ligand_bound
+model: A71EV2A-x4774.mmcif
+sf: A71EV2A-x4774_sf.mmcif
+
+label: A71EV2A-x4777-ligand_bound
+model: A71EV2A-x4777.mmcif
+sf: A71EV2A-x4777_sf.mmcif
+
+label: A71EV2A-x4778-ligand_bound
+model: A71EV2A-x4778.mmcif
+sf: A71EV2A-x4778_sf.mmcif
+
+label: A71EV2A-x4784-ligand_bound
+model: A71EV2A-x4784.mmcif
+sf: A71EV2A-x4784_sf.mmcif
+
+label: A71EV2A-x4786-ligand_bound
+model: A71EV2A-x4786.mmcif
+sf: A71EV2A-x4786_sf.mmcif
+
+label: A71EV2A-x4791-ligand_bound
+model: A71EV2A-x4791.mmcif
+sf: A71EV2A-x4791_sf.mmcif
+
+label: A71EV2A-x4794-ligand_bound
+model: A71EV2A-x4794.mmcif
+sf: A71EV2A-x4794_sf.mmcif
+
+label: A71EV2A-x4798-ligand_bound
+model: A71EV2A-x4798.mmcif
+sf: A71EV2A-x4798_sf.mmcif
+
+label: A71EV2A-x4806-ligand_bound
+model: A71EV2A-x4806.mmcif
+sf: A71EV2A-x4806_sf.mmcif
+
+label: A71EV2A-x4809-ligand_bound
+model: A71EV2A-x4809.mmcif
+sf: A71EV2A-x4809_sf.mmcif
+
+label: A71EV2A-x4812-ligand_bound
+model: A71EV2A-x4812.mmcif
+sf: A71EV2A-x4812_sf.mmcif
+
+label: A71EV2A-x4824-ligand_bound
+model: A71EV2A-x4824.mmcif
+sf: A71EV2A-x4824_sf.mmcif
+
+label: A71EV2A-x4826-ligand_bound
+model: A71EV2A-x4826.mmcif
+sf: A71EV2A-x4826_sf.mmcif
+
+label: A71EV2A-x4827-ligand_bound
+model: A71EV2A-x4827.mmcif
+sf: A71EV2A-x4827_sf.mmcif
+
+label: A71EV2A-x4829-ligand_bound
+model: A71EV2A-x4829.mmcif
+sf: A71EV2A-x4829_sf.mmcif
+
+label: A71EV2A-x4836-ligand_bound
+model: A71EV2A-x4836.mmcif
+sf: A71EV2A-x4836_sf.mmcif
+
+label: A71EV2A-x4838-ligand_bound
+model: A71EV2A-x4838.mmcif
+sf: A71EV2A-x4838_sf.mmcif
+
+label: A71EV2A-x4839-ligand_bound
+model: A71EV2A-x4839.mmcif
+sf: A71EV2A-x4839_sf.mmcif
+
+label: A71EV2A-x4840-ligand_bound
+model: A71EV2A-x4840.mmcif
+sf: A71EV2A-x4840_sf.mmcif
+
+label: A71EV2A-x4843-ligand_bound
+model: A71EV2A-x4843.mmcif
+sf: A71EV2A-x4843_sf.mmcif
+
+label: A71EV2A-x4845-ligand_bound
+model: A71EV2A-x4845.mmcif
+sf: A71EV2A-x4845_sf.mmcif
+
+label: A71EV2A-x4846-ligand_bound
+model: A71EV2A-x4846.mmcif
+sf: A71EV2A-x4846_sf.mmcif
+
+label: A71EV2A-x4847-ligand_bound
+model: A71EV2A-x4847.mmcif
+sf: A71EV2A-x4847_sf.mmcif
+
+label: A71EV2A-x4855-ligand_bound
+model: A71EV2A-x4855.mmcif
+sf: A71EV2A-x4855_sf.mmcif
+
+label: A71EV2A-x4856-ligand_bound
+model: A71EV2A-x4856.mmcif
+sf: A71EV2A-x4856_sf.mmcif
+
+label: A71EV2A-x4872-ligand_bound
+model: A71EV2A-x4872.mmcif
+sf: A71EV2A-x4872_sf.mmcif
+
+label: A71EV2A-x4873-ligand_bound
+model: A71EV2A-x4873.mmcif
+sf: A71EV2A-x4873_sf.mmcif
+
+label: A71EV2A-x4874-ligand_bound
+model: A71EV2A-x4874.mmcif
+sf: A71EV2A-x4874_sf.mmcif
+
+label: A71EV2A-x4877-ligand_bound
+model: A71EV2A-x4877.mmcif
+sf: A71EV2A-x4877_sf.mmcif
+
+label: A71EV2A-x4880-ligand_bound
+model: A71EV2A-x4880.mmcif
+sf: A71EV2A-x4880_sf.mmcif
+
+label: A71EV2A-x4882-ligand_bound
+model: A71EV2A-x4882.mmcif
+sf: A71EV2A-x4882_sf.mmcif
+
+label: A71EV2A-x4883-ligand_bound
+model: A71EV2A-x4883.mmcif
+sf: A71EV2A-x4883_sf.mmcif
+
+label: A71EV2A-x4885-ligand_bound
+model: A71EV2A-x4885.mmcif
+sf: A71EV2A-x4885_sf.mmcif
+
+label: A71EV2A-x4894-ligand_bound
+model: A71EV2A-x4894.mmcif
+sf: A71EV2A-x4894_sf.mmcif
+
+label: A71EV2A-x4895-ligand_bound
+model: A71EV2A-x4895.mmcif
+sf: A71EV2A-x4895_sf.mmcif
+
+label: A71EV2A-x4899-ligand_bound
+model: A71EV2A-x4899.mmcif
+sf: A71EV2A-x4899_sf.mmcif
+
+label: A71EV2A-x4903-ligand_bound
+model: A71EV2A-x4903.mmcif
+sf: A71EV2A-x4903_sf.mmcif
+
+label: A71EV2A-x4908-ligand_bound
+model: A71EV2A-x4908.mmcif
+sf: A71EV2A-x4908_sf.mmcif
+
+label: A71EV2A-x4914-ligand_bound
+model: A71EV2A-x4914.mmcif
+sf: A71EV2A-x4914_sf.mmcif
+
+label: A71EV2A-x4918-ligand_bound
+model: A71EV2A-x4918.mmcif
+sf: A71EV2A-x4918_sf.mmcif
+
+label: A71EV2A-x4921-ligand_bound
+model: A71EV2A-x4921.mmcif
+sf: A71EV2A-x4921_sf.mmcif
+
+label: A71EV2A-x4922-ligand_bound
+model: A71EV2A-x4922.mmcif
+sf: A71EV2A-x4922_sf.mmcif
+
+label: A71EV2A-x4926-ligand_bound
+model: A71EV2A-x4926.mmcif
+sf: A71EV2A-x4926_sf.mmcif
+
+label: A71EV2A-x4928-ligand_bound
+model: A71EV2A-x4928.mmcif
+sf: A71EV2A-x4928_sf.mmcif
+
+label: A71EV2A-x4934-ligand_bound
+model: A71EV2A-x4934.mmcif
+sf: A71EV2A-x4934_sf.mmcif
+
+label: A71EV2A-x4935-ligand_bound
+model: A71EV2A-x4935.mmcif
+sf: A71EV2A-x4935_sf.mmcif
+
+label: A71EV2A-x4940-ligand_bound
+model: A71EV2A-x4940.mmcif
+sf: A71EV2A-x4940_sf.mmcif
+
+label: A71EV2A-x4943-ligand_bound
+model: A71EV2A-x4943.mmcif
+sf: A71EV2A-x4943_sf.mmcif
+
+label: A71EV2A-x4947-ligand_bound
+model: A71EV2A-x4947.mmcif
+sf: A71EV2A-x4947_sf.mmcif
+
+label: A71EV2A-x4949-ligand_bound
+model: A71EV2A-x4949.mmcif
+sf: A71EV2A-x4949_sf.mmcif
+
+label: A71EV2A-x4954-ligand_bound
+model: A71EV2A-x4954.mmcif
+sf: A71EV2A-x4954_sf.mmcif
+
+label: A71EV2A-x4959-ligand_bound
+model: A71EV2A-x4959.mmcif
+sf: A71EV2A-x4959_sf.mmcif
+
+label: A71EV2A-x4963-ligand_bound
+model: A71EV2A-x4963.mmcif
+sf: A71EV2A-x4963_sf.mmcif
+
+label: A71EV2A-x4967-ligand_bound
+model: A71EV2A-x4967.mmcif
+sf: A71EV2A-x4967_sf.mmcif
+
+label: A71EV2A-x4974-ligand_bound
+model: A71EV2A-x4974.mmcif
+sf: A71EV2A-x4974_sf.mmcif
+
+label: A71EV2A-x4977-ligand_bound
+model: A71EV2A-x4977.mmcif
+sf: A71EV2A-x4977_sf.mmcif
+
+label: A71EV2A-x4979-ligand_bound
+model: A71EV2A-x4979.mmcif
+sf: A71EV2A-x4979_sf.mmcif
+
+label: A71EV2A-x4980-ligand_bound
+model: A71EV2A-x4980.mmcif
+sf: A71EV2A-x4980_sf.mmcif
+
+label: A71EV2A-x4986-ligand_bound
+model: A71EV2A-x4986.mmcif
+sf: A71EV2A-x4986_sf.mmcif
+
+label: A71EV2A-x4992-ligand_bound
+model: A71EV2A-x4992.mmcif
+sf: A71EV2A-x4992_sf.mmcif
+
+label: A71EV2A-x4994-ligand_bound
+model: A71EV2A-x4994.mmcif
+sf: A71EV2A-x4994_sf.mmcif
+
+label: A71EV2A-x4998-ligand_bound
+model: A71EV2A-x4998.mmcif
+sf: A71EV2A-x4998_sf.mmcif
+
+label: A71EV2A-x5016-ligand_bound
+model: A71EV2A-x5016.mmcif
+sf: A71EV2A-x5016_sf.mmcif
+
+label: A71EV2A-x5022-ligand_bound
+model: A71EV2A-x5022.mmcif
+sf: A71EV2A-x5022_sf.mmcif
+
+label: A71EV2A-x5036-ligand_bound
+model: A71EV2A-x5036.mmcif
+sf: A71EV2A-x5036_sf.mmcif
+
+label: A71EV2A-x5039-ligand_bound
+model: A71EV2A-x5039.mmcif
+sf: A71EV2A-x5039_sf.mmcif
+
+label: A71EV2A-x5052-ligand_bound
+model: A71EV2A-x5052.mmcif
+sf: A71EV2A-x5052_sf.mmcif
+
+label: A71EV2A-x5065-ligand_bound
+model: A71EV2A-x5065.mmcif
+sf: A71EV2A-x5065_sf.mmcif
+
+label: A71EV2A-x5073-ligand_bound
+model: A71EV2A-x5073.mmcif
+sf: A71EV2A-x5073_sf.mmcif
+
+label: A71EV2A-x5079-ligand_bound
+model: A71EV2A-x5079.mmcif
+sf: A71EV2A-x5079_sf.mmcif
+
+label: A71EV2A-x5081-ligand_bound
+model: A71EV2A-x5081.mmcif
+sf: A71EV2A-x5081_sf.mmcif
+
+label: A71EV2A-x5082-ligand_bound
+model: A71EV2A-x5082.mmcif
+sf: A71EV2A-x5082_sf.mmcif
+
+label: A71EV2A-x5090-ligand_bound
+model: A71EV2A-x5090.mmcif
+sf: A71EV2A-x5090_sf.mmcif
+
+label: A71EV2A-x5091-ligand_bound
+model: A71EV2A-x5091.mmcif
+sf: A71EV2A-x5091_sf.mmcif
+
+label: A71EV2A-x5104-ligand_bound
+model: A71EV2A-x5104.mmcif
+sf: A71EV2A-x5104_sf.mmcif
+
+label: A71EV2A-x5106-ligand_bound
+model: A71EV2A-x5106.mmcif
+sf: A71EV2A-x5106_sf.mmcif
+
+label: A71EV2A-x5150-ligand_bound
+model: A71EV2A-x5150.mmcif
+sf: A71EV2A-x5150_sf.mmcif
+
+label: A71EV2A-x5151-ligand_bound
+model: A71EV2A-x5151.mmcif
+sf: A71EV2A-x5151_sf.mmcif
+
+label: A71EV2A-x5171-ligand_bound
+model: A71EV2A-x5171.mmcif
+sf: A71EV2A-x5171_sf.mmcif
+
+label: A71EV2A-x5177-ligand_bound
+model: A71EV2A-x5177.mmcif
+sf: A71EV2A-x5177_sf.mmcif
+
+label: A71EV2A-x5182-ligand_bound
+model: A71EV2A-x5182.mmcif
+sf: A71EV2A-x5182_sf.mmcif
+
+label: A71EV2A-x5200-ligand_bound
+model: A71EV2A-x5200.mmcif
+sf: A71EV2A-x5200_sf.mmcif
+
+label: A71EV2A-x5203-ligand_bound
+model: A71EV2A-x5203.mmcif
+sf: A71EV2A-x5203_sf.mmcif
+
+label: A71EV2A-x5210-ligand_bound
+model: A71EV2A-x5210.mmcif
+sf: A71EV2A-x5210_sf.mmcif
+
+label: A71EV2A-x5212-ligand_bound
+model: A71EV2A-x5212.mmcif
+sf: A71EV2A-x5212_sf.mmcif
+
+label: A71EV2A-x5213-ligand_bound
+model: A71EV2A-x5213.mmcif
+sf: A71EV2A-x5213_sf.mmcif
+
+label: A71EV2A-x5219-ligand_bound
+model: A71EV2A-x5219.mmcif
+sf: A71EV2A-x5219_sf.mmcif
+
+label: A71EV2A-x5221-ligand_bound
+model: A71EV2A-x5221.mmcif
+sf: A71EV2A-x5221_sf.mmcif
+
+label: A71EV2A-x5222-ligand_bound
+model: A71EV2A-x5222.mmcif
+sf: A71EV2A-x5222_sf.mmcif
+
+label: A71EV2A-x5231-ligand_bound
+model: A71EV2A-x5231.mmcif
+sf: A71EV2A-x5231_sf.mmcif
+
+label: A71EV2A-x5247-ligand_bound
+model: A71EV2A-x5247.mmcif
+sf: A71EV2A-x5247_sf.mmcif
+
+label: A71EV2A-x5249-ligand_bound
+model: A71EV2A-x5249.mmcif
+sf: A71EV2A-x5249_sf.mmcif
+
+label: A71EV2A-x5255-ligand_bound
+model: A71EV2A-x5255.mmcif
+sf: A71EV2A-x5255_sf.mmcif
+
+label: A71EV2A-x5258-ligand_bound
+model: A71EV2A-x5258.mmcif
+sf: A71EV2A-x5258_sf.mmcif
+
+label: A71EV2A-x5262-ligand_bound
+model: A71EV2A-x5262.mmcif
+sf: A71EV2A-x5262_sf.mmcif
+
+label: A71EV2A-x5268-ligand_bound
+model: A71EV2A-x5268.mmcif
+sf: A71EV2A-x5268_sf.mmcif
+
+label: A71EV2A-x5276-ligand_bound
+model: A71EV2A-x5276.mmcif
+sf: A71EV2A-x5276_sf.mmcif
+
+label: A71EV2A-x5277-ligand_bound
+model: A71EV2A-x5277.mmcif
+sf: A71EV2A-x5277_sf.mmcif
+
+label: A71EV2A-x5278-ligand_bound
+model: A71EV2A-x5278.mmcif
+sf: A71EV2A-x5278_sf.mmcif
+
+label: A71EV2A-x5283-ligand_bound
+model: A71EV2A-x5283.mmcif
+sf: A71EV2A-x5283_sf.mmcif
+
+label: A71EV2A-x5288-ligand_bound
+model: A71EV2A-x5288.mmcif
+sf: A71EV2A-x5288_sf.mmcif
+
+label: A71EV2A-x5289-ligand_bound
+model: A71EV2A-x5289.mmcif
+sf: A71EV2A-x5289_sf.mmcif
+
+label: A71EV2A-x5317-ligand_bound
+model: A71EV2A-x5317.mmcif
+sf: A71EV2A-x5317_sf.mmcif
+
+label: A71EV2A-x5339-ligand_bound
+model: A71EV2A-x5339.mmcif
+sf: A71EV2A-x5339_sf.mmcif
+
+label: A71EV2A-x5359-ligand_bound
+model: A71EV2A-x5359.mmcif
+sf: A71EV2A-x5359_sf.mmcif
+
+label: A71EV2A-x5366-ligand_bound
+model: A71EV2A-x5366.mmcif
+sf: A71EV2A-x5366_sf.mmcif

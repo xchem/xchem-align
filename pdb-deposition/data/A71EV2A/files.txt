@@ -1,0 +1,60 @@
+Common files
+============
+
+index.txt
+	file: /dls/labxchem/data/lb32627/lb32627-66/processing/group_deposition/A71EV2A_P3_compounds_buster_130325/index.txt
+
+soakDBDataFile.sqlite:
+	file: /dls/labxchem/data/lb32627/lb32627-66/processing/database/soakDBDataFile.sqlite
+
+
+
+
+Buster example. A71EV2A-x3379
+=============================
+buster/A71EV2A-x3379/input.mmcif
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3379/Refine_6/BUSTER_model.cif
+
+buster/A71EV2A-x3379/output.mmcif
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/group_deposition/A71EV2A_P3_compounds_buster_130325/A71EV2A-x3379.mmcif
+
+buster/A71EV2A-x3379/sf.mmcif
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/group_deposition/A71EV2A_P3_compounds_buster_130325/A71EV2A-x3379_sf.mmcif
+
+buster/A71EV2A-x3379/logfile.json
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3379/autoprocessing/lb32627-409-A71EV2A-x3379_1xia2-dials_35fe4b6a-11b3-40e6-9728-b34d5b76f7d3/lb32627v409_xA71EV2Ax33791_SAD_merging-statistics.json
+	col:	DataProcessingPathToLogfile
+
+buster/A71EV2A-x3379/refine_free.mtz
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3379/A71EV2A-x3379.free.mtz
+	col:	RefinementMTZfree
+	base:	processing/analysis/model_building/A71EV2A-x3379/
+
+buster/A71EV2A-x3379/refine_latest.mtz
+	file: /dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3379/Refine_6/refine.mtz
+	col: RefinementMTZ_latest
+
+Refmac example. A71EV2A-x3186
+=============================
+refmac/A71EV2A-x3186/output.mmcif
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/group_deposition/PDB_Deposition/P3_compounds_refmac_140125/A71EV2A-x3186.mmcif
+
+refmac/A71EV2A-x3186/sf.mmcif
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/group_deposition/PDB_Deposition/P3_compounds_refmac_140125/A71EV2A-x3186_sf.mmcif
+
+refmac/A71EV2A-x3186/input.pdb
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3186/Refine_0004/refine_4.split.bound-state.pdb
+	col:	RefinementBoundConformation
+
+refmac/A71EV2A-x3186/logfile.log
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3186/autoprocessing/lb32627-402-A71EV2A-x3186_1autoPROC_81e47a58-7800-4858-9d87-840ff66d65a6/A71EV2A-x3186.log
+	col:    DataProcessingPathToLogfile
+
+refmac/A71EV2A-x3186/refine_free.mtz
+	file:	/dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3186/A71EV2A-x3186.free
+	col:	RefinementMTZfree
+        base:   processing/analysis/model_building/A71EV2A-x3186/
+
+refmac/A71EV2A-x3186/refine_latest.mtz
+	file: /dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3186/Refine_0004/refine_4.mtz
+	col: RefinementMTZ_latest
