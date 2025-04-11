@@ -34,6 +34,10 @@ buster/A71EV2A-x3379/refine_latest.mtz
 	file: /dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3379/Refine_6/refine.mtz
 	col: RefinementMTZ_latest
 
+buster/A71EV2A-x3379/panddas.ccpp4
+	file: /dls/labxchem/data/lb32627/lb32627-66/processing/analysis/pandda2_batch5_postera_151124/processed_datasets/A71EV2A-x3379/A71EV2A-x3379-event_1_1-BDC_0.35_map.native.ccp4
+	comment: fetched from XCA data
+
 Refmac example. A71EV2A-x3186
 =============================
 refmac/A71EV2A-x3186/output.mmcif
@@ -58,3 +62,7 @@ refmac/A71EV2A-x3186/refine_free.mtz
 refmac/A71EV2A-x3186/refine_latest.mtz
 	file: /dls/labxchem/data/lb32627/lb32627-66/processing/analysis/model_building/A71EV2A-x3186/Refine_0004/refine_4.mtz
 	col: RefinementMTZ_latest
+
+refmac/A71EV2A-x3186/panddas.ccp4
+	file: /dls/labxchem/data/lb32627/lb32627-66/processing/analysis/pandda2_batch4_postera_131024/processed_datasets/A71EV2A-x3186/A71EV2A-x3186-event_1_1-BDC_0.79_map.native.ccp4
+	commnet: fetched from XCA data
