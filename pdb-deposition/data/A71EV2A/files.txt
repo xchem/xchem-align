@@ -65,4 +65,7 @@ refmac/A71EV2A-x3186/refine_latest.mtz
 
 refmac/A71EV2A-x3186/panddas.ccp4
 	file: /dls/labxchem/data/lb32627/lb32627-66/processing/analysis/pandda2_batch4_postera_131024/processed_datasets/A71EV2A-x3186/A71EV2A-x3186-event_1_1-BDC_0.79_map.native.ccp4
-	commnet: fetched from XCA data
+	comment: fetched from XCA data
+
+refmac/A71EV2A-x3186/input.mmcif
+	comment: input.pdb converted to mmcif using gemmi with default options
