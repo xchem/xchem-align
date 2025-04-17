@@ -793,11 +793,11 @@ def main():
     else:
         log = 'aligner.log'
 
-    try:
-        a = Aligner(args.dir, log_file=log, log_level=args.log_level)
-        logger = a.logger
-        utils.LOG = logger
+    a = Aligner(args.dir, log_file=log, log_level=args.log_level)
+    logger = a.logger
+    utils.LOG = logger
 
+    try:
         num_errors, num_warnings = a.validate()
 
         if not args.validate:
