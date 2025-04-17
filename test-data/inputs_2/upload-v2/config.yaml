@@ -1,0 +1,39 @@
+target_name: Mpro
+base_dir: test-data/inputs_2
+output_dir: test-data/outputs
+ref_datasets:
+  - Mpro-IBM0045
+  - 5rgs
+  - Mpro-x0107_fake_P1
+  - Mpro-x0107_fake_P1_conf_change
+panddas_missing_ok:
+  - Mpro-x0107_fake_P1
+  - Mpro-x0107_fake_P1_conf_change
+  - Mpro-i0130
+inputs:
+  - dir: dls/labxchem/data/2020/lb27995-1
+    type: model_building
+    code_prefix: "m"
+    code_prefix_tooltip: "MERS structures"
+    soakdb: processing/database/soakDBDataFile.sqlite
+    panddas_event_files:
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv
+  - dir: dls/labxchem/data/2020/lb18145-153
+    type: model_building
+    code_prefix: "m"
+    code_prefix_tooltip: "MERS structures"
+    soakdb: processing/database/soakDBDataFile.sqlite
+    panddas_event_files:
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv
+  - dir: pdb
+    type: manual
+    code_prefix: "m"
+    code_prefix_tooltip: "MERS structures"
+  - dir: ligand_bound_manual
+    type: manual
+    code_prefix: "m"
+    code_prefix_tooltip: "MERS structures"
+  - dir: Mpro-x0107_fake_P1
+    type: manual
+    code_prefix: "m"
+    code_prefix_tooltip: "MERS structures"

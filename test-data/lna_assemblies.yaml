@@ -1,0 +1,36 @@
+assemblies:
+    dimer:
+        reference: Mpro-IBM0045
+        biomol: A,B
+        chains: A,A(-x,y,-z)
+    monomer:
+        reference: 7ql8
+        biomol: B
+        chains: A
+    fake_dimer:
+        reference: 8e1y
+        biomol: A,C
+        chains: A,B
+    fake_tetramer:
+        reference: 8dz9
+        biomol: D,C,E,F
+        chains: A,B,C,D
+crystalforms:
+    xtalform1:
+        reference: Mpro-IBM0045
+        assemblies:
+            1:
+                assembly: dimer
+                chains: A,A(-x,y,-z)
+    xtalform2:
+        reference: 7ql8
+        assemblies:
+            1:
+                assembly: monomer
+                chains: A
+    xtalform3:
+        reference: 8e1y
+        assemblies:
+            1:
+                assembly: dimer
+                chains: A,B

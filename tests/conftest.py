@@ -31,6 +31,10 @@ def constants():
 
         # TEST_DATA_DIR = "data"
         ASSEMBLIES_FILE = "test-data/assemblies.yaml"
+
+        LNA_ASSEMBLIES_FILENAME = "lna_assemblies.yaml"
+        LNA_ASSEMBLIES_FILE = "test-data/lna_assemblies.yaml"
+
         TEST_OUTPUT_DIR = "tests/output"
         DATA_PATHS = {
             "5rgs": "test-data/5rgs.pdb",
@@ -200,6 +204,15 @@ def test_output_dir(constants):
 #     return path
 
 
+# rename attempt
+@pytest.fixture(scope="session")
+def lna_assemblies_file(
+    constants,
+):
+    path = Path(constants.LNA_ASSEMBLIES_FILE)
+    return path
+
+
 @pytest.fixture(scope="session")
 def pdb_paths(constants):
     pdb_paths = {key: Path(path) for key, path in constants.DATA_PATHS.items()}
@@ -207,9 +220,9 @@ def pdb_paths(constants):
 
 
 @pytest.fixture(scope="session")
-def assemblies(constants, assemblies_file):
+def lna_assemblies(constants, lna_assemblies_file):
     _assemblies = {}
-    with open(assemblies_file, "r") as f:
+    with open(lna_assemblies_file, "r") as f:
         dic = yaml.safe_load(f)
 
     for assembly_id, assembly_info in dic["assemblies"].items():
@@ -219,9 +232,9 @@ def assemblies(constants, assemblies_file):
 
 
 @pytest.fixture(scope="session")
-def xtalforms(constants, assemblies_file):
+def xtalforms(constants, lna_assemblies_file):
     _xtalforms = {}
-    with open(assemblies_file, "r") as f:
+    with open(lna_assemblies_file, "r") as f:
         dic = yaml.safe_load(f)["crystalforms"]
 
     for xtalform_id, xtalform_info in dic.items():
