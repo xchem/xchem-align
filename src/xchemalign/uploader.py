@@ -21,8 +21,13 @@ import datetime
 import shutil
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import subprocess
+from tempfile import TemporaryDirectory
 
 from tqdm import tqdm
+import boto3
+from boto3.s3.transfer import TransferConfig
+from botocore.config import Config
+from botocore.exceptions import ParamValidationError
 import yaml
 from yaml.parser import ParserError
 import requests
@@ -35,6 +40,9 @@ from requests_toolbelt.multipart.encoder import (
 
 
 from xchemalign import utils
+from .copier import handle_inputs
+
+# from xchemalign.utils import Constants
 
 
 # for compression
@@ -48,6 +56,7 @@ LANDING_PAGE_URL = '/viewer/react/landing/'
 FRAGALYSIS_URL_PREFIX = "XCHEMALIGN_FRAGALYSIS_URL_"
 
 DEFAULT_TARBALL_TEMPLATE = "{target}_v{version}_{upload_no}_{date}.tgz"
+DEFAULT_INPUTS_TEMPLATE = "{target}_v{version}_{upload_no}_{date}_inputs.tgz"
 
 
 DATA_DIR = "upload-current"
@@ -59,6 +68,8 @@ USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 
 META_ALIGNER = 'meta_aligner.yaml'
 CONFIG_FILE = "config.yaml"
+
+AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", '')
 
 
 logger = utils.Logger()
@@ -232,6 +243,7 @@ def get_upload_file(use_default=False, use_custom=None):
     # figure out data to upload. 3 options, create on the fly, use
     # existing or use custom
     upload_path = None
+    inputs_path = None
     if use_custom:
         tarball_path = use_custom
         meta, config = get_validation_files_from_tarball(tarball_path)
@@ -263,6 +275,14 @@ def get_upload_file(use_default=False, use_custom=None):
                 date=datetime.datetime.today().strftime('%Y-%m-%d'),
             )
         )
+        inputs_path = root_path.joinpath(
+            DEFAULT_INPUTS_TEMPLATE.format(
+                target=target_name,
+                version=validation_data["data_version"],
+                upload_no=upload_dir,
+                date=datetime.datetime.today().strftime('%Y-%m-%d'),
+            )
+        )
 
         if use_default:
             if not tarball_path.exists():
@@ -271,10 +291,93 @@ def get_upload_file(use_default=False, use_custom=None):
         # at this point, the decision is that a new tarball needs to
         # be created. but don't do it just yet, first run a validation
 
-    return upload_path, tarball_path, validation_data
+    return upload_path, tarball_path, validation_data, config, inputs_path
 
 
-def upload(url, proposal, auth_token=None, use_default=False, use_custom=None):
+def get_copy_inputs(config):
+    try:
+        base_dir = config["base_dir"]
+    except KeyError as exc:
+        raise KeyError(f"Key 'base_dir' missing from {CONFIG_FILE}") from exc
+
+    ref_datasets = config.get(utils.Constants.CONFIG_REF_DATASETS, [])
+    inputs = config.get(utils.Constants.CONFIG_INPUTS)
+
+    return base_dir, inputs, ref_datasets
+
+
+def copy_inputs(base_dir, inputs, ref_datasets, inputs_path):
+    with TemporaryDirectory() as tempdir:
+        compressible_tempdir = Path(tempdir).joinpath("inputs")
+        try:
+            handle_inputs(base_dir, inputs, ref_datasets, str(compressible_tempdir), logger)
+        except Exception as exc:
+            logger.error(f"Error copying inputs: {exc.args}")
+        compress_directory(compressible_tempdir, inputs_path)
+
+
+def upload_to_s3(tarball_path, object_key=""):
+    logger.info("Uploading to s3")
+
+    filesize = os.path.getsize(tarball_path)
+
+    # workaround to a recent boto3 issue: https://github.com/boto/boto3/issues/4398
+    config = Config(
+        request_checksum_calculation="WHEN_REQUIRED",
+        response_checksum_validation="WHEN_REQUIRED",
+    )
+    s3 = boto3.client("s3", config=config)
+
+    progress = tqdm(
+        total=filesize, unit="B", unit_scale=True, unit_divisor=1024, desc=f"Uploading {tarball_path.name}"
+    )
+
+    def progress_callback(bytes_amount):
+        progress.update(bytes_amount)
+
+    with open(str(tarball_path), "rb") as f:
+        try:
+            s3.upload_fileobj(f, AWS_BUCKET_NAME, object_key, Callback=progress_callback)
+        except ParamValidationError as exc:
+            logger.error(exc.args[0])
+            logger.error("Do you have the AWS_BUCKET_NAME environment variable set?")
+
+    progress.close()
+
+
+def upload_inputs():
+    print("Uploading inputs")
+    try:
+        _, _, validation_data, config_file, inputs_path = get_upload_file()
+    except (FileNotFoundError, ValueError, KeyError) as exc:
+        # TODO: error formatting
+        logger.error(exc.args)
+        return
+
+    # TODO: a possibility to check with the fragalysis whether the
+    # target upload was successful. This will require target name and
+    # upload version from validation_data (returned by
+    # get_upload_file()). what I dont't have here atm, is the stack
+    # url, if going to check this, this parameter must be made
+    # available from cli
+
+    object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
+
+    if not inputs_path.is_file():
+        base_dir, inputs, ref_datasets = get_copy_inputs(config_file)
+        copy_inputs(base_dir, inputs, ref_datasets, inputs_path)
+
+    upload_to_s3(inputs_path, object_key=object_key)
+
+
+def upload_target(
+    url,
+    proposal,
+    auth_token=None,
+    use_default=False,
+    use_custom=None,
+    no_copy=False,
+):
     # figure out necessary urls
     splits = urlsplit(url)
     base_url = f'{splits.scheme}://{splits.netloc}'
@@ -282,7 +385,7 @@ def upload(url, proposal, auth_token=None, use_default=False, use_custom=None):
     landing_page_url = urljoin(url, LANDING_PAGE_URL)
 
     try:
-        upload_path, input_file, validation_data = get_upload_file(
+        upload_path, input_file, validation_data, config_file, inputs_path = get_upload_file(
             use_default=use_default,
             use_custom=use_custom,
         )
@@ -291,6 +394,9 @@ def upload(url, proposal, auth_token=None, use_default=False, use_custom=None):
         logger.error(exc.args)
         # logger.error(exc.args[0])
         return
+
+    if not no_copy:
+        base_dir, inputs, ref_datasets = get_copy_inputs(config_file)
 
     filename = Path(input_file).name
 
@@ -468,6 +574,13 @@ def upload(url, proposal, auth_token=None, use_default=False, use_custom=None):
                     logger.log(f'The following errors were encountered when processing {filename}:', level=-1)
                     for e in errors:
                         logger.log(e, level=-1)
+                else:
+                    # successful upload
+                    if not no_copy:
+                        # because default is to copy
+                        copy_inputs(base_dir, inputs, ref_datasets, inputs_path)
+                        object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
+                        upload_to_s3(inputs_path, object_key=object_key)
 
         else:
             # upload response else, failure
@@ -496,8 +609,15 @@ def main():
         description="Upload files to fragalysis",
         formatter_class=argparse.RawTextHelpFormatter,  # preserves newlines
     )
-    parser.add_argument("-u", "--url", metavar="url", required=True, help=url_help)
-    parser.add_argument("-p", "--proposal", metavar="proposal number", required=True)
+
+    # two mutually exclusive groups of input args:
+    # 1) upload data to fragalysis (with it's own mutually exclusive args)
+    # 2) upload source data
+    # since argparse doesn't allow nested groups, have to validate
+    # manually
+
+    parser.add_argument("-u", "--url", metavar="url", help=url_help)
+    parser.add_argument("-p", "--proposal", metavar="proposal number")
     parser.add_argument(
         "-t",
         "--token",
@@ -505,33 +625,52 @@ def main():
         required=False,
         metavar="authentication token",
     )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
+
+    parser.add_argument(
         "-d",
         "--use-default",
         action="store_true",
         help="Upload previously created tarball instead of creating a new one",
     )
-    group.add_argument(
+    parser.add_argument(
         "-c",
         "--use-custom",
         metavar="tarball",
         required=False,
         help="Upload custom tarball",
     )
+    parser.add_argument(
+        "--no-copy",
+        required=False,
+        action="store_true",
+        help="Do not copy input data to destination",
+    )
+    parser.add_argument(
+        "-s",
+        "--upload-inputs",
+        action="store_true",
+        help="Skip the target upload and only upload XCA input data",
+    )
 
     args = parser.parse_args()
 
-    if args.url in fragalysis_urls.keys():
-        args.url = fragalysis_urls[args.url]
+    if args.upload_inputs:
+        logger.info(
+            "'upload_inputs' argument given, ignoring any others " + "and proceeding to upload XCA input data",
+        )
+        upload_inputs()
+    else:
+        if args.url in fragalysis_urls.keys():
+            args.url = fragalysis_urls[args.url]
 
-    upload(
-        args.url,
-        args.proposal,
-        auth_token=args.token,
-        use_default=args.use_default,
-        use_custom=args.use_custom,
-    )
+        upload_target(
+            args.url,
+            args.proposal,
+            auth_token=args.token,
+            use_default=args.use_default,
+            use_custom=args.use_custom,
+            no_copy=args.no_copy,
+        )
 
 
 if __name__ == "__main__":
