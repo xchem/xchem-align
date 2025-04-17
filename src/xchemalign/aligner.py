@@ -188,22 +188,22 @@ class Aligner:
 
         wd1 = utils._verify_working_dir(wd0)
         if not wd1:
-            self._log_error("Working dir " + wd0 + " is not valid")
+            self._log_error("Working dir %s" + str(wd0) + " is not valid")
             exit(1)
 
         self.working_dir = wd1
         current_dir = self.working_dir / 'upload-current'
 
         # check that we at least have an upload_1 dir
-        if not (current_dir / 'upload_1').is_dir():
-            self._log_error("Working dir " + dir + " does not contain and upload_? dirs")
+        if not current_dir.joinpath('upload_1').is_dir():
+            self._log_error("Working dir " + str(dir) + " does not contain and upload_? dirs")
             exit(1)
 
         # now find the latest upload_? dir
         i = 0
         while i < 100:
             i += 1
-            version_dir = current_dir / ('upload_' + str(i))
+            version_dir = current_dir.joinpath(f'upload_{str(i)}')
             if version_dir.is_dir():
                 self.version_dir = version_dir
             else:

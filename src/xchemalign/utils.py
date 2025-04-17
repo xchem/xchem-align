@@ -568,13 +568,13 @@ def _verify_working_dir(working_dir):
         print("Working dir {} does not exist".format(working_dir))
         exit(1)
 
-    current_dir = working_dir / 'upload-current'
+    current_dir = working_dir.joinpath('upload-current')
     if current_dir.is_symlink():
         return working_dir
     else:
         # check if working dir is already one or 2 levels under where it really needs to be
         working_dir = working_dir.parent
-        current_dir = working_dir / 'upload-current'
+        current_dir = working_dir.joinpath('upload-current')
         if current_dir.is_symlink():
             print(
                 "WARNING: you seem to have specified a directory one level under the true working dir. Using",
@@ -582,7 +582,7 @@ def _verify_working_dir(working_dir):
             )
             return working_dir
         working_dir = working_dir.parent
-        current_dir = working_dir / 'upload-current'
+        current_dir = working_dir.joinpath('upload-current')
         if current_dir.is_symlink():
             print(
                 "WARNING: you seem to have specified a directory two levels under the true working dir. Using",
