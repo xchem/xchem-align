@@ -161,6 +161,9 @@ class Aligner:
         self.errors = []
         self.warnings = []
 
+        # TODO: if this command fails to set the directory, it tries
+        # to log an error with a logger that's going to be initialised
+        # 2 lines below. needs a better solution
         self._find_version_dir(dir)  # sets self.working_dir and self.version_dir
         if not log_file:
             log_file = self.working_dir / 'upload-current' / 'aligner.log'
