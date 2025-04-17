@@ -65,6 +65,10 @@ jobs:
         python -m xchemalign.copier -h
         python -m xchemalign.collator -h
         python -m xchemalign.aligner -h
+    - name: Debug current dir and list files
+      run: |
+        pwd
+        ls -R
     - name: Test config_1
       run: |
         mkdir -p test-data/outputs/upload_1
