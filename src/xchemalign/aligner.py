@@ -789,7 +789,7 @@ def main():
     args = parser.parse_args()
 
     if args.dir:
-        log = str(Path(args.dir) / 'aligner.log')
+        log = str(Path(args.dir).joinpath('aligner.log'))
     else:
         log = 'aligner.log'
 
