@@ -49,6 +49,7 @@ from .copier import handle_inputs
 NUM_PROCESSES = max(1, os.cpu_count() - 1)
 
 LOGIN_URL = "/accounts/login/"
+VALIDATE_URL = "/api/validate_target_experiments/"
 UPLOAD_URL = "/api/upload_target_experiments/"
 LANDING_PAGE_URL = '/viewer/react/landing/'
 
@@ -381,6 +382,7 @@ def upload_target(
     # figure out necessary urls
     splits = urlsplit(url)
     base_url = f'{splits.scheme}://{splits.netloc}'
+    validate_url = urljoin(base_url, VALIDATE_URL)
     upload_url = urljoin(base_url, UPLOAD_URL)
     landing_page_url = urljoin(url, LANDING_PAGE_URL)
 
@@ -432,7 +434,7 @@ def upload_target(
 
         logger.info("Checking data version...")
         validation_result = session.post(
-            upload_url,
+            validate_url,
             data=validation_data,
         )
         if validation_result.url.find("keycloak") > 0:

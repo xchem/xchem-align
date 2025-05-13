@@ -466,7 +466,7 @@ The gzipped tar file can then be uploaded to Fragalysis via:
 
 The target access string will be the name of your proposal in UAS/ISpyB. Any Fed ID with access to your proposal will be able to see your data. If you have a private/closed data set, this means only logged in users with access configured via UAS will see your target dataset.
 
-Attach the `.tgz` archive by clicking the 'Choose file' button. The remaining fields, 'Data version' and 'Target name', are not necessary, these are used only by the uploader tool. After clicking 'POST' you will see a URL which you can append to https://fragalysis.xchem.diamond.ac.uk/ (or https://fragalysis.diamond.ac.uk/ for production) to track the progress of the upload.
+Attach the `.tgz` archive by clicking the 'Choose file' button. After clicking 'POST' you will see a URL which you can append to https://fragalysis.xchem.diamond.ac.uk/ (or https://fragalysis.diamond.ac.uk/ for production) to track the progress of the upload.
 
 
 
