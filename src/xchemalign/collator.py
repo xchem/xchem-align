@@ -146,7 +146,7 @@ class Collator:
         self.warnings = []
 
         self.working_dir = Path(working_dir)
-        self.config_file = self.working_dir / 'upload-current' / 'config.yaml'
+        self.config_file = self.working_dir / "upload-current" / "config.yaml"
         if not self.config_file.is_file():
             print(self.config_file, "not found")
         self.include_git_info = include_git_info
@@ -155,7 +155,7 @@ class Collator:
         self.config = config
 
         self.base_path = utils.find_path(config, Constants.CONFIG_BASE_DIR)
-        self.output_path = self.working_dir / 'upload-current'
+        self.output_path = self.working_dir / "upload-current"
 
         self.target_name = utils.find_property(config, Constants.CONFIG_TARGET_NAME)
 
@@ -174,7 +174,7 @@ class Collator:
         self.num_crystals = 0
 
         if not log_file:
-            log_file = self.output_path / 'collator.log'
+            log_file = self.output_path / "collator.log"
         self.logger = utils.Logger(logfile=log_file, level=log_level)
         self.log_file = log_file
 
@@ -259,23 +259,23 @@ class Collator:
         if inp == "Y" or inp == "y":
             self.logger.info("migrating data for new data format version", utils.DATA_FORMAT_VERSION)
 
-            new_version_dirname = 'upload-v' + str(math.floor(utils.DATA_FORMAT_VERSION))
+            new_version_dirname = "upload-v" + str(math.floor(utils.DATA_FORMAT_VERSION))
             new_version_path = self.working_dir / new_version_dirname
             self.logger.info("creating new working dir", new_version_path)
             os.mkdir(new_version_path)
-            os.mkdir(new_version_path / 'upload_1')
+            os.mkdir(new_version_path / "upload_1")
             self.logger.info("copying config.yaml and assemblies.yaml")
-            f = shutil.copy2(self.output_path / 'config.yaml', new_version_path)
-            f = shutil.copy2(self.output_path / 'assemblies.yaml', new_version_path)
-            extra_files = Path(self.output_path / 'extra_files')
+            f = shutil.copy2(self.output_path / "config.yaml", new_version_path)
+            f = shutil.copy2(self.output_path / "assemblies.yaml", new_version_path)
+            extra_files = Path(self.output_path / "extra_files")
             if extra_files.is_dir():
-                copy_tree(str(extra_files), str(new_version_path / 'extra_files'))
-            self.logger.info("removing", self.output_path, 'symlink')
+                copy_tree(str(extra_files), str(new_version_path / "extra_files"))
+            self.logger.info("removing", self.output_path, "symlink")
             self.output_path.unlink()
-            self.logger.info("creating symlink", self.output_path, '->', new_version_path)
+            self.logger.info("creating symlink", self.output_path, "->", new_version_path)
             cwd = Path.cwd()
             os.chdir(self.working_dir)
-            os.symlink(new_version_dirname, 'upload-current', target_is_directory=True)
+            os.symlink(new_version_dirname, "upload-current", target_is_directory=True)
             os.chdir(cwd)
             self.logger.info(
                 "A new directory",
@@ -417,6 +417,7 @@ class Collator:
             self._validate_input(input, crystals)
 
         self._validate_references(crystals)
+        self._validate_assemblies(crystals)
 
         return meta
 
@@ -430,6 +431,38 @@ class Collator:
             for ref in refs:
                 if crystals.get(ref) is None:
                     self._log_error("reference {} is not in the set of crystals to be processed".format(ref))
+
+    def _validate_assemblies(self, crystals):
+        assemblies_file = self.output_path / Constants.ASSEMBLIES_FILENAME
+        assemblies_yaml = utils.read_config_file(assemblies_file)
+
+        # check the assemblies section
+        assemblies = assemblies_yaml.get(Constants.META_ASSEMBLIES)
+        if not assemblies:
+            self._log_error("assemblies.yaml does not appear to contain any assemblies")
+        else:
+            for name, data in assemblies.items():
+                ref = data[Constants.META_REFERENCE]
+                if crystals.get(ref) is None:
+                    self._log_error(
+                        "reference {} for assembly {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
+                            ref, name
+                        )
+                    )
+
+        # check the crystalforms section
+        xtalforms = assemblies_yaml.get(Constants.META_XTALFORMS)
+        if not xtalforms:
+            self._log_error("assemblies.yaml does not appear to contain any crystalforms")
+        else:
+            for name, data in xtalforms.items():
+                ref = data[Constants.META_REFERENCE]
+                if crystals.get(ref) is None:
+                    self._log_error(
+                        "reference {} for crystalform {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
+                            ref, name
+                        )
+                    )
 
     def _validate_input(self, input, crystals):
         if input.type == Constants.CONFIG_TYPE_MODEL_BUILDING:
@@ -582,7 +615,7 @@ class Collator:
                                 Constants.META_SHA256: digest,
                             }
                         if cmpd_code:
-                            tokens = cmpd_code.split(';')
+                            tokens = cmpd_code.split(";")
                             self.compound_codes[xtal_name] = tokens
                         if cmpd_smiles:
                             self.compound_smiles[xtal_name] = utils.parse_compound_smiles(cmpd_smiles)
@@ -683,7 +716,7 @@ class Collator:
 
     def _collect_manual_files(self, manual_input_path: Path):
         data = utils.collect_manual_files(manual_input_path)
-        self.logger.info(len(data), 'manual PDBs found for', manual_input_path)
+        self.logger.info(len(data), "manual PDBs found for", manual_input_path)
         return data
 
     def read_versions(self):
@@ -698,7 +731,7 @@ class Collator:
                 break
         if version == 1:
             self.logger.error(
-                "No version directory found. Please create one named", str(self.output_path / 'upload_1')
+                "No version directory found. Please create one named", str(self.output_path / "upload_1")
             )
             return None
 
@@ -790,28 +823,28 @@ class Collator:
         i = 0
         for name, df, dbfile in zip(names, dataFrames, dbfiles):
             i += 1
-            outfile = str(self.output_path / self.version_dir / 'extra_files' / ('soakdb_' + name))
-            self.logger.info('writing soakdb data to', outfile)
-            df.to_csv(outfile + '.csv', index=False)
-            f = shutil.copy2(dbfile, outfile + '.sqlite')
+            outfile = str(self.output_path / self.version_dir / "extra_files" / ("soakdb_" + name))
+            self.logger.info("writing soakdb data to", outfile)
+            df.to_csv(outfile + ".csv", index=False)
+            f = shutil.copy2(dbfile, outfile + ".sqlite")
             if not f:
                 self.logger.error("Failed to copy SoakDB file {}".format(dbfile))
 
     def _copy_extra_files(self):
-        extra_files_dir = self.config.get('extra_files_dir')
+        extra_files_dir = self.config.get("extra_files_dir")
         if extra_files_dir is None:
-            extra_files_path = self.output_path / 'extra_files'
+            extra_files_path = self.output_path / "extra_files"
         else:
             extra_files_path = Path(extra_files_dir)
 
         if not extra_files_path.is_dir():
-            self._log_warning('extra_files dir {} not found'.format(extra_files_path))
+            self._log_warning("extra_files dir {} not found".format(extra_files_path))
         else:
             src = str(extra_files_path)
-            dst = str(self.output_path / self.version_dir / 'extra_files')
-            self.logger.info('copying extra_files from {} to {}'.format(src, dst))
+            dst = str(self.output_path / self.version_dir / "extra_files")
+            self.logger.info("copying extra_files from {} to {}".format(src, dst))
             copied = dir_util.copy_tree(src, dst)
-            self.logger.info('copied {} extra_files files'.format(len(copied)))
+            self.logger.info("copied {} extra_files files".format(len(copied)))
 
     def _copy_files(self, meta):
         cryst_path = self.version_dir / Constants.META_XTAL_FILES
@@ -823,13 +856,13 @@ class Collator:
         self.logger.info("creating cryst_dir", ext_cryst_path)
         os.makedirs(ext_cryst_path)
 
-        extra_files_path = self.output_path / self.version_dir / 'extra_files'
+        extra_files_path = self.output_path / self.version_dir / "extra_files"
         if not extra_files_path.is_dir():
             os.mkdir(extra_files_path)
 
-        compound_path = extra_files_path / 'compounds_auto.csv'
+        compound_path = extra_files_path / "compounds_auto.csv"
         self.logger.info("writing compound data to " + str(compound_path))
-        with open(compound_path, 'wt') as compounds_auto:
+        with open(compound_path, "wt") as compounds_auto:
             # write header for compounds_auto.csv
             compounds_auto.write("xtal,ligand_name," + Constants.META_CMPD_CODE + "\n")
 
@@ -901,8 +934,8 @@ class Collator:
                             # read the CIF file to determine the ligand names
                             try:
                                 ligand_mols = utils.gen_mols_from_cif(cif_input)
-                                ligand_names = [m.GetProp('_Name') for m in ligand_mols]
-                                self.logger.info('Found ligand names ' + str(ligand_names))
+                                ligand_names = [m.GetProp("_Name") for m in ligand_mols]
+                                self.logger.info("Found ligand names " + str(ligand_names))
                             except:
                                 tb = traceback.format_exc()
                                 self._log_error(
@@ -925,10 +958,10 @@ class Collator:
 
                     # Determine the ligands present and their coordinates
                     dataset_ligands = self.get_dataset_ligands(pdb_input, ligand_names)
-                    if xtal_name == 'Mpro-i0130':
-                        print(f'pdb_input: {pdb_input}')
-                        print(f'Ligand names: {ligand_names}')
-                        print(f'Got ligands: {dataset_ligands}')
+                    if xtal_name == "Mpro-i0130":
+                        print(f"pdb_input: {pdb_input}")
+                        print(f"Ligand names: {ligand_names}")
+                        print(f"Got ligands: {dataset_ligands}")
 
                     # Match ligand to panddas event maps if possible and determine if those maps are new
                     best_event_map_paths = self.get_dataset_event_maps(xtal_name, dataset_ligands, event_tables)
@@ -1086,8 +1119,8 @@ class Collator:
                                                     smi = cpd_smiles[i][0]
                                             except:
                                                 self._log_warning(
-                                                    'Failed to generate canonical smiles for '
-                                                    + 'modeled molecule from soakDB'
+                                                    "Failed to generate canonical smiles for "
+                                                    + "modeled molecule from soakDB"
                                                 )
                                             if len(cpd_smiles[i]) == 2:
                                                 ligands[name][Constants.META_SOAKED_SMILES_SOAKDB] = cpd_smiles[i][1]
@@ -1101,8 +1134,8 @@ class Collator:
                                                         smi = cpd_smiles[i][1]
                                                 except:
                                                     self._log_warning(
-                                                        'Failed to generate canonical smiles for '
-                                                        + 'soaked molecule from soakDB'
+                                                        "Failed to generate canonical smiles for "
+                                                        + "soaked molecule from soakDB"
                                                     )
                                         if not smi:
                                             try:
@@ -1124,7 +1157,7 @@ class Collator:
                                     if ligands:
                                         data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
                                 except:
-                                    self.logger.warn('failed to generate ligand data for {}'.format(xtal_name))
+                                    self.logger.warn("failed to generate ligand data for {}".format(xtal_name))
                                     traceback.print_exc()
 
                         # copy event maps that differ in SHA from previously known ones
@@ -1319,7 +1352,7 @@ class Collator:
             yaml.dump(meta, stream, sort_keys=False)
 
     def _copy_config(self):
-        to_path = self.output_path / self.version_dir / 'config.yaml'
+        to_path = self.output_path / self.version_dir / "config.yaml"
         self.logger.info("copying config file", self.config_file, "to", to_path)
         f = shutil.copy2(self.config_file, to_path)
         if not f:
@@ -1454,7 +1487,7 @@ def main():
                 logger.report()
                 logger.close()
                 if logger.logfilename:
-                    to_path = c.output_path / c.version_dir / 'collator.log'
+                    to_path = c.output_path / c.version_dir / "collator.log"
                     print("copying log file", logger.logfilename, "to", to_path)
                     f = shutil.copy2(logger.logfilename, to_path)
                     if not f:
