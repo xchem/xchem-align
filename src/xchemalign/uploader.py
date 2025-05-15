@@ -387,7 +387,7 @@ def upload_target(
     landing_page_url = urljoin(url, LANDING_PAGE_URL)
 
     # NB! disabling upload for now:
-    no_copy = False
+    no_copy = True
 
     try:
         upload_path, input_file, validation_data, config_file, inputs_path = get_upload_file(
@@ -583,7 +583,9 @@ def upload_target(
                     # successful upload
                     if not no_copy:
                         # because default is to copy
-                        copy_inputs(base_dir, inputs, ref_datasets, inputs_path)
+                        copy_inputs(
+                            base_dir, inputs, ref_datasets, inputs_path  # pylint: disable=used-before-assignment
+                        )
                         object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
                         upload_to_s3(inputs_path, object_key=object_key)
 
