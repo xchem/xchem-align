@@ -386,6 +386,9 @@ def upload_target(
     upload_url = urljoin(base_url, UPLOAD_URL)
     landing_page_url = urljoin(url, LANDING_PAGE_URL)
 
+    # NB! disabling upload for now:
+    no_copy = False
+
     try:
         upload_path, input_file, validation_data, config_file, inputs_path = get_upload_file(
             use_default=use_default,
