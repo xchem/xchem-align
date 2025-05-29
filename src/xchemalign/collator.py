@@ -366,7 +366,9 @@ class Collator:
 
             try:
                 git_info = repo_info.generate(repo_dir)
-            except:
+            except Exception as exc:
+                self._log_error(exc)
+                self._log_error(traceback.format_exc())
                 self._log_error(
                     "cannot determine the status of the Git repo. "
                     + "Is the XCA_GIT_REPO environment variable defined correctly or if not defined is "
