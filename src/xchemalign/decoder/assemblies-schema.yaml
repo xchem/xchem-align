@@ -47,7 +47,7 @@ required:
 definitions:
 
   # An assembly.
-  # Consists of an identity (i.e. 'dimer')
+  # Consists of an identity (e.g. 'dimer')
   # followed by an Assembly object.
   assembly-identity:
     type: object
@@ -58,7 +58,7 @@ definitions:
     minProperties: 1
 
   # A crysatlform.
-  # Consists of an identity (i.e. 'dimer')
+  # Consists of an identity (e.g. 'xtalform1')
   # followed by an Assembly object.
   crystalform-identity:
     type: object
@@ -68,24 +68,14 @@ definitions:
         $ref: '#/definitions/crystalform'
     minProperties: 1
 
-  # A crysatlform.
-  # Consists of an identity (i.e. 'dimer')
-  # followed by an Assembly object.
-  crystalform-item-identity:
+  # A crystalform assemblies item identity.
+  # (e.g. '1')
+  crystalform-assemblies-item-identity:
     type: object
     additionalProperties: false
     patternProperties:
       '^[a-zA-Z0-9-_.]{1,80}$':
-        $ref: '#/definitions/crystalform-item'
-    minProperties: 1
-
-  # A crystalform assembly identity.
-  crystalform-item-assembly-identity:
-    type: object
-    additionalProperties: false
-    patternProperties:
-      '^[a-zA-Z0-9-_.]{1,80}$':
-        $ref: '#/definitions/crystalform-item-assembly'
+        $ref: '#/definitions/crystalform-assemblies-item'
     minProperties: 1
 
   # Assembly Structure
@@ -115,14 +105,14 @@ definitions:
         maxLength: 80
       assemblies:
         anyOf:
-        - $ref: '#/definitions/crystalform-item-assembly-identity'
+        - $ref: '#/definitions/crystalform-assemblies-item-identity'
         - type: number
     required:
     - reference
     - assemblies
 
   # An assembly in the crystalform assemblies array
-  crystalform-item-assembly:
+  crystalform-assemblies-item:
     type: object
     additionalProperties: false
     properties:
