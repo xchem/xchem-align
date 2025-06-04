@@ -54,6 +54,10 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install .
     - name: Unit test
       run: pytest
       env:
@@ -75,7 +79,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install
+    - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install .
