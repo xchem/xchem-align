@@ -53,7 +53,7 @@ definitions:
     type: object
     additionalProperties: false
     patternProperties:
-      '^[a-zA-Z]{1}[a-zA-Z0-9-_]{0,79}$':
+      '^[a-zA-Z0-9-_.]{1,80}$':
         $ref: '#/definitions/assembly'
     minProperties: 1
 
@@ -64,7 +64,7 @@ definitions:
     type: object
     additionalProperties: false
     patternProperties:
-      '^[a-zA-Z]{1}[a-zA-Z0-9-_.]{0,79}$':
+      '^[a-zA-Z0-9-_.]{1,80}$':
         $ref: '#/definitions/crystalform'
     minProperties: 1
 
@@ -75,7 +75,7 @@ definitions:
     type: object
     additionalProperties: false
     patternProperties:
-      '^[a-zA-Z]{1}[a-zA-Z0-9-_]{0,79}$':
+      '^[a-zA-Z0-9-_.]{1,80}$':
         $ref: '#/definitions/crystalform-item'
     minProperties: 1
 
@@ -84,7 +84,7 @@ definitions:
     type: object
     additionalProperties: false
     patternProperties:
-      '^[a-zA-Z0-9]{1}[a-zA-Z0-9-_]{0,79}$':
+      '^[a-zA-Z0-9-_.]{1,80}$':
         $ref: '#/definitions/crystalform-item-assembly'
     minProperties: 1
 
