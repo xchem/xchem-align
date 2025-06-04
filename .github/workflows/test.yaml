@@ -39,6 +39,10 @@ jobs:
         pip install --upgrade pip
         pip install .[dev]
         pre-commit run --all-files
+    - name: Unit test
+      run: pytest tests/test_assemblies_decoder.py
+      env:
+        PYTHONPATH: src
 
   command-execution:
     runs-on: ubuntu-latest
