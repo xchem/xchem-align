@@ -65,3 +65,14 @@ def test_test_data_assemblies_with_mis_spelled_assemblies_section():
 
     # Assert
     assert error == expected_error
+
+
+def test_test_data_assemblies_with_bad_assembly_name():
+    # Arrange
+    expected_error = "'dimer+1' does not match any of the regexes: '^[a-zA-Z0-9-_.]{1,80}$'"
+
+    # Act
+    error = decoder.validate_assemblies_schema("test-data/assemblies-with-bad-assembly-name.yaml")
+
+    # Assert
+    assert error == expected_error
