@@ -6,7 +6,7 @@ import shutil
 import yaml
 import pytest
 
-from ligand_neighbourhood_alignment import dt
+#from ligand_neighbourhood_alignment import dt
 
 
 @pytest.fixture(scope="session")
