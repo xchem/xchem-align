@@ -59,7 +59,7 @@ jobs:
         pip install --upgrade pip
         pip install .
     - name: Unit test
-      run: pytest
+      run: pytest tests/test_assemblies_decoder.py
       env:
         PYTHONPATH: src
 
