@@ -25,7 +25,7 @@ def validate_assemblies_schema(assembly_filename: str) -> str | None:
     """
     assert assembly_filename
     if not os.path.isfile(assembly_filename):
-        return f"The assembly file does not exist ({assembly_filename})"
+        return f"The assembly file '{assembly_filename}' does not exist"
 
     with open(assembly_filename, "r", encoding="utf8") as assembly_file:
         assembly: dict[str, Any] = yaml.load(assembly_file, Loader=yaml.BaseLoader)
