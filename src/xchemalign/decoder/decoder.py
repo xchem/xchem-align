@@ -9,9 +9,7 @@ import yaml
 
 # The (built-in) schemas...
 # from the same directory as us.
-_ASSEMBLIES_SCHEMA_FILE: str = os.path.join(
-    os.path.dirname(__file__), "assemblies-schema.yaml"
-)
+_ASSEMBLIES_SCHEMA_FILE: str = os.path.join(os.path.dirname(__file__), "assemblies-schema.yaml")
 
 # Load the Workflow schema YAML file now.
 # This must work as the file is installed along with this module.

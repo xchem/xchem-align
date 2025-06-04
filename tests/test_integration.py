@@ -36,7 +36,7 @@ def test_collator_upload_1(
 
 @pytest.mark.order(after="test_collator_upload_1")
 def test_aligner_upload_1(constants, assemblies_file):
-    log = str(Path(constants.TEST_DIR) / 'aligner.log')
+    log = str(Path(constants.TEST_DIR) / "aligner.log")
 
     a = Aligner(constants.TEST_DIR, log_file=log, log_level=0)
     logger = a.logger
@@ -80,7 +80,7 @@ def test_collator_upload_2(constants, config_2_file, upload_2_dir, uploads_dir, 
 
 @pytest.mark.order(after="test_collator_upload_2")
 def test_aligner_upload_2(constants):
-    log = str(Path(constants.TEST_DIR) / 'aligner.log')
+    log = str(Path(constants.TEST_DIR) / "aligner.log")
 
     a = Aligner(constants.TEST_DIR, log_file=log, log_level=0)
     logger = a.logger
@@ -154,22 +154,22 @@ def test_chain_to_biochain(constants, lna_assemblies, xtalforms):
         for xtalform_assembly_name, xtalform_assembly in xtalform.assemblies.items():
             for chain in xtalform_assembly.chains:
                 biochain = alignment_heirarchy._chain_to_biochain(chain, xtalform, lna_assemblies)
-                rprint(f'Chain to Biochain: {xtalform_name} : {xtalform_assembly_name} : {chain} -> {biochain}')
+                rprint(f"Chain to Biochain: {xtalform_name} : {xtalform_assembly_name} : {chain} -> {biochain}")
 
 
 def test_structure_to_landmarks(pdb_paths):
-    st = gemmi.read_structure(str(pdb_paths['Mpro-IBM0045']))
+    st = gemmi.read_structure(str(pdb_paths["Mpro-IBM0045"]))
     landmarks = alignment_heirarchy.structure_to_landmarks(st)
     rprint(landmarks)
 
 
 def test_calculate_assembly_transform(pdb_paths, lna_assemblies):
     # Generate assembly structure from reference
-    as1_ref = gemmi.read_structure(str(pdb_paths['Mpro-IBM0045']))
-    as1 = alignment_heirarchy._get_assembly_st(lna_assemblies['dimer'], as1_ref)
+    as1_ref = gemmi.read_structure(str(pdb_paths["Mpro-IBM0045"]))
+    as1 = alignment_heirarchy._get_assembly_st(lna_assemblies["dimer"], as1_ref)
 
-    as2_ref = gemmi.read_structure(str(pdb_paths['7ql8']))
-    as2 = alignment_heirarchy._get_assembly_st(lna_assemblies['monomer'], as2_ref)
+    as2_ref = gemmi.read_structure(str(pdb_paths["7ql8"]))
+    as2 = alignment_heirarchy._get_assembly_st(lna_assemblies["monomer"], as2_ref)
 
     # Generate assembly landmarks from assembly structure
     as1_lm = alignment_heirarchy.structure_to_landmarks(as1)
@@ -180,7 +180,7 @@ def test_calculate_assembly_transform(pdb_paths, lna_assemblies):
 
     # Determine transform
     transform = alignment_heirarchy._calculate_assembly_transform(
-        ref=as1_lm, mov=as2_lm, chain=hierarchy['monomer'][1], debug=True
+        ref=as1_lm, mov=as2_lm, chain=hierarchy["monomer"][1], debug=True
     )
     rprint(transform)
 
@@ -190,7 +190,7 @@ def test_calculate_assembly_sequence(lna_assemblies):
     hierarchy, chain_priority = alignment_heirarchy._derive_alignment_heirarchy(lna_assemblies)
 
     #
-    transform_sequence = alignment_heirarchy._calculate_assembly_sequence(hierarchy, 'fake_tetramer')
+    transform_sequence = alignment_heirarchy._calculate_assembly_sequence(hierarchy, "fake_tetramer")
     rprint(transform_sequence)
 
 
@@ -209,14 +209,14 @@ def test_calculate_assembly_transform_sequence(pdb_paths, lna_assemblies):
 
     # Calculate the full transform
     combined_transform = alignment_heirarchy._calculate_assembly_transform_sequence(
-        hierarchy, 'fake_tetramer', landmarks, debug=True
+        hierarchy, "fake_tetramer", landmarks, debug=True
     )
     rprint(combined_transform)
     tr = alignment_heirarchy._transform_to_gemmi(combined_transform)
-    mov = landmarks['fake_tetramer'][('C', ('GLN', '256'), 'CA')]
-    ref = landmarks['dimer'][('B', ('GLN', '256'), 'CA')]
+    mov = landmarks["fake_tetramer"][("C", ("GLN", "256"), "CA")]
+    ref = landmarks["dimer"][("B", ("GLN", "256"), "CA")]
     aligned_mov = tr.apply(gemmi.Position(mov[0], mov[1], mov[2]))
-    rprint(f'Reference position: {ref} <- aligned position: {(aligned_mov.x, aligned_mov.y, aligned_mov.z)}')
+    rprint(f"Reference position: {ref} <- aligned position: {(aligned_mov.x, aligned_mov.y, aligned_mov.z)}")
 
 
 def test_get_structure_chain_to_assembly_transform(lna_assemblies, xtalforms, pdb_paths):
@@ -228,10 +228,10 @@ def test_get_structure_chain_to_assembly_transform(lna_assemblies, xtalforms, pd
         landmarks[assembly_name] = alignment_heirarchy.structure_to_landmarks(as_st)
 
     # Select a test structure, chain and assembly
-    test_dataset = '8e1y'
+    test_dataset = "8e1y"
     st = gemmi.read_structure(str(pdb_paths[test_dataset]))
-    xtalform = xtalforms['xtalform3']
-    chain = 'B'
+    xtalform = xtalforms["xtalform3"]
+    chain = "B"
 
     #
     tr = alignment_heirarchy._get_structure_chain_to_assembly_transform(st, chain, xtalform, lna_assemblies, landmarks)
