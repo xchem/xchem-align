@@ -41,6 +41,7 @@ def validate_assemblies_schema(assembly_filename: str) -> str | None:
     # i.e. does each crystalform assembly refer to an assembly?
     return _validate_assemblies_content(assembly)
 
+
 def _validate_assemblies_content(assemblies_content: dict[str, Any]) -> str | None:
     """Assuming the file has already passed schema validation this function
     checks additional content, like cross-references of assemblies."""
@@ -48,13 +49,13 @@ def _validate_assemblies_content(assemblies_content: dict[str, Any]) -> str | No
     # Check assembly cross-references
     # What assemblies are declared?
     assemblies: list[str] = []
-    assemblies.extend(iter(assemblies_content['assemblies']))
+    assemblies.extend(iter(assemblies_content["assemblies"]))
     # Does each crystalform refer to one of the known assemblies?
-    crystalforms = assemblies_content['crystalforms']
+    crystalforms = assemblies_content["crystalforms"]
     for crystalform in crystalforms:
-        crystalfrom_assemblies = crystalforms[f'{crystalform}']['assemblies']
+        crystalfrom_assemblies = crystalforms[f"{crystalform}"]["assemblies"]
         for assembly in crystalfrom_assemblies:
-            assembly_name: str = crystalfrom_assemblies[f'{assembly}']['assembly']
+            assembly_name: str = crystalfrom_assemblies[f"{assembly}"]["assembly"]
             if assembly_name not in assemblies:
                 return f"The assembly '{assembly_name}' in crystalform '{crystalform}->{assembly}' is not an assembly in this file"
 
