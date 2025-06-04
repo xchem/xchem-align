@@ -57,7 +57,7 @@ def _validate_assemblies_content(assemblies_content: dict[str, Any]) -> str | No
         for assembly in crystalfrom_assemblies:
             assembly_name: str = crystalfrom_assemblies[f"{assembly}"]["assembly"]
             if assembly_name not in assemblies:
-                return f"The assembly '{assembly_name}' in crystalform '{crystalform}->{assembly}' is not an assembly in this file"
+                return f"The assembly '{assembly_name}' in crystalform '{crystalform}->{assembly}' is not an assembly in the file"
 
     # OK if we get here
     return None
