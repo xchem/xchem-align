@@ -76,3 +76,14 @@ def test_test_data_assemblies_with_bad_assembly_name():
 
     # Assert
     assert error == expected_error
+
+
+def test_test_data_assemblies_with_duplicate_crystalforms():
+    # Arrange
+    expected_error = "Found duplicate key 'xtalform1'"
+
+    # Act
+    error = decoder.validate_assemblies_schema("test-data/assemblies-with-duplicate-crystalforms.yaml")
+
+    # Assert
+    assert error == expected_error
