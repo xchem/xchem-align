@@ -1,4 +1,30 @@
 """A module to validate and decode XChemAlign definitions.
+
+This decoder module offers validation of 'assemblies' files using YAML BaseLoader
+and a JSON schema to enforce the structure of the file. Following these checks
+there are additional (custom) 'content' tests to validate parts of the file
+that are not possible using a YAML loader or JSON schema.
+
+Assembly validation is done by calling 'validate_assemblies_schema()' with an assemblies
+file. This returns an error string if there's an error or None if the file is OK.
+
+Things that are checked:
+
+1.  Structure - handled by YAML BaseLoader
+    a.  Detects duplicate keys.
+        e.g. 'xtalform1' being used twice in the crystalform block
+
+2.  Structure - handled by the jsonschema validation
+    a.  Does it contain all the expected keys in the right place?
+        like 'assemblies', 'biomol', and 'chains'
+    b.  Does it contain any unexpected keys?
+    c.  Is the assembly key valid? (up to 80 characters using [a-zA-Z0-9-_.])
+        e.g. 'dimer'
+    d.  Is the crystalform key valid?
+        e.g. 'xtalform3'
+
+3.  Content - handled by the custom function _validate_assemblies_content()
+    a.  Does every crystalform assembly refer to an assembly in the file?
 """
 
 import os
@@ -6,6 +32,7 @@ from typing import Any
 
 import jsonschema
 import yaml
+from yaml.constructor import ConstructorError
 
 # The (built-in) schemas...
 # from the same directory as us.
@@ -18,6 +45,27 @@ with open(_ASSEMBLIES_SCHEMA_FILE, "r", encoding="utf8") as schema_file:
     _ASSEMBLIES_SCHEMA: dict[str, Any] = yaml.load(schema_file, Loader=yaml.FullLoader)
 assert _ASSEMBLIES_SCHEMA
 
+# A YAML constructor and custom BaseLoader class
+# that detects duplicate YAML keys
+def _NO_DUPLICATES_CONSTRUCTOR(loader, node, deep=False):
+    """Check for duplicate keys."""
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        value = loader.construct_object(value_node, deep=deep)
+        if key in mapping:
+            raise ConstructorError(f"Found duplicate key '{key}'")
+        mapping[key] = value
+
+    return loader.construct_mapping(node, deep)
+
+class DupCheckLoader(yaml.BaseLoader):
+      """Local class to prevent pollution of global yaml.Loader."""
+      pass
+
+DupCheckLoader.add_constructor(
+      yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+      _NO_DUPLICATES_CONSTRUCTOR)
 
 def validate_assemblies_schema(assembly_filename: str) -> str | None:
     """Checks the Assemblies definition against the built-in schema.
@@ -27,8 +75,11 @@ def validate_assemblies_schema(assembly_filename: str) -> str | None:
     if not os.path.isfile(assembly_filename):
         return f"The assembly file '{assembly_filename}' does not exist"
 
-    with open(assembly_filename, "r", encoding="utf8") as assembly_file:
-        assembly: dict[str, Any] = yaml.load(assembly_file, Loader=yaml.BaseLoader)
+    try:
+        with open(assembly_filename, "r", encoding="utf8") as assembly_file:
+            assembly: dict[str, Any] = yaml.load(assembly_file, DupCheckLoader)
+    except yaml.constructor.ConstructorError as cex:
+        return str(cex)
 
     try:
         jsonschema.validate(assembly, schema=_ASSEMBLIES_SCHEMA)
