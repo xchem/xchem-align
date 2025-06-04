@@ -45,6 +45,7 @@ with open(_ASSEMBLIES_SCHEMA_FILE, "r", encoding="utf8") as schema_file:
     _ASSEMBLIES_SCHEMA: dict[str, Any] = yaml.load(schema_file, Loader=yaml.FullLoader)
 assert _ASSEMBLIES_SCHEMA
 
+
 # A YAML constructor and custom BaseLoader class
 # that detects duplicate YAML keys
 def _NO_DUPLICATES_CONSTRUCTOR(loader, node, deep=False):
@@ -59,13 +60,15 @@ def _NO_DUPLICATES_CONSTRUCTOR(loader, node, deep=False):
 
     return loader.construct_mapping(node, deep)
 
-class DupCheckLoader(yaml.BaseLoader):
-      """Local class to prevent pollution of global yaml.Loader."""
-      pass
 
-DupCheckLoader.add_constructor(
-      yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-      _NO_DUPLICATES_CONSTRUCTOR)
+class DupCheckLoader(yaml.BaseLoader):
+    """Local class to prevent pollution of global yaml.Loader."""
+
+    pass
+
+
+DupCheckLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _NO_DUPLICATES_CONSTRUCTOR)
+
 
 def validate_assemblies_schema(assembly_filename: str) -> str | None:
     """Checks the Assemblies definition against the built-in schema.
