@@ -1,14 +1,17 @@
 """A module to validate and decode XChemAlign definitions.
 
-This decoder module offers validation of 'assemblies' files using YAML BaseLoader
-and a JSON schema to enforce the structure of the file. Following these checks
-there are additional (custom) 'content' tests to validate parts of the file
-that are not possible using a YAML loader or JSON schema.
+This decoder module offers validation of 'assemblies' and 'config' files
+using YAML BaseLoader and a JSON schema to enforce the structure of the file.
+Following these checks there are additional (custom) 'content' tests to validate parts
+of the file that are not possible using a YAML loader or JSON schema.
 
 Assembly validation is done by calling 'validate_assemblies_schema()' with an assemblies
 file. This returns an error string if there's an error or None if the file is OK.
 
-Things that are checked:
+Config validation is done by calling 'validate_configs_schema()' with a config
+file. This returns an error string if there's an error or None if the file is OK.
+
+Things that are checked (Assemblies):
 
 1.  Structure - handled by YAML BaseLoader
     a.  Detects duplicate keys.
@@ -26,11 +29,23 @@ Things that are checked:
 3.  Content - handled by the custom function _validate_assemblies_content()
     a.  Does every crystalform assembly refer to an assembly in the file?
 
+Things that are checked (Config):
+
+1.  Structure - handled by YAML BaseLoader
+    a.  Detects duplicate keys.
+
+2.  Structure - handled by the jsonschema validation
+    a.  Does it contain all the expected keys in the right place?
+    b.  Does it contain any unexpected keys?
+
+3.  Content - handled by the custom function _validate_config_content()
+    a.  Nothing additional is checked atm
+
 Ideally user should add a reference to the schema in their YAML files.
 If they do this the editor (if sufficiently empowered) should provide live
 feedback on basic YAML formatting deviations. The following at the start of the
 file, as an example (shortened for clarity), in VisualStudioCode will
-allow the editor to display live errors: -
+allow the editor to display live errors with Assemblies file for example: -
 
 # yaml-language-server: $schema=https://raw.githubusercontent.com/xchem/xchem-align/[...]/assemblies-schema.yaml
 """
