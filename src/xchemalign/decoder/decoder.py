@@ -61,6 +61,7 @@ with open(_CONFIG_SCHEMA_FILE, "r", encoding="utf8") as schema_file:
     _CONFIG_SCHEMA: dict[str, Any] = yaml.load(schema_file, Loader=yaml.FullLoader)
 assert _CONFIG_SCHEMA
 
+
 # A YAML constructor and custom BaseLoader class
 # that detects duplicate YAML keys
 def _NO_DUPLICATES_CONSTRUCTOR(loader, node, deep=False):

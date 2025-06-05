@@ -57,7 +57,7 @@ def test_test_data_config_2():
 
 
 def test_test_data_config_3():
-   # Arrange
+    # Arrange
     expected_error = None
 
     # Act
