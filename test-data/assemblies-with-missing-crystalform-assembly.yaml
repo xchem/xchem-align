@@ -14,5 +14,6 @@ crystalforms:
         reference: Mpro-x0107_fake_P1
         assemblies:
             1:
+                # This assembly does not exist
                 assembly: missing-dimer
                 chains: A,B

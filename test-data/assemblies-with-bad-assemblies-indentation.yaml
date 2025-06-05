@@ -1,0 +1,13 @@
+assemblies:
+    dimer:
+        reference: Mpro-IBM0045
+        biomol: A,B
+        chains: A, A(-x,y,-z)
+crystalforms:
+    xtalform1:
+        reference: Mpro-IBM0045
+        assemblies:
+        # This bad indentation will look like an 'additional property'
+        1:
+            assembly: dimer
+            chains: A,A(-x,y,-z)

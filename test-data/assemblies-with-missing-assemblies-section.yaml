@@ -1,3 +1,4 @@
+# The root-level 'assemblies' section is missing...
 crystalforms:
     xtalform1:
         reference: Mpro-IBM0045

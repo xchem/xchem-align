@@ -87,3 +87,14 @@ def test_test_data_assemblies_with_duplicate_crystalforms():
 
     # Assert
     assert error == expected_error
+
+
+def test_test_data_assemblies_with_bad_assemblies_indentation():
+    # Arrange
+    expected_error = "Additional properties are not allowed ('1' was unexpected)"
+
+    # Act
+    error = decoder.validate_assemblies_schema("test-data/assemblies-with-bad-assemblies-indentation.yaml")
+
+    # Assert
+    assert error == expected_error
