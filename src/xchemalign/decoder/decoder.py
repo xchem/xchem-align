@@ -25,6 +25,14 @@ Things that are checked:
 
 3.  Content - handled by the custom function _validate_assemblies_content()
     a.  Does every crystalform assembly refer to an assembly in the file?
+
+Ideally user should add a reference to the schema in their YAML files.
+If they do this the editor (if sufficiently empowered) should provide live
+feedback on basic YAML formatting deviations. The following at the start of the
+file, as an example (shortened for clarity), in VisualStudioCode will
+allow the editor to display live errors: -
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/xchem/xchem-align/[...]/assemblies-schema.yaml
 """
 
 import os
