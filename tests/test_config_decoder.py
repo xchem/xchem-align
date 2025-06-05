@@ -12,6 +12,28 @@ def test_with_missing_file():
     assert error == expected_error
 
 
+def test_with_empty_file():
+    # Arrange
+    expected_error = "Config file 'test-data/empty_file.yaml' appears empty"
+
+    # Act
+    error = decoder.validate_config_schema("test-data/empty_file.yaml")
+
+    # Assert
+    assert error == expected_error
+
+
+def test_with_non_yaml_file():
+    # Arrange
+    expected_error = "Unable to understand the config file 'test-data/README.txt'. Is it valid YAML?"
+
+    # Act
+    error = decoder.validate_config_schema("test-data/README.txt")
+
+    # Assert
+    assert error == expected_error
+
+
 def test_test_data_config_1():
     # Arrange
     expected_error = None

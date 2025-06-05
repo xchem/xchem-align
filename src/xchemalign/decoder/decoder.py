@@ -124,6 +124,11 @@ def validate_config_schema(config_filename: str) -> str | None:
             config: dict[str, Any] = yaml.load(config_file, DupCheckLoader)
     except yaml.constructor.ConstructorError as cex:
         return str(cex)
+    except yaml.scanner.ScannerError:
+        return f"Unable to understand the config file '{config_filename}'. Is it valid YAML?"
+
+    if not config:
+        return f"Config file '{config_filename}' appears empty"
 
     try:
         jsonschema.validate(config, schema=_CONFIG_SCHEMA)
