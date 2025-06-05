@@ -1,12 +1,23 @@
 from xchemalign.decoder import decoder
 
 
-def test_with_missigg_file():
+def test_with_missing_file():
     # Arrange
     expected_error = "The assembly file 'no-such-file.yaml' does not exist"
 
     # Act
     error = decoder.validate_assemblies_schema("no-such-file.yaml")
+
+    # Assert
+    assert error == expected_error
+
+
+def test_with_non_yaml_file():
+    # Arrange
+    expected_error = "Unable to understand the assembly file 'test-data/README.txt'. Is it valid YAML?"
+
+    # Act
+    error = decoder.validate_assemblies_schema("test-data/README.txt")
 
     # Assert
     assert error == expected_error

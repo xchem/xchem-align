@@ -89,8 +89,10 @@ def validate_assemblies_schema(assembly_filename: str) -> str | None:
     try:
         with open(assembly_filename, "r", encoding="utf8") as assembly_file:
             assembly: dict[str, Any] = yaml.load(assembly_file, DupCheckLoader)
-    except yaml.constructor.ConstructorError as cex:
-        return str(cex)
+    except yaml.constructor.ConstructorError as ce:
+        return str(ce)
+    except yaml.scanner.ScannerError:
+        return f"Unable to understand the assembly file '{assembly_filename}'. Is it valid YAML?"
 
     try:
         jsonschema.validate(assembly, schema=_ASSEMBLIES_SCHEMA)
