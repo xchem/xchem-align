@@ -1,0 +1,75 @@
+---
+# The JSONSchema for 'config' YAML files.
+#
+# See https://json-schema.org/understanding-json-schema/index.html
+
+$schema: http://json-schema.org/draft-07/schema#
+
+title: XChem Align Config Schema
+description: >-
+  The Schema for XChem Align Config Files
+
+# The root-level object -------------------------------------------------------
+
+type: object
+additionalProperties: false
+properties:
+  target_name:
+    type: string
+  base_dir:
+    type: string
+  output_dir:
+    type: string
+  ref_datasets:
+    type: array
+    items:
+      type: string
+    minItems: 0
+  panddas_missing_ok:
+    type: array
+    items:
+      type: string
+    minItems: 0
+  inputs:
+    type: array
+    items:
+      $ref: '#/definitions/input'
+    minItems: 1
+required:
+- target_name
+- base_dir
+- output_dir
+
+# Sub-object definitions ------------------------------------------------------
+
+definitions:
+
+  input:
+    type: object
+    additionalProperties: false
+    properties:
+      dir:
+        type: string
+      type:
+        enum:
+        - model_building
+        - manual
+      code_prefix:
+        type: string
+      code_prefix_tooltip:
+        type: string
+      soakdb:
+        type: string
+      exclude:
+        type: array
+        items:
+          type: string
+        minItems: 0
+      panddas_event_files:
+        type: array
+        items:
+          type: string
+        minItems: 0
+    required:
+    - dir
+    - type

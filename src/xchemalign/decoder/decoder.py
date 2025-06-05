@@ -1,14 +1,17 @@
 """A module to validate and decode XChemAlign definitions.
 
-This decoder module offers validation of 'assemblies' files using YAML BaseLoader
-and a JSON schema to enforce the structure of the file. Following these checks
-there are additional (custom) 'content' tests to validate parts of the file
-that are not possible using a YAML loader or JSON schema.
+This decoder module offers validation of 'assemblies' and 'config' files
+using YAML BaseLoader and a JSON schema to enforce the structure of the file.
+Following these checks there are additional (custom) 'content' tests to validate parts
+of the file that are not possible using a YAML loader or JSON schema.
 
 Assembly validation is done by calling 'validate_assemblies_schema()' with an assemblies
 file. This returns an error string if there's an error or None if the file is OK.
 
-Things that are checked:
+Config validation is done by calling 'validate_configs_schema()' with a config
+file. This returns an error string if there's an error or None if the file is OK.
+
+Things that are checked (Assemblies):
 
 1.  Structure - handled by YAML BaseLoader
     a.  Detects duplicate keys.
@@ -26,11 +29,23 @@ Things that are checked:
 3.  Content - handled by the custom function _validate_assemblies_content()
     a.  Does every crystalform assembly refer to an assembly in the file?
 
+Things that are checked (Config):
+
+1.  Structure - handled by YAML BaseLoader
+    a.  Detects duplicate keys.
+
+2.  Structure - handled by the jsonschema validation
+    a.  Does it contain all the expected keys in the right place?
+    b.  Does it contain any unexpected keys?
+
+3.  Content - handled by the custom function _validate_config_content()
+    a.  Nothing additional is checked atm
+
 Ideally user should add a reference to the schema in their YAML files.
 If they do this the editor (if sufficiently empowered) should provide live
 feedback on basic YAML formatting deviations. The following at the start of the
 file, as an example (shortened for clarity), in VisualStudioCode will
-allow the editor to display live errors: -
+allow the editor to display live errors with Assemblies file for example: -
 
 # yaml-language-server: $schema=https://raw.githubusercontent.com/xchem/xchem-align/[...]/assemblies-schema.yaml
 """
@@ -45,13 +60,21 @@ from yaml.constructor import ConstructorError
 # The (built-in) schemas...
 # from the same directory as us.
 _ASSEMBLIES_SCHEMA_FILE: str = os.path.join(os.path.dirname(__file__), "assemblies-schema.yaml")
+_CONFIG_SCHEMA_FILE: str = os.path.join(os.path.dirname(__file__), "config-schema.yaml")
 
-# Load the Workflow schema YAML file now.
+# Load the Assemblies schema YAML file now.
 # This must work as the file is installed along with this module.
 assert os.path.isfile(_ASSEMBLIES_SCHEMA_FILE)
 with open(_ASSEMBLIES_SCHEMA_FILE, "r", encoding="utf8") as schema_file:
     _ASSEMBLIES_SCHEMA: dict[str, Any] = yaml.load(schema_file, Loader=yaml.FullLoader)
 assert _ASSEMBLIES_SCHEMA
+
+# Load the Config schema YAML file now.
+# This must work as the file is installed along with this module.
+assert os.path.isfile(_CONFIG_SCHEMA_FILE)
+with open(_CONFIG_SCHEMA_FILE, "r", encoding="utf8") as schema_file:
+    _CONFIG_SCHEMA: dict[str, Any] = yaml.load(schema_file, Loader=yaml.FullLoader)
+assert _CONFIG_SCHEMA
 
 
 # A YAML constructor and custom BaseLoader class
@@ -106,6 +129,36 @@ def validate_assemblies_schema(assembly_filename: str) -> str | None:
     return _validate_assemblies_content(assembly)
 
 
+def validate_config_schema(config_filename: str) -> str | None:
+    """Checks the Config definition against the built-in schema.
+    If there's an error the error text is returned, otherwise None.
+    """
+    assert config_filename
+    if not os.path.isfile(config_filename):
+        return f"The config file '{config_filename}' does not exist"
+
+    try:
+        with open(config_filename, "r", encoding="utf8") as config_file:
+            config: dict[str, Any] = yaml.load(config_file, DupCheckLoader)
+    except yaml.constructor.ConstructorError as cex:
+        return str(cex)
+    except yaml.scanner.ScannerError:
+        return f"Unable to understand the config file '{config_filename}'. Is it valid YAML?"
+
+    if not config:
+        return f"Config file '{config_filename}' appears empty"
+
+    try:
+        jsonschema.validate(config, schema=_CONFIG_SCHEMA)
+    except jsonschema.ValidationError as vex:
+        return str(vex.message)
+    except TypeError as tex:
+        return str(tex)
+
+    # OK so far, now check additional content
+    return _validate_config_content(config)
+
+
 def _validate_assemblies_content(assemblies_content: dict[str, Any]) -> str | None:
     """Assuming the file has already passed schema validation this function
     checks additional content, like cross-references of assemblies."""
@@ -122,6 +175,15 @@ def _validate_assemblies_content(assemblies_content: dict[str, Any]) -> str | No
             assembly_name: str = crystalfrom_assemblies[f"{assembly}"]["assembly"]
             if assembly_name not in assemblies:
                 return f"The assembly '{assembly_name}' in crystalform '{crystalform}->{assembly}' is not an assembly in the file"
+
+    # OK if we get here
+    return None
+
+
+def _validate_config_content(config_content: dict[str, Any]) -> str | None:
+    """Assuming the file has already passed schema validation this function
+    checks additional content."""
+    assert isinstance(config_content, dict)
 
     # OK if we get here
     return None
