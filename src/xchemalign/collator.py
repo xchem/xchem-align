@@ -35,6 +35,7 @@ from xchemalign import utils
 from xchemalign import repo_info
 from xchemalign import setup
 from xchemalign.utils import Constants
+from xchemalign.decoder import decoder
 
 
 def generate_xtal_dir(input_path: Path, xtal_name: str):
@@ -443,28 +444,35 @@ class Collator:
         if not assemblies:
             self._log_error("assemblies.yaml does not appear to contain any assemblies")
         else:
-            for name, data in assemblies.items():
-                ref = data[Constants.META_REFERENCE]
-                if crystals.get(ref) is None:
-                    self._log_error(
-                        "reference {} for assembly {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
-                            ref, name
+            # first validate the assemblies YAML against the schema
+            errors = decoder.validate_assemblies_schema(str(assemblies_file))
+            if errors:
+                self._log_error("assemblies.yaml does not appear to be valid. Error is: " + errors)
+            else:
+                self.logger.info("assemblies.yaml seems to comply with the schema")
+                # now do some further checks
+                for name, data in assemblies.items():
+                    ref = data[Constants.META_REFERENCE]
+                    if crystals.get(ref) is None:
+                        self._log_error(
+                            "reference {} for assembly {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
+                                ref, name
+                            )
                         )
-                    )
 
-        # check the crystalforms section
-        xtalforms = assemblies_yaml.get(Constants.META_XTALFORMS)
-        if not xtalforms:
-            self._log_error("assemblies.yaml does not appear to contain any crystalforms")
-        else:
-            for name, data in xtalforms.items():
-                ref = data[Constants.META_REFERENCE]
-                if crystals.get(ref) is None:
-                    self._log_error(
-                        "reference {} for crystalform {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
-                            ref, name
-                        )
-                    )
+                # check the crystalforms section
+                xtalforms = assemblies_yaml.get(Constants.META_XTALFORMS)
+                if not xtalforms:
+                    self._log_error("assemblies.yaml does not appear to contain any crystalforms")
+                else:
+                    for name, data in xtalforms.items():
+                        ref = data[Constants.META_REFERENCE]
+                        if crystals.get(ref) is None:
+                            self._log_error(
+                                "reference {} for crystalform {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
+                                    ref, name
+                                )
+                            )
 
     def _validate_input(self, input, crystals):
         if input.type == Constants.CONFIG_TYPE_MODEL_BUILDING:
