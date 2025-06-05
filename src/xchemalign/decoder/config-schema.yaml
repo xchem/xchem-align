@@ -24,12 +24,12 @@ properties:
     type: array
     items:
       type: string
-    minItems: 1
+    minItems: 0
   panddas_missing_ok:
     type: array
     items:
       type: string
-    minItems: 1
+    minItems: 0
   inputs:
     type: array
     items:
@@ -51,18 +51,25 @@ definitions:
       dir:
         type: string
       type:
-        type: string
+        enum:
+        - model_building
+        - manual
       code_prefix:
         type: string
       code_prefix_tooltip:
         type: string
       soakdb:
         type: string
+      exclude:
+        type: array
+        items:
+          type: string
+        minItems: 0
       panddas_event_files:
         type: array
         items:
           type: string
-        minItems: 1
+        minItems: 0
     required:
     - dir
     - type
