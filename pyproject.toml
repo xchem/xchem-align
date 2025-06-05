@@ -16,6 +16,7 @@ dependencies = [
     'numpy == 1.26.4',
     'pandas == 1.5.3',
     'pyyaml == 6.0',
+    'jsonschema == 4.24.0',
     'gemmi == 0.6.7',
     'im-standardize-molecule == 0.1.0',
     'scp == 0.14.5',

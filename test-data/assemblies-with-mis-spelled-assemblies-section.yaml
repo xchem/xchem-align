@@ -1,4 +1,5 @@
-assemblies:
+# This should be 'assemblies'...
+azzemblies:
     dimer:
         reference: Mpro-IBM0045
         biomol: A,B
@@ -14,5 +15,5 @@ crystalforms:
         reference: Mpro-x0107_fake_P1
         assemblies:
             1:
-                assembly: dimer
+                assembly: missing-dimer
                 chains: A,B

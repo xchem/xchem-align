@@ -22,10 +22,10 @@ def constants():
         CONFIG_2_FILE = "config_2.yaml"
         CONFIG_3_FILE = "test-data/config_3.yaml"
         TEST_DIR = "test-data/outputs"
-        CONFIG_FILE = TEST_DIR + '/upload-v2/config.yaml'
-        UPLOAD_1_DIR = TEST_DIR + '/upload-v2/upload_1'
-        UPLOAD_2_DIR = TEST_DIR + '/upload-v2/upload_2'
-        UPLOAD_3_DIR = TEST_DIR + '/upload-v2/upload_3'
+        CONFIG_FILE = TEST_DIR + "/upload-v2/config.yaml"
+        UPLOAD_1_DIR = TEST_DIR + "/upload-v2/upload_1"
+        UPLOAD_2_DIR = TEST_DIR + "/upload-v2/upload_2"
+        UPLOAD_3_DIR = TEST_DIR + "/upload-v2/upload_3"
         METADATA_FILE = "meta_collator.yaml"
         ASSEMBLIES_FILENAME = "assemblies.yaml"
 
@@ -62,7 +62,7 @@ def test_dir(constants):
     if path.exists():
         shutil.rmtree(path)
 
-    path = (Path(constants.TEST_DIR) / 'upload-current').resolve()
+    path = (Path(constants.TEST_DIR) / "upload-current").resolve()
     if path.exists():
         shutil.rmtree(path)
         os.unlink(path)
@@ -82,19 +82,19 @@ def test_dir(constants):
 @pytest.fixture(scope="session")
 def uploads_dir(constants, test_dir):
     os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR)
-    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1')
+    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / "upload_1")
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
-    if (Path(constants.TEST_DIR) / 'upload-current').resolve().exists():
+    if (Path(constants.TEST_DIR) / "upload-current").resolve().exists():
         # p = subprocess.Popen(f"unlink {(Path(constants.TEST_DIR) / 'upload-current')}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # stdout, stderr = p.communicate()
-        os.remove((Path(constants.TEST_DIR) / 'upload-current'))
+        os.remove((Path(constants.TEST_DIR) / "upload-current"))
         # print(stdout)
         # print(stderr)
 
     os.symlink(
         (Path(constants.TEST_DIR) / constants.VERSION_DIR).resolve(),
-        (Path(constants.TEST_DIR) / 'upload-current').resolve(),
+        (Path(constants.TEST_DIR) / "upload-current").resolve(),
         target_is_directory=True,
     )
 
@@ -107,7 +107,7 @@ def upload_1_dir(constants, test_dir, uploads_dir):
     #     if path.exists():
     #         shutil.rmtree(path)
     # os.mkdir(path)
-    path = Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_1'
+    path = Path(constants.TEST_DIR) / constants.VERSION_DIR / "upload_1"
     return path
 
 
@@ -117,8 +117,8 @@ def upload_2_dir(constants, test_dir, uploads_dir):
     #     if path.exists():
     #         shutil.rmtree(path)
     # os.mkdir(path)
-    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2')
-    path = Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload_2'
+    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / "upload_2")
+    path = Path(constants.TEST_DIR) / constants.VERSION_DIR / "upload_2"
 
     return path
 

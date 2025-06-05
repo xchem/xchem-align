@@ -40,6 +40,29 @@ jobs:
         pip install .[dev]
         pre-commit run --all-files
 
+  unit-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+        - "3.10"
+        - "3.11"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install .
+    - name: Unit test
+      run: pytest tests/test_assemblies_decoder.py
+      env:
+        PYTHONPATH: src
+
   command-execution:
     runs-on: ubuntu-latest
     strategy:
@@ -48,7 +71,7 @@ jobs:
         - "3.10"
         - "3.11"
     needs:
-    - static-analysis
+    - unit-test
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -56,7 +79,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install
+    - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install .

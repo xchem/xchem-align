@@ -10,7 +10,8 @@ crystalforms:
             1:
                 assembly: dimer
                 chains: A,A(-x,y,-z)
-    xtalform2:
+    # We already have a 'xtalform1'...
+    xtalform1:
         reference: Mpro-x0107_fake_P1
         assemblies:
             1:

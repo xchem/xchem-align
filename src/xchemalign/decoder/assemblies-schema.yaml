@@ -1,0 +1,129 @@
+---
+# The JSONSchema for 'assembly' YAML files.
+#
+# See https://json-schema.org/understanding-json-schema/index.html
+
+$schema: http://json-schema.org/draft-07/schema#
+
+title: XChem Align Assemblies Schema
+description: >-
+  The Schema for XChem Align Assemblies Files
+
+# The root-level object -------------------------------------------------------
+#
+#     ---
+#     assemblies:
+#       <assembly-identity>:
+#         reference: Mpro-IBM0045
+#         biomol: A,B
+#         chains: A, A(-x,y,-z)
+#     crystalforms:
+#       <crystalform-identity>
+#         reference: <str> [Mpro-IBM0045]
+#         assemblies:
+#          <crystalform-item-identity>:
+#            assembly: <assembly-identity>
+#            chains: <str> [A,A(-x,y,-z)]
+#        <crystalform-identity>:
+#          reference: <str> [Mpro-x0107_fake_P1]
+#          assemblies:
+#           <crystalform-item-identity>:
+#             assembly: <assembly-identity>
+#             chains: <str> [A,B]
+
+type: object
+additionalProperties: false
+properties:
+  assemblies:
+    $ref: '#/definitions/assembly-identity'
+  crystalforms:
+    $ref: '#/definitions/crystalform-identity'
+required:
+- assemblies
+- crystalforms
+
+# Sub-object definitions ------------------------------------------------------
+
+definitions:
+
+  # An assembly.
+  # Consists of an identity (e.g. 'dimer')
+  # followed by an Assembly object.
+  assembly-identity:
+    type: object
+    additionalProperties: false
+    patternProperties:
+      '^[a-zA-Z0-9-_.]{1,80}$':
+        $ref: '#/definitions/assembly'
+    minProperties: 1
+
+  # A crysatlform.
+  # Consists of an identity (e.g. 'xtalform1')
+  # followed by an Assembly object.
+  crystalform-identity:
+    type: object
+    additionalProperties: false
+    patternProperties:
+      '^[a-zA-Z0-9-_.]{1,80}$':
+        $ref: '#/definitions/crystalform'
+    minProperties: 1
+
+  # A crystalform assemblies item identity.
+  # (e.g. '1')
+  crystalform-assemblies-item-identity:
+    type: object
+    additionalProperties: false
+    patternProperties:
+      '^[a-zA-Z0-9-_.]{1,80}$':
+        $ref: '#/definitions/crystalform-assemblies-item'
+    minProperties: 1
+
+  # Assembly Structure
+  assembly:
+    type: object
+    additionalProperties: false
+    properties:
+      reference:
+        type: string
+      biomol:
+        type: string
+      chains:
+        type: string
+    required:
+    - reference
+    - biomol
+    - chains
+
+  # Crystalform structure
+  crystalform:
+    type: object
+    additionalProperties: false
+    properties:
+      reference:
+        type: string
+        minLength: 1
+        maxLength: 80
+      assemblies:
+        anyOf:
+        - $ref: '#/definitions/crystalform-assemblies-item-identity'
+        - type: number
+    required:
+    - reference
+    - assemblies
+
+  # An assembly in the crystalform assemblies array
+  crystalform-assemblies-item:
+    type: object
+    additionalProperties: false
+    properties:
+      assembly:
+        type: string
+        minLength: 1
+        maxLength: 80
+      chains:
+        type: string
+        minLength: 1
+        maxLength: 80
+    required:
+    - assembly
+    - chains
