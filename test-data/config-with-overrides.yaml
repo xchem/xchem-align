@@ -1,0 +1,29 @@
+target_name: Mpro
+base_dir: test-data/inputs_1
+ref_datasets:
+  - Mpro-IBM0045
+  - Mpro-x0107_fake_P1
+  - Mpro-x0107_fake_P1_conf_change
+panddas_missing_ok:
+  - Mpro-x0107_fake_P1
+  - Mpro-x0107_fake_P1_conf_change
+inputs:
+  - dir: dls/labxchem/data/2020/lb27995-1
+    type: model_building
+    code_prefix: "m"
+    code_prefix_tooltip: "MERS structures"
+    soakdb: processing/database/soakDBDataFile.sqlite
+    panddas_event_files:
+    - processing/analysis/panddas/analyses/pandda_inspect_events.csv
+overrides:
+  deprecations:
+    Mpro-x0104: Cat did a wee on the crystal
+    Mpro-x0165: Bad karma
+  assemblies: assemblies.yaml
+  xtal_forms: xtal_forms.yaml
+  commands:
+    - type: site_merge
+      sites:
+        - canonical
+        - binding_pocket_1
+        - allosteric

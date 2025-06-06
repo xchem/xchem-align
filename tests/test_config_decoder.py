@@ -65,3 +65,14 @@ def test_test_data_config_3():
 
     # Assert
     assert error == expected_error
+
+
+def test_test_data_config_with_overrides():
+    # Arrange
+    expected_error = None
+
+    # Act
+    error = decoder.validate_config_schema("test-data/config-with-overrides.yaml")
+
+    # Assert
+    assert error == expected_error
