@@ -18,8 +18,6 @@ properties:
     type: string
   base_dir:
     type: string
-  output_dir:
-    type: string
   ref_datasets:
     type: array
     items:
@@ -38,7 +36,7 @@ properties:
 required:
 - target_name
 - base_dir
-- output_dir
+- inputs
 
 # Sub-object definitions ------------------------------------------------------
 

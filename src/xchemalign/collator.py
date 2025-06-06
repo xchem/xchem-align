@@ -147,16 +147,27 @@ class Collator:
         self.warnings = []
 
         self.working_dir = Path(working_dir)
-        self.config_file = self.working_dir / "upload-current" / "config.yaml"
+        self.output_path = self.working_dir / "upload-current"
+
+        if not log_file:
+            log_file = self.output_path / "collator.log"
+        self.logger = utils.Logger(logfile=log_file, level=log_level)
+        self.log_file = log_file
+
+        self.config_file = self.output_path / "config.yaml"
         if not self.config_file.is_file():
             print(self.config_file, "not found")
+        config_errors = decoder.validate_config_schema(str(self.config_file))
+        if config_errors:
+            self._log_error("config.yaml does not seem be be valid. Error is: " + config_errors)
+            return
+
         self.include_git_info = include_git_info
 
         config = utils.read_config_file(self.config_file)
         self.config = config
 
         self.base_path = utils.find_path(config, Constants.CONFIG_BASE_DIR)
-        self.output_path = self.working_dir / "upload-current"
 
         self.target_name = utils.find_property(config, Constants.CONFIG_TARGET_NAME)
 
@@ -173,11 +184,6 @@ class Collator:
         self.compound_codes = {}
         self.compound_smiles = {}
         self.num_crystals = 0
-
-        if not log_file:
-            log_file = self.output_path / "collator.log"
-        self.logger = utils.Logger(logfile=log_file, level=log_level)
-        self.log_file = log_file
 
         self.inputs = []
         inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
@@ -1477,6 +1483,10 @@ def main():
         c = Collator(working_dir, log_level=args.log_level, include_git_info=args.no_git_info)
 
         logger = c.logger
+        if logger.errors:
+            # config is invalid?
+            exit(1)
+
         logger.info("collator: ", str(args))
         utils.LOG = logger
 

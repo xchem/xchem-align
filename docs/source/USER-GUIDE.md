@@ -549,7 +549,7 @@ You may have missing datasets in your upload directory because the corresponding
 # DO NOT USE TABS FOR THE WHITESPACE!
 target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
                    # it appears under
-base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs are relative to. For users at
                                             # Diamond this should be set to '/'
 ...
 inputs:  # The datasources to collate
@@ -576,7 +576,7 @@ You may have refined structures that do not have PanDDA event maps, for example 
 # DO NOT USE TABS FOR THE WHITESPACE!
 target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
                    # it appears under
-base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs are relative to. For users at
                                             # Diamond this should be set to '/'
 ...
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
@@ -595,10 +595,8 @@ You may have multiple reference datasets, for example because there are two majo
 # DO NOT USE TABS FOR THE WHITESPACE!
 target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
                    # it appears under
-base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs are relative to. For users at
                                             # Diamond this should be set to '/'
-output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is
-                                             # NOT relative to base_dir.
 ref_datasets:  # A set of exemplar datasets that you want aligned to every ligand binding site. If you have multiple
               # major classes of conformations there should be at least one of each class.
   - Mpro-IBM0045  # There are given with the dataset folder name/crystal id as it appears in the
@@ -617,10 +615,8 @@ If you have structures from the PDB or some other, non-PanDDA, source to add, th
 # DO NOT USE TABS FOR THE WHITESPACE!
 target_name: Mpro  # The name of your target. If you already have data on Fragalysis it should be the 'target' name that
                    # it appears under
-base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs (not output_dir!) are relative to. For users at
+base_dir: /some/path/to/test-data/inputs_1  # The directory that inputs are relative to. For users at
                                             # Diamond this should be set to '/'
-output_dir: /some/path/to/test-data/outputs  # The directory that will contain all your upload folders. This path is
-                                             # NOT relative to base_dir.
 ...
 inputs:  # The datasources to collate
   - dir: dls/labxchem/data/2020/lb27995-1  # The target directory. This will pull data from
