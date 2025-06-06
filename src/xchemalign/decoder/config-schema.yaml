@@ -101,43 +101,4 @@ definitions:
 
   overrides:
     type: object
-    additionalProperties: false
-    properties:
-      assemblies:
-        enum:
-        - assemblies.yaml
-      commands:
-        type: array
-        items:
-          $ref: '#/definitions/overrides-command'
-      deprecations:
-        anyOf:
-        - $ref: '#/definitions/overrides-deprecation'
-      xtal_forms:
-        type: string
-
-  # Overrides command example:
-  #     - type: site_merge
-  #       sites:
-  #        - canonical
-  #        - binding_pocket_1
-  #        - allosteric
-  overrides-command:
-    type: object
-    additionalProperties: false
-    properties:
-      type:
-        type: string
-      sites:
-        type: array
-        items:
-          type: string
-
-  # Overrides deprecation example:
-  #   Mpro-x0165: Bad karma
-  overrides-deprecation:
-    type: object
-    additionalProperties: false
-    patternProperties:
-      '^[a-zA-Z0-9-_.]{1,80}$':
-        type: string
+    additionalProperties: true
