@@ -62,6 +62,8 @@ jobs:
       run: |
         pytest tests/test_assemblies_decoder.py
         pytest tests/test_config_decoder.py
+        pytest tests/test_all_test_data_assemblies_files.py
+        pytest tests/test_all_test_data_config_files.py
       env:
         PYTHONPATH: src
 
