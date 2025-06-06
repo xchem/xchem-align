@@ -106,27 +106,8 @@ def validate_assemblies_schema(assembly_filename: str) -> str | None:
     If there's an error the error text is returned, otherwise None.
     """
     assert assembly_filename
-    if not os.path.isfile(assembly_filename):
-        return f"The assembly file '{assembly_filename}' does not exist"
-
-    try:
-        with open(assembly_filename, "r", encoding="utf8") as assembly_file:
-            assembly: dict[str, Any] = yaml.load(assembly_file, DupCheckLoader)
-    except yaml.constructor.ConstructorError as ce:
-        return str(ce)
-    except yaml.scanner.ScannerError:
-        return f"Unable to understand the assembly file '{assembly_filename}'. Is it valid YAML?"
-
-    try:
-        jsonschema.validate(assembly, schema=_ASSEMBLIES_SCHEMA)
-    except jsonschema.ValidationError as vex:
-        return str(vex.message)
-    except TypeError as tex:
-        return str(tex)
-
-    # OK so far, now check additional content,
-    # i.e. does each crystalform assembly refer to an assembly?
-    return _validate_assemblies_content(assembly)
+    assemblies, error = _validate_file_schema(input_filename=assembly_filename, schema=_ASSEMBLIES_SCHEMA)
+    return error or _validate_assemblies_content(assemblies)
 
 
 def validate_config_schema(config_filename: str) -> str | None:
@@ -134,29 +115,37 @@ def validate_config_schema(config_filename: str) -> str | None:
     If there's an error the error text is returned, otherwise None.
     """
     assert config_filename
-    if not os.path.isfile(config_filename):
-        return f"The config file '{config_filename}' does not exist"
+    config, error = _validate_file_schema(input_filename=config_filename, schema=_CONFIG_SCHEMA)
+    return error or _validate_config_content(config)
+
+
+def _validate_file_schema(*, input_filename: str, schema: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
+    """Does schema validation for a file, given a schema."""
+
+    if not os.path.isfile(input_filename):
+        return None, "The file does not exist"
 
     try:
-        with open(config_filename, "r", encoding="utf8") as config_file:
-            config: dict[str, Any] = yaml.load(config_file, DupCheckLoader)
+        with open(input_filename, "r", encoding="utf8") as yaml_file:
+            input_yaml: dict[str, Any] = yaml.load(yaml_file, DupCheckLoader)
     except yaml.constructor.ConstructorError as cex:
-        return str(cex)
+        return None, str(cex)
     except yaml.scanner.ScannerError:
-        return f"Unable to understand the config file '{config_filename}'. Is it valid YAML?"
+        return None, "Unable to understand the file - content is not valid YAML"
 
-    if not config:
-        return f"Config file '{config_filename}' appears empty"
+    if not input_yaml:
+        return None, "The file is empty"
 
     try:
-        jsonschema.validate(config, schema=_CONFIG_SCHEMA)
+        jsonschema.validate(input_yaml, schema=schema)
     except jsonschema.ValidationError as vex:
-        return str(vex.message)
+        return None, str(vex.message)
     except TypeError as tex:
-        return str(tex)
+        return None, str(tex)
 
-    # OK so far, now check additional content
-    return _validate_config_content(config)
+    # OK if we get here
+    # Return the loaded YAML map.
+    return input_yaml, None
 
 
 def _validate_assemblies_content(assemblies_content: dict[str, Any]) -> str | None:
