@@ -81,8 +81,8 @@ def test_dir(constants):
 
 @pytest.fixture(scope="session")
 def uploads_dir(constants, test_dir):
-    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR)
-    os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / "upload_1")
+    os.makedirs(Path(constants.TEST_DIR) / constants.VERSION_DIR)
+    os.makedirs(Path(constants.TEST_DIR) / constants.VERSION_DIR / "upload_1")
     # os.mkdir(Path(constants.TEST_DIR) / constants.VERSION_DIR / 'upload-current')
 
     if (Path(constants.TEST_DIR) / "upload-current").resolve().exists():
