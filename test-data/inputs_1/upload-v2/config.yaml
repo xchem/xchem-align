@@ -1,6 +1,5 @@
 target_name: Mpro
 base_dir: test-data/inputs_1
-output_dir: test-data/outputs
 ref_datasets:
   - Mpro-IBM0045
   - Mpro-x0107_fake_P1
