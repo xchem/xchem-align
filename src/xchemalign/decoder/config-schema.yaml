@@ -18,6 +18,8 @@ properties:
     type: string
   base_dir:
     type: string
+  copy_dir:
+    type: string
   ref_datasets:
     type: array
     items:
@@ -31,8 +33,12 @@ properties:
   inputs:
     type: array
     items:
-      $ref: '#/definitions/input'
+      anyOf:
+      - $ref: '#/definitions/model-building-input'
+      - $ref: '#/definitions/manual-input'
     minItems: 1
+  overrides:
+    $ref: '#/definitions/overrides'
 required:
 - target_name
 - base_dir
@@ -42,7 +48,7 @@ required:
 
 definitions:
 
-  input:
+  model-building-input:
     type: object
     additionalProperties: false
     properties:
@@ -51,7 +57,6 @@ definitions:
       type:
         enum:
         - model_building
-        - manual
       code_prefix:
         type: string
       code_prefix_tooltip:
@@ -71,3 +76,29 @@ definitions:
     required:
     - dir
     - type
+
+  manual-input:
+    type: object
+    additionalProperties: false
+    properties:
+      dir:
+        type: string
+      type:
+        enum:
+        - manual
+      code_prefix:
+        type: string
+      code_prefix_tooltip:
+        type: string
+      exclude:
+        type: array
+        items:
+          type: string
+        minItems: 0
+    required:
+    - dir
+    - type
+
+  overrides:
+    type: object
+    additionalProperties: true
