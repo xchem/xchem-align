@@ -142,9 +142,12 @@ class Input:
 
 
 class Collator:
-    def __init__(self, working_dir, log_file=None, log_level=0, include_git_info=False):
+    def __init__(self, working_dir, log_file=None, log_level=0, include_git_info=False, no_validate_configs=False):
         self.errors = []
         self.warnings = []
+
+        self.include_git_info = include_git_info
+        self.no_validate_configs = no_validate_configs
 
         self.working_dir = Path(working_dir)
         self.output_path = self.working_dir / "upload-current"
@@ -157,12 +160,12 @@ class Collator:
         self.config_file = self.output_path / "config.yaml"
         if not self.config_file.is_file():
             print(self.config_file, "not found")
-        config_errors = decoder.validate_config_schema(str(self.config_file))
-        if config_errors:
-            self._log_error("config.yaml does not seem be be valid. Error is: " + config_errors)
-            return
 
-        self.include_git_info = include_git_info
+        if not self.no_validate_configs:
+            config_errors = decoder.validate_config_schema(str(self.config_file))
+            if config_errors:
+                self._log_error("config.yaml does not seem be be valid. Error is: " + config_errors)
+                return
 
         config = utils.read_config_file(self.config_file)
         self.config = config
@@ -449,34 +452,36 @@ class Collator:
             self._log_error("assemblies.yaml does not appear to contain any assemblies")
         else:
             # first validate the assemblies YAML against the schema
-            errors = decoder.validate_assemblies_schema(str(assemblies_file))
-            if errors:
-                self._log_error("assemblies.yaml does not appear to be valid. Error is: " + errors)
+            if not self.no_validate_configs:
+                errors = decoder.validate_assemblies_schema(str(assemblies_file))
+                if errors:
+                    self._log_error("assemblies.yaml does not appear to be valid. Error is: " + errors)
+                    return
+                else:
+                    self.logger.info("assemblies.yaml seems to comply with the schema")
+            # now do some further checks
+            for name, data in assemblies.items():
+                ref = data[Constants.META_REFERENCE]
+                if crystals.get(ref) is None:
+                    self._log_error(
+                        "reference {} for assembly {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
+                            ref, name
+                        )
+                    )
+
+            # check the crystalforms section
+            xtalforms = assemblies_yaml.get(Constants.META_XTALFORMS)
+            if not xtalforms:
+                self._log_error("assemblies.yaml does not appear to contain any crystalforms")
             else:
-                self.logger.info("assemblies.yaml seems to comply with the schema")
-                # now do some further checks
-                for name, data in assemblies.items():
+                for name, data in xtalforms.items():
                     ref = data[Constants.META_REFERENCE]
                     if crystals.get(ref) is None:
                         self._log_error(
-                            "reference {} for assembly {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
+                            "reference {} for crystalform {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
                                 ref, name
                             )
                         )
-
-                # check the crystalforms section
-                xtalforms = assemblies_yaml.get(Constants.META_XTALFORMS)
-                if not xtalforms:
-                    self._log_error("assemblies.yaml does not appear to contain any crystalforms")
-                else:
-                    for name, data in xtalforms.items():
-                        ref = data[Constants.META_REFERENCE]
-                        if crystals.get(ref) is None:
-                            self._log_error(
-                                "reference {} for crystalform {} is not in the set of crystals to be processed. Please update your assemblies.yaml file".format(
-                                    ref, name
-                                )
-                            )
 
     def _validate_input(self, input, crystals):
         if input.type == Constants.CONFIG_TYPE_MODEL_BUILDING:
@@ -1455,6 +1460,11 @@ def main():
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
     parser.add_argument("-v", "--validate", action="store_true", help="Only perform validation")
     parser.add_argument("--no-git-info", action="store_false", help="Don't add GIT info to metadata")
+    parser.add_argument(
+        "--no-validate-configs",
+        action="store_true",
+        help="Don't validate config.yaml and assemblies.yaml against their schemas",
+    )
 
     args = parser.parse_args()
 
@@ -1478,7 +1488,12 @@ def main():
 
     logger = None
     try:
-        c = Collator(working_dir, log_level=args.log_level, include_git_info=args.no_git_info)
+        c = Collator(
+            working_dir,
+            log_level=args.log_level,
+            include_git_info=args.no_git_info,
+            no_validate_configs=args.no_validate_configs,
+        )
 
         logger = c.logger
         if logger.errors:
