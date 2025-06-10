@@ -388,6 +388,30 @@ You can run XChemAlign with this data using the instructions in the example-simp
 
 TODO - create a more complex example.
 
+### 2.5 Validation of config.yaml and assemblies.yaml
+
+Since June 2025 functionality was added to check the structure of the `config.yaml` and `assemblies.yaml`.
+This happens when you run `collator` and checks their contents against what is expected and will throw an error if
+something strange is found.
+For instance, if the indentation is wrong, or a required property is not found.
+In most cases the correct action is to fix the offending file, but if you really think your files are valid then you
+can skip this validation by adding the `--no-validate-configs` to the collator command. But in doing so you will likely
+just get a later error because your configuration is incorrect.
+
+Once error you may see if using an old `config.yaml` is:
+`Additional properties are not allowed ('output_dir' was unexpected)`.
+This is because `output_dir` used to be a required property, but is no longer needed. The correct action is to remove
+it from your `config.yaml`.
+
+Another error you might see is:
+`'' is not of type 'array'` which is a little cryptic, but likely means that you have specified the
+`panddas_missing_ok` property, but not specified any entries in the list and it has not been specified
+correctly. The action is either to remove the `panddas_missing_ok` property or to set its value to an empty list like
+this:
+```
+panddas_missing_ok: []
+```
+
 ## 3. Collating files
 
 The first step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
