@@ -20,6 +20,8 @@ properties:
     type: string
   copy_dir:
     type: string
+  extra_files_dir:
+    type: string
   ref_datasets:
     type: array
     items:
