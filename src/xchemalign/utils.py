@@ -162,12 +162,16 @@ class Constants:
     META_DATA_FORMAT_VERSION = "data_format_version"
     SOAKDB_XTAL_NAME = "CrystalName"
     SOAKDB_COL_PDB = "RefinementBoundConformation"
-    SOAKDB_COL_MTZ = "RefinementMTZ_latest"
+    SOAKDB_COL_MTZ_LATEST = "RefinementMTZ_latest"
+    SOAKDB_COL_MTZ_FREE = "RefinementMTZfree"
     SOAKDB_COL_CIF = "RefinementCIF"
     SOAKDB_COL_LAST_UPDATED = "LastUpdatedDate"
     SOAKDB_COL_REFINEMENT_OUTCOME = "RefinementOutcome"
     SOAKDB_COL_COMPOUND_CODE = "CompoundCode"
     SOAKDB_COL_COMPOUND_SMILES = "CompoundSMILES"
+    SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST = "RefinementMMCIFmodel_latest"
+    SOAKDB_VALUE_BUSTER = 'Buster'
+    SOAKDB_VALUE_REFMAC = 'Refmac'
     CRYSTAL_NEW = "crystal_new"
     PREVIOUS_OUTPUT_DIR = ""
     ENV_XCA_GIT_REPO = "XCA_GIT_REPO"
@@ -346,6 +350,10 @@ def read_config_file(filename):
     else:
         msg = "Config file {} not found".format(filename)
         raise ValueError(msg)
+
+
+def find_soakdb_file(input):
+    return find_path(input, Constants.CONFIG_SOAKDB, default=Constants.DEFAULT_SOAKDB_PATH)
 
 
 def find_property(my_dict, key, default=None):

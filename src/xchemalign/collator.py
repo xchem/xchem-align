@@ -206,9 +206,7 @@ class Collator:
                 code_prefix = utils.find_property(input, Constants.CONFIG_CODE_PREFIX)
                 code_prefix_tooltip = utils.find_property(input, Constants.CONFIG_CODE_PREFIX_TOOLTIP)
                 if type == Constants.CONFIG_TYPE_MODEL_BUILDING:
-                    soakdb_path = utils.find_path(
-                        input, Constants.CONFIG_SOAKDB, default=Constants.DEFAULT_SOAKDB_PATH
-                    )
+                    soakdb_path = utils.find_soakdb_file(input)
                     panddas_csvs = utils.find_property(input, Constants.CONFIG_PANDDAS_EVENT_FILES)
                     if panddas_csvs:
                         panddas_paths = [Path(p) for p in panddas_csvs]
@@ -552,7 +550,7 @@ class Collator:
                             continue
 
                         # if we have a PDB file then continue to look for the others
-                        colname = Constants.SOAKDB_COL_MTZ
+                        colname = Constants.SOAKDB_COL_MTZ_LATEST
                         file = row[colname]
                         # RefinementMTZ_latest file names are specified as absolute file names, but need to be
                         # handled as relative to the base_path

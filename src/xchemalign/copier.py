@@ -195,7 +195,13 @@ class Copier:
                     num_files += 1
                     datasets[xtal_name] = path
                     # if PDB is OK then continue with the other files
-                    file = row[Constants.SOAKDB_COL_MTZ]
+                    file = row[Constants.SOAKDB_COL_MTZ_LATEST]
+                    if file:
+                        path = Path(file)
+                        ok = self.copy_file(path, xtal_dir_path)
+                        if ok:
+                            num_files += 1
+                    file = row[Constants.SOAKDB_COL_MTZ_FREE]
                     if file:
                         path = Path(file)
                         ok = self.copy_file(path, xtal_dir_path)

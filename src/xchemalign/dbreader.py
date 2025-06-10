@@ -34,7 +34,7 @@ def read_dbmeta(dbfile):
         df = pd.read_sql_query(
             """SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
                                 RefinementCIF, RefinementCIFStatus, RefinementBoundConformation, RefinementMTZ_latest,
-                                RefinementDate, RefinementOutcome, LastUpdated
+                                RefinementMTZfree, RefinementDate, RefinementOutcome, LastUpdated
                                 FROM mainTable WHERE RefinementOutcome IS NOT NULL""",
             cnx,
         )
@@ -59,6 +59,24 @@ def read_all(dbfile):
 
     df2["LastUpdatedDate"] = pd.to_datetime(df2["LastUpdated"], infer_datetime_format=True)
     return name, df2
+
+
+def read_pdb_depo(dbfile):
+    """
+    Read the XCE metadata from the mainTable table of a sqlite db
+    :param dbfile: The sqlite db file
+    :return: Pandas dataframe with the contents of the table
+    """
+    # Create your connection.
+    with sqlite3.connect(dbfile) as cnx:
+        df = pd.read_sql_query(
+            """SELECT ID, CrystalName,
+                                RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
+                                RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated
+                                FROM mainTable WHERE RefinementOutcome like '6%'""",
+            cnx,
+        )
+        return df
 
 
 def filter_dbmeta(dbfile, reference_datasets):
