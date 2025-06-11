@@ -17,7 +17,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from xchemalign import dbreader, collator, utils
+import gemmi
+from gemmi import cif
+
+from xchemalign import dbreader, utils
 from .utils import Constants
 
 
@@ -34,6 +37,12 @@ def run(base_dir: Path, input_path: Path, soakdb_file: Path, meta: dict, output_
         else:
             refinement_type = Constants.SOAKDB_VALUE_REFMAC
         name = row[Constants.SOAKDB_XTAL_NAME]
+        xtal_out_dir = output_dir / name
+        if xtal_out_dir.is_dir():
+            # delete it
+            shutil.rmtree(xtal_out_dir)
+        # create the output dir
+        xtal_out_dir.mkdir(parents=True)
         print(index, name, refinement_type)
         meta_data = crystals.get(name)
         if meta_data is None:
@@ -42,9 +51,25 @@ def run(base_dir: Path, input_path: Path, soakdb_file: Path, meta: dict, output_
             # event_map = ?? # how do we find the event map when sometimes there are multiple ones
             mtz_latest = row.get(Constants.SOAKDB_COL_MTZ_LATEST)
             mtz_free = row.get(Constants.SOAKDB_COL_MTZ_FREE)
-            mmcif = row.get(Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST)
             pdb = row.get(Constants.SOAKDB_COL_PDB)
             print("  mtz_latest: {}\n  mtz_free: {}\n  mmcif: {}\n  pdb: {}".format(mtz_latest, mtz_free, mmcif, pdb))
+
+            if refinement_type == Constants.SOAKDB_VALUE_BUSTER:
+                cif_doc = read_buster_structure(base_dir / utils.make_path_relative(Path(mmcif)))
+            else:
+                cif_doc = read_refmac_structure(base_dir / utils.make_path_relative(Path(pdb)))
+            cif_doc.write_file(str(xtal_out_dir / 'structure.mmcif'))
+
+
+def read_buster_structure(mmcif):
+    doc = cif.read(str(mmcif))
+    # is this a Structure or a Document?
+    return doc
+
+
+def read_refmac_structure(pdb):
+    struc = gemmi.read_pdb(str(pdb))
+    return struc.make_mmcif_document()
 
 
 def main():

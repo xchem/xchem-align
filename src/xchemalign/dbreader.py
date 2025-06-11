@@ -34,7 +34,8 @@ def read_dbmeta(dbfile):
         df = pd.read_sql_query(
             """SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
                                 RefinementCIF, RefinementCIFStatus, RefinementBoundConformation, RefinementMTZ_latest,
-                                RefinementMTZfree, RefinementDate, RefinementOutcome, LastUpdated
+                                RefinementMTZfree, RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
+                                LastUpdated
                                 FROM mainTable WHERE RefinementOutcome IS NOT NULL""",
             cnx,
         )

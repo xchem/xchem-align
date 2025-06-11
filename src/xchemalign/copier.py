@@ -207,6 +207,12 @@ class Copier:
                         ok = self.copy_file(path, xtal_dir_path)
                         if ok:
                             num_files += 1
+                    file = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
+                    if file:
+                        path = Path(file)
+                        ok = self.copy_file(path, xtal_dir_path)
+                        if ok:
+                            num_files += 1
                     file = row[Constants.SOAKDB_COL_CIF]
                     if file:
                         path = Path(file)
