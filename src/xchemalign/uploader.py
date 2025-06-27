@@ -252,7 +252,20 @@ def get_upload_file(use_default=False, use_custom=None):
     else:
         # no custom filename means I need to figure it out and that
         # means looking at the files in the fs
-        root_path = Path(DATA_DIR)
+
+        # uploader can be run from 3 places
+        root_path = Path(DATA_DIR).absolute()
+        print(root_path.parent)
+        print(root_path.parent.parent)
+        if not root_path.exists():
+            if root_path.parent.name == DATA_DIR:
+                root_path = root_path.parent
+            elif root_path.parent.parent.name == DATA_DIR:
+                root_path = root_path.parent.parent
+
+        if not root_path.exists():
+            raise FileNotFoundError("xca.uploader ran from unexpected location")
+
         try:
             # get the last 'upload_x' folder
             *_, upload_path = root_path.glob("upload_*")
