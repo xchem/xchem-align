@@ -163,6 +163,7 @@ class Copier:
         dbfile = self.base_path / self.input_path / self.soakdb_file_path
         dbfile_out = self.output_path / self.input_path / self.soakdb_file_path
         dbfile_out.parent.mkdir(exist_ok=True, parents=True)
+        self.logger.info("copying soakdbfile", str(dbfile))
         f = self.copier.do_copy(dbfile, dbfile_out)
         if not f:
             self.logger.error("Failed to copy soakdb file {} to {}. Can't continue".format(dbfile, dbfile_out))
@@ -397,8 +398,10 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
     copiers = []
 
     for i, input_dir in enumerate(input_dirs_model_building):
-        msg = "Running copier. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
-            base_dir, input_dir, output_dir, soakdb_files[i], ", ".join(panddas_files[i])
+        msg = (
+            "Running model_building copier. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
+                base_dir, input_dir, output_dir, soakdb_files[i], ", ".join(panddas_files[i])
+            )
         )
         logger.info(msg)
 
@@ -421,6 +424,8 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
             copiers.append(c)
 
     for input_dir, excludes in zip(input_dirs_manual, excludes_manual):
+        msg = "Running manual copier. base_dir={}, input_dir={} output_dir={}".format(base_dir, input_dir, output_dir)
+        logger.info(msg)
         c = ManualCopier(Path(base_dir), Path(input_dir), Path(output_dir), excludes, logger)
         errors, warnings = c.validate()
         if errors:
@@ -431,8 +436,9 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
         else:
             copiers.append(c)
 
-        for copier in copiers:
-            copier.copy_files()
+    for copier in copiers:
+        logger.info("copying ...")
+        copier.copy_files()
 
 
 def main():
