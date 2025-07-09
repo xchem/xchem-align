@@ -170,6 +170,7 @@ class Copier:
 
         self.logger.info("reading soakdb file", dbfile_out)
         df = dbreader.filter_dbmeta(dbfile_out, self.ref_datasets)
+        self.logger.info("soakdb shape is", df.shape)
         count = 0
         num_files = 0
         num_csv = 0
