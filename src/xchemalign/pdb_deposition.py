@@ -74,9 +74,9 @@ def read_refmac_structure(pdb):
 
 def main():
     # Example:
-    #   python -m xchemalign.pdb_deposition -c config.yaml -o depo
+    #   python -m xchemalign.pdb_deposition -c config.yaml -m meta_aligner.yaml -o depo
 
-    parser = argparse.ArgumentParser(description="copier")
+    parser = argparse.ArgumentParser(description="pdb deposition")
 
     parser.add_argument("-c", "--config-file", required=True, help="config.yaml file")
     parser.add_argument("-m", "--meta-file", required=True, help="meta_aligner.yaml file")

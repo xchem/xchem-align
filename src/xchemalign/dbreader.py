@@ -74,7 +74,7 @@ def read_pdb_depo(dbfile):
             """SELECT ID, CrystalName,
                                 RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
                                 RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated
-                                FROM mainTable WHERE RefinementOutcome like '6%'""",
+                                FROM mainTable WHERE RefinementOutcome like '5%'""",
             cnx,
         )
         return df
