@@ -26,6 +26,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
     QFrame,
+    QTextEdit,
     QWidget,
 )
 
@@ -46,7 +47,7 @@ class XChemAlign(QWidget):
         self.setup_layout()
         self.ui_config = ConfigUI(self, self.layout_config)
 
-    def setup_window(self, width=400, height=200):
+    def setup_window(self, width=800, height=200):
         self.setWindowTitle("XChemAlign GUI")
         self.resize(width,height)
 
@@ -149,6 +150,8 @@ class ConfigUI(ChildUI):
                 code_prefix=d["code_prefix"],
                 code_prefix_tooltip=d["code_prefix_tooltip"],
                 soakdb=d.get("soakdb",""),
+                panddas_event_files=d.get("panddas_event_files",""),
+                exclude=d.get("exclude",""),
             )
 
 class InputsUI(ChildUI):
@@ -205,6 +208,8 @@ class InputsUI(ChildUI):
         code_prefix="",
         code_prefix_tooltip="",
         soakdb="",
+        panddas_event_files="",
+        exclude="",
     ):
 
         df = pd.DataFrame([dict(
@@ -213,6 +218,8 @@ class InputsUI(ChildUI):
             code_prefix=code_prefix,
             code_prefix_tooltip=code_prefix_tooltip,
             soakdb=soakdb,
+            panddas_event_files=panddas_event_files,
+            exclude=exclude,
         )])
 
         self.inputs = pd.concat([self.inputs, df], ignore_index=True)
@@ -290,6 +297,21 @@ class InputsUI(ChildUI):
             l.addWidget(label)
             l.addWidget(widget)
             layout.addLayout(l)
+
+            if row["type"] == "model_building":
+                # panddas_event_files
+                label = QLabel("panddas_event_files")
+                widget = QTextEdit()
+                widget.setPlainText("\n".join(row["panddas_event_files"]))
+                layout.addWidget(label)
+                layout.addWidget(widget)
+
+            # panddas_event_files
+            label = QLabel("exclude")
+            widget = QTextEdit()
+            widget.setPlainText("\n".join(row["exclude"]))
+            layout.addWidget(label)
+            layout.addWidget(widget)
 
             self.layout_inputs.addWidget(groupbox)
 
