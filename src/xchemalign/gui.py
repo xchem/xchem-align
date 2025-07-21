@@ -1,5 +1,8 @@
-
 import sys
+
+import signal
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 from PyQt5.QtCore import Qt
 
@@ -39,6 +42,7 @@ DIRECTORY = Path(".").resolve()
 CONFIG_FILE = Path("config.yaml").resolve()
 ASSEMBLIES_FILE = Path("assemblies.yaml").resolve()
 
+
 class XChemAlign(QWidget):
 
     def __init__(self):
@@ -49,23 +53,22 @@ class XChemAlign(QWidget):
 
     def setup_window(self, width=800, height=200):
         self.setWindowTitle("XChemAlign GUI")
-        self.resize(width,height)
+        self.resize(width, height)
 
     def setup_layout(self):
-        
+
         self.layout = QHBoxLayout()
 
-        
         self.layout_left = QVBoxLayout()
         self.layout_config = QVBoxLayout()
         label = QLabel("XChemAlign")
         font = label.font()
-        font.setPointSize(16)   # bigger size
-        font.setBold(True)      # bold text
+        font.setPointSize(16)  # bigger size
+        font.setBold(True)  # bold text
         label.setFont(font)
         label.setAlignment(Qt.AlignCenter)
         self.layout_config.addWidget(label)
-        
+
         label = QLabel(f"{DIRECTORY}")
         font = label.font()
         font.setFamily("Courier New")  # or "Consolas", "Monospace", etc.
@@ -77,7 +80,7 @@ class XChemAlign(QWidget):
 
         self.layout.addLayout(self.layout_left)
         # self.layout.addLayout(self.layout_console)
-        
+
         self.layout_left.addLayout(self.layout_config)
         # self.layout_left.addLayout(self.layout_assemblies)
 
@@ -96,6 +99,7 @@ class XChemAlign(QWidget):
     def on_click(self):
         self.button.setText("You clicked me!")
 
+
 class ChildUI(QWidget):
     def __init__(self, parent, layout, index=None):
         super().__init__()
@@ -103,10 +107,11 @@ class ChildUI(QWidget):
         self.layout = layout
         self.index = index
         self.setup()
-    
+
+
 class ConfigUI(ChildUI):
     def setup(self):
-        
+
         # target name
         self.label_target_name = QLabel("Target Name:")
         self.widget_target_name = QLineEdit()
@@ -135,6 +140,7 @@ class ConfigUI(ChildUI):
     def load_yaml(self, file):
 
         import yaml
+
         with open(file, "r") as stream:
             config = yaml.safe_load(stream)
 
@@ -149,10 +155,11 @@ class ConfigUI(ChildUI):
                 type=d["type"],
                 code_prefix=d["code_prefix"],
                 code_prefix_tooltip=d["code_prefix_tooltip"],
-                soakdb=d.get("soakdb",""),
-                panddas_event_files=d.get("panddas_event_files",""),
-                exclude=d.get("exclude",""),
+                soakdb=d.get("soakdb", ""),
+                panddas_event_files=d.get("panddas_event_files", ""),
+                exclude=d.get("exclude", ""),
             )
+
 
 class InputsUI(ChildUI):
 
@@ -179,29 +186,33 @@ class InputsUI(ChildUI):
         self.layout.addLayout(self.layout_inputs)
 
         self.layout_buttons = QHBoxLayout()
-        
+
         b1 = QPushButton("SAVE")
         b1.setStyleSheet("color:green")
+
         def b1_action():
             raise NotImplementedError
+
         b1.clicked.connect(b1_action)
         self.layout_buttons.addWidget(b1)
 
         b2 = QPushButton("REVERT")
         b2.setStyleSheet("color:red")
+
         def b2_action():
             self.parent.load_yaml(CONFIG_FILE)
+
         b2.clicked.connect(b2_action)
         self.layout_buttons.addWidget(b2)
 
-        
         self.layout.addLayout(self.layout_buttons)
 
         ###
 
         self.update_widgets()
 
-    def add_input(self,
+    def add_input(
+        self,
         *args,
         dir="",
         type="model_building",
@@ -212,19 +223,21 @@ class InputsUI(ChildUI):
         exclude="",
     ):
 
-        df = pd.DataFrame([dict(
-            dir=dir,
-            type=type,
-            code_prefix=code_prefix,
-            code_prefix_tooltip=code_prefix_tooltip,
-            soakdb=soakdb,
-            panddas_event_files=panddas_event_files,
-            exclude=exclude,
-        )])
+        df = pd.DataFrame(
+            [
+                dict(
+                    dir=dir,
+                    type=type,
+                    code_prefix=code_prefix,
+                    code_prefix_tooltip=code_prefix_tooltip,
+                    soakdb=soakdb,
+                    panddas_event_files=panddas_event_files,
+                    exclude=exclude,
+                )
+            ]
+        )
 
         self.inputs = pd.concat([self.inputs, df], ignore_index=True)
-
-        print(self.inputs)
 
         self.update_widgets()
 
@@ -232,14 +245,14 @@ class InputsUI(ChildUI):
 
         clear_layout(self.layout_inputs)
 
-        for i,row in self.inputs.iterrows():
+        for i, row in self.inputs.iterrows():
 
             groupbox = QGroupBox()
 
             layout = QVBoxLayout()
 
             groupbox.setLayout(layout)
-            
+
             # title
             l = QHBoxLayout()
             label = QLabel(f"INPUT {i+1}")
@@ -315,6 +328,7 @@ class InputsUI(ChildUI):
 
             self.layout_inputs.addWidget(groupbox)
 
+
 def clear_layout(layout):
     if layout is not None:
         while layout.count():
@@ -329,7 +343,8 @@ def clear_layout(layout):
             if child_layout is not None:
                 clear_layout(child_layout)  # Recursively clear nested layouts
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = XChemAlign()
     window.show()
