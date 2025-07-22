@@ -8,30 +8,31 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 from datetime import datetime
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 
 from PyQt5.QtWidgets import (
     QGroupBox,
     QApplication,
-    QCheckBox,
+    # QCheckBox,
     QComboBox,
-    QDateEdit,
-    QDateTimeEdit,
-    QDial,
-    QDoubleSpinBox,
-    QFontComboBox,
+    # QDateEdit,
+    # QDateTimeEdit,
+    # QDial,
+    # QDoubleSpinBox,
+    # QFontComboBox,
     QLabel,
-    QLCDNumber,
+    # QLCDNumber,
     QLineEdit,
-    QMainWindow,
-    QProgressBar,
+    # QMainWindow,
+    # QProgressBar,
     QPushButton,
-    QRadioButton,
-    QSlider,
-    QSpinBox,
-    QTimeEdit,
+    # QRadioButton,
+    # QSlider,
+    # QSpinBox,
+    # QTimeEdit,
     QHBoxLayout,
     QVBoxLayout,
-    QFrame,
+    # QFrame,
     QTextEdit,
     QWidget,
     QScrollArea,
@@ -39,7 +40,6 @@ from PyQt5.QtWidgets import (
 
 import pandas as pd
 import mrich
-from mrich import print
 from pathlib import Path
 from shutil import copy2
 
@@ -47,6 +47,8 @@ DIRECTORY = Path(".").resolve()
 CONFIG_FILE = Path("config.yaml").resolve()
 ASSEMBLIES_FILE = Path("assemblies.yaml").resolve()
 
+MONO_FONT = QFont("Courier New")
+MONO_FONT.setStyleHint(QFont.Monospace)
 
 class XChemAlign(QWidget):
 
@@ -56,8 +58,9 @@ class XChemAlign(QWidget):
         self.setup_layout()
         self.ui_config = ConfigUI(self, self.layout_config)
         self.ui_assemblies = AssembliesUI(self, self.layout_assemblies)
+        self.ui_crystalforms = CrystalformsUI(self, self.layout_crystalforms)
 
-    def setup_window(self, width=800, height=600):
+    def setup_window(self, width=1200, height=800):
         self.setWindowTitle("XChemAlign GUI")
         self.resize(width, height)
 
@@ -67,17 +70,8 @@ class XChemAlign(QWidget):
 
         ### HEADER
         self.layout_header = QVBoxLayout()
-        label = QLabel("XChemAlign")
-        font = label.font()
-        font.setPointSize(16)  # bigger size
-        font.setBold(True)  # bold text
-        label.setFont(font)
-        label.setAlignment(Qt.AlignCenter)
-        self.layout_header.addWidget(label)
         label = QLabel(f"{DIRECTORY}")
-        font = label.font()
-        font.setFamily("Courier New")  # or "Consolas", "Monospace", etc.
-        label.setFont(font)
+        label.setFont(MONO_FONT)
         label.setStyleSheet("background-color:black; color:white; padding:8px")
         self.layout_header.addWidget(label)
         self.layout.addLayout(self.layout_header)
@@ -116,6 +110,17 @@ class XChemAlign(QWidget):
         label.setFont(font)
         self.layout_assemblies.addWidget(label)
 
+        # crystalforms layout
+        self.layout_crystalforms = QVBoxLayout()
+        self.layout_middle.addLayout(self.layout_crystalforms)
+        label = QLabel("CRYSTALFORMS")
+        font = label.font()
+        font.setPointSize(14)
+        font.setBold(True)
+        label.setAlignment(Qt.AlignCenter)
+        label.setFont(font)
+        self.layout_crystalforms.addWidget(label)
+
         self.setLayout(self.layout)
 
     def on_click(self):
@@ -148,6 +153,7 @@ class ConfigUI(ChildUI):
         l = QHBoxLayout()
         l.addWidget(self.label_base_dir)
         l.addWidget(self.widget_base_dir)
+        self.widget_base_dir.setFont(MONO_FONT)
         self.layout.addLayout(l)
 
         # inputs
@@ -196,40 +202,41 @@ class InputsUI(ChildUI):
         font = self.label_title.font()
         font.setBold(True)
         self.label_title.setFont(font)
-        self.layout.addWidget(self.label_title)
-        label = QLabel("Define your inputs here:")
-        self.layout.addWidget(label)
 
         self.button_add = QPushButton("Add input")
         self.button_add.clicked.connect(self.add_input)
-        self.layout.addWidget(self.button_add)
+        
+        l = QHBoxLayout()
+        l.addWidget(self.label_title)
+        l.addWidget(self.button_add)
+        self.layout.addLayout(l)
 
         self.layout_inputs = QVBoxLayout()
         self.layout.addLayout(self.layout_inputs)
 
-        self.layout_buttons = QHBoxLayout()
+        # self.layout_buttons = QHBoxLayout()
 
-        b1 = QPushButton("SAVE config.yaml")
-        b1.setStyleSheet("color:green")
+        # b1 = QPushButton("SAVE config.yaml")
+        # b1.setStyleSheet("color:green")
 
-        def b1_action():
-            raise NotImplementedError
+        # def b1_action():
+        #     raise NotImplementedError
 
-        b1.clicked.connect(b1_action)
-        self.layout_buttons.addWidget(b1)
+        # b1.clicked.connect(b1_action)
+        # self.layout_buttons.addWidget(b1)
 
-        b2 = QPushButton("REVERT config.yaml")
-        b2.setStyleSheet("color:red")
+        # b2 = QPushButton("REVERT config.yaml")
+        # b2.setStyleSheet("color:red")
 
-        def b2_action():
-            self.parent.load_yaml(CONFIG_FILE)
+        # def b2_action():
+        #     self.parent.load_yaml(CONFIG_FILE)
 
-        b2.clicked.connect(b2_action)
-        self.layout_buttons.addWidget(b2)
+        # b2.clicked.connect(b2_action)
+        # self.layout_buttons.addWidget(b2)
 
-        self.layout.addLayout(self.layout_buttons)
+        # self.layout.addLayout(self.layout_buttons)
 
-        ###
+        # ###
 
         self.update_widgets()
 
@@ -308,6 +315,7 @@ class InputsUI(ChildUI):
             # dir
             label = QLabel("dir")
             widget = QLineEdit(row["dir"])
+            widget.setFont(MONO_FONT)
             l = QHBoxLayout()
             l.addWidget(label)
             l.addWidget(widget)
@@ -345,6 +353,7 @@ class InputsUI(ChildUI):
                 # panddas_event_files
                 label = QLabel("panddas_event_files")
                 widget = QTextEdit()
+                widget.setFont(MONO_FONT)
                 widget.setPlainText("\n".join(row["panddas_event_files"]))
                 layout.addWidget(label)
                 layout.addWidget(widget)
@@ -352,6 +361,7 @@ class InputsUI(ChildUI):
             # panddas_event_files
             label = QLabel("exclude")
             widget = QTextEdit()
+            widget.setFont(MONO_FONT)
             widget.setPlainText("\n".join(row["exclude"]))
             layout.addWidget(label)
             layout.addWidget(widget)
@@ -368,13 +378,14 @@ class AssembliesUI(ChildUI):
         font = self.label_title.font()
         font.setBold(True)
         self.label_title.setFont(font)
-        self.layout.addWidget(self.label_title)
-        label = QLabel("Define your assemblies here:")
-        self.layout.addWidget(label)
 
         self.button_add = QPushButton("Add assembly")
         self.button_add.clicked.connect(self.add_assembly)
-        self.layout.addWidget(self.button_add)
+        
+        l = QHBoxLayout()
+        l.addWidget(self.label_title)
+        l.addWidget(self.button_add)
+        self.layout.addLayout(l)
 
         self.layout_assemblies = QVBoxLayout()
         self.layout.addLayout(self.layout_assemblies)
@@ -476,6 +487,119 @@ class AssembliesUI(ChildUI):
                 chains=d["chains"],
             )
 
+class CrystalformsUI(ChildUI):
+
+    def clear(self):
+        self.crystalforms = pd.DataFrame(columns=["crystalform", "reference", "assemblies"])
+
+    def setup(self):
+        self.clear()
+
+        self.label_title = QLabel("Crystalforms")
+        font = self.label_title.font()
+        font.setBold(True)
+        self.label_title.setFont(font)
+
+        self.button_add = QPushButton("Add crystalform")
+        self.button_add.clicked.connect(self.add_crystalform)
+        
+        l = QHBoxLayout()
+        l.addWidget(self.label_title)
+        l.addWidget(self.button_add)
+        self.layout.addLayout(l)
+
+        self.layout_crystalforms = QVBoxLayout()
+        self.layout.addLayout(self.layout_crystalforms)
+
+        # self.update_widgets()
+
+    def add_crystalform(self, *args, crystalform="", reference="", assemblies=""):
+        df = pd.DataFrame([dict(crystalform=crystalform, reference=reference, assemblies=assemblies)])
+        self.crystalforms = pd.concat([self.crystalforms, df], ignore_index=True)
+        self.update_widgets()
+
+    def remove_crystalform(self, *args, index=None):
+        self.crystalforms = self.crystalforms.drop(index)
+        self.update_widgets()
+
+
+    def update_widgets(self):
+        
+        clear_layout(self.layout_crystalforms)
+
+        container_widget = QWidget()
+        inner_layout = QVBoxLayout(container_widget)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(container_widget)
+
+        self.layout_crystalforms.addWidget(scroll_area)
+
+        for i, row in self.crystalforms.iterrows():
+
+            groupbox = QGroupBox()
+            layout = QVBoxLayout()
+            groupbox.setLayout(layout)
+            inner_layout.addWidget(groupbox)
+
+            # title
+            l = QHBoxLayout()
+            label = QLabel(f"CRYSTALFORM {i+1}")
+            font = label.font()
+            font.setBold(True)
+            label.setFont(font)
+            l.addWidget(label)
+
+            # remove
+            button = QPushButton("remove")
+            button.clicked.connect(lambda x, idx=i: self.remove_assembly(index=idx))
+            button.setStyleSheet("color: red;")
+            l.addWidget(button)
+
+            layout.addLayout(l)
+
+            # crystalform name
+            l = QHBoxLayout()
+            label = QLabel("crystalform")
+            widget = QLineEdit(row["crystalform"])
+            l.addWidget(label)
+            l.addWidget(widget)
+            layout.addLayout(l)
+
+            # reference
+            l = QHBoxLayout()
+            label = QLabel("reference")
+            widget = QLineEdit(row["reference"])
+            l.addWidget(label)
+            l.addWidget(widget)
+            layout.addLayout(l)
+
+            # panddas_event_files
+            label = QLabel("assemblies")
+            widget = QTextEdit()
+            widget.setFont(MONO_FONT)
+            # widget.setPlainText("\n".join(row["assemblies"]))
+            widget.setPlainText(row["assemblies"])
+            layout.addWidget(label)
+            layout.addWidget(widget)
+
+    def load_yaml(self, file):
+
+        import yaml
+
+        with open(file, "r") as stream:
+            config = yaml.safe_load(stream)
+
+        self.clear()
+
+        for k,d in config["crystalforms"].items():
+            self.add_crystalform(
+                crystalform=k,
+                reference=d["reference"],
+                assemblies=yaml.dump(d["assemblies"]),
+            )
+
 def clear_layout(layout):
     if layout is not None:
         while layout.count():
@@ -508,5 +632,6 @@ if __name__ == "__main__":
     if ASSEMBLIES_FILE.exists():
         backup_yaml(ASSEMBLIES_FILE)
         window.ui_assemblies.load_yaml(ASSEMBLIES_FILE)
+        window.ui_crystalforms.load_yaml(ASSEMBLIES_FILE)
 
     sys.exit(app.exec())
