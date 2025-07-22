@@ -55,6 +55,7 @@ class XChemAlign(QWidget):
         self.setup_window()
         self.setup_layout()
         self.ui_config = ConfigUI(self, self.layout_config)
+        self.ui_assemblies = AssembliesUI(self, self.layout_assemblies)
 
     def setup_window(self, width=800, height=600):
         self.setWindowTitle("XChemAlign GUI")
@@ -62,33 +63,40 @@ class XChemAlign(QWidget):
 
     def setup_layout(self):
 
-        self.layout = QHBoxLayout()
+        self.layout = QVBoxLayout()
 
-        self.layout_left = QVBoxLayout()
-        self.layout_config = QVBoxLayout()
+        ### HEADER
+        self.layout_header = QVBoxLayout()
         label = QLabel("XChemAlign")
         font = label.font()
         font.setPointSize(16)  # bigger size
         font.setBold(True)  # bold text
         label.setFont(font)
         label.setAlignment(Qt.AlignCenter)
-        self.layout_config.addWidget(label)
-
+        self.layout_header.addWidget(label)
         label = QLabel(f"{DIRECTORY}")
         font = label.font()
         font.setFamily("Courier New")  # or "Consolas", "Monospace", etc.
         label.setFont(font)
         label.setStyleSheet("background-color:black; color:white; padding:8px")
-        self.layout_config.addWidget(label)
-        # self.layout_assemblies = QVBoxLayout()
-        # self.layout_console = QVBoxLayout()
+        self.layout_header.addWidget(label)
+        self.layout.addLayout(self.layout_header)
+        
+        ### MAIN LAYOUT
+        self.layout_bottom = QHBoxLayout()
+        self.layout.addLayout(self.layout_bottom)
 
-        self.layout.addLayout(self.layout_left)
-        # self.layout.addLayout(self.layout_console)
+        # sublayouts
+        self.layout_left = QVBoxLayout()
+        self.layout_middle = QVBoxLayout()
+        # self.layout_right = QVBoxLayout()
+        self.layout_bottom.addLayout(self.layout_left)
+        self.layout_bottom.addLayout(self.layout_middle)
+        # self.layout_bottom.addLayout(self.layout_right)
 
+        # config layout
+        self.layout_config = QVBoxLayout()
         self.layout_left.addLayout(self.layout_config)
-        # self.layout_left.addLayout(self.layout_assemblies)
-
         label = QLabel("CONFIG")
         font = label.font()
         font.setPointSize(14)
@@ -96,8 +104,17 @@ class XChemAlign(QWidget):
         label.setAlignment(Qt.AlignCenter)
         label.setFont(font)
         self.layout_config.addWidget(label)
-        # self.layout_assemblies.addWidget(QLabel("ASSEMBLIES"))
-        # self.layout_console.addWidget(QLabel("CONSOLE"))
+                
+        # assemblies layout
+        self.layout_assemblies = QVBoxLayout()
+        self.layout_middle.addLayout(self.layout_assemblies)
+        label = QLabel("ASSEMBLIES")
+        font = label.font()
+        font.setPointSize(14)
+        font.setBold(True)
+        label.setAlignment(Qt.AlignCenter)
+        label.setFont(font)
+        self.layout_assemblies.addWidget(label)
 
         self.setLayout(self.layout)
 
@@ -133,7 +150,7 @@ class ConfigUI(ChildUI):
         l.addWidget(self.widget_base_dir)
         self.layout.addLayout(l)
 
-        # # inputs
+        # inputs
         self.layout_inputs = QVBoxLayout()
         self.layout.addLayout(self.layout_inputs)
         self.ui_inputs = InputsUI(self, self.layout_inputs)
@@ -192,7 +209,7 @@ class InputsUI(ChildUI):
 
         self.layout_buttons = QHBoxLayout()
 
-        b1 = QPushButton("SAVE")
+        b1 = QPushButton("SAVE config.yaml")
         b1.setStyleSheet("color:green")
 
         def b1_action():
@@ -201,7 +218,7 @@ class InputsUI(ChildUI):
         b1.clicked.connect(b1_action)
         self.layout_buttons.addWidget(b1)
 
-        b2 = QPushButton("REVERT")
+        b2 = QPushButton("REVERT config.yaml")
         b2.setStyleSheet("color:red")
 
         def b2_action():
@@ -246,6 +263,10 @@ class InputsUI(ChildUI):
 
         self.update_widgets()
 
+    def remove_input(self, *args, index=None):
+        self.inputs = self.inputs.drop(index)
+        self.update_widgets()
+
     def update_widgets(self):
 
         clear_layout(self.layout_inputs)
@@ -276,13 +297,9 @@ class InputsUI(ChildUI):
             label.setFont(font)
             l.addWidget(label)
 
-            def remove_input():
-                self.inputs = self.inputs.drop(i)
-                self.update_widgets()
-
             # remove
             button = QPushButton("remove")
-            button.clicked.connect(remove_input)
+            button.clicked.connect(lambda x, idx=i: self.remove_input(index=idx))
             button.setStyleSheet("color: red;")
             l.addWidget(button)
 
@@ -339,6 +356,126 @@ class InputsUI(ChildUI):
             layout.addWidget(label)
             layout.addWidget(widget)
 
+class AssembliesUI(ChildUI):
+
+    def clear(self):
+        self.assemblies = pd.DataFrame(columns=["assembly", "reference", "biomol", "chains"])
+
+    def setup(self):
+        self.clear()
+
+        self.label_title = QLabel("Assemblies")
+        font = self.label_title.font()
+        font.setBold(True)
+        self.label_title.setFont(font)
+        self.layout.addWidget(self.label_title)
+        label = QLabel("Define your assemblies here:")
+        self.layout.addWidget(label)
+
+        self.button_add = QPushButton("Add assembly")
+        self.button_add.clicked.connect(self.add_assembly)
+        self.layout.addWidget(self.button_add)
+
+        self.layout_assemblies = QVBoxLayout()
+        self.layout.addLayout(self.layout_assemblies)
+
+        self.update_widgets()
+
+    def add_assembly(self, *args, assembly="", reference="", biomol="", chains=""):
+        df = pd.DataFrame([dict(assembly=assembly, reference=reference, biomol=biomol, chains=chains)])
+        self.assemblies = pd.concat([self.assemblies, df], ignore_index=True)
+        self.update_widgets()
+
+    def remove_assembly(self, *args, index=None):
+        self.assemblies = self.assemblies.drop(index)
+        self.update_widgets()
+
+
+    def update_widgets(self):
+        
+        clear_layout(self.layout_assemblies)
+
+        container_widget = QWidget()
+        inner_layout = QVBoxLayout(container_widget)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(container_widget)
+
+        self.layout_assemblies.addWidget(scroll_area)
+
+        for i, row in self.assemblies.iterrows():
+
+            groupbox = QGroupBox()
+            layout = QVBoxLayout()
+            groupbox.setLayout(layout)
+            inner_layout.addWidget(groupbox)
+
+            # title
+            l = QHBoxLayout()
+            label = QLabel(f"ASSEMBLY {i+1}")
+            font = label.font()
+            font.setBold(True)
+            label.setFont(font)
+            l.addWidget(label)
+
+            # remove
+            button = QPushButton("remove")
+            button.clicked.connect(lambda x, idx=i: self.remove_assembly(index=idx))
+            button.setStyleSheet("color: red;")
+            l.addWidget(button)
+
+            layout.addLayout(l)
+
+            # assembly name
+            l = QHBoxLayout()
+            label = QLabel("assembly")
+            widget = QLineEdit(row["assembly"])
+            l.addWidget(label)
+            l.addWidget(widget)
+            layout.addLayout(l)
+
+            # reference
+            l = QHBoxLayout()
+            label = QLabel("reference")
+            widget = QLineEdit(row["reference"])
+            l.addWidget(label)
+            l.addWidget(widget)
+            layout.addLayout(l)
+
+            # biomol
+            l = QHBoxLayout()
+            label = QLabel("biomol")
+            widget = QLineEdit(row["biomol"])
+            l.addWidget(label)
+            l.addWidget(widget)
+            layout.addLayout(l)
+
+            # chains
+            l = QHBoxLayout()
+            label = QLabel("chains")
+            widget = QLineEdit(row["chains"])
+            l.addWidget(label)
+            l.addWidget(widget)
+            layout.addLayout(l)
+
+    def load_yaml(self, file):
+
+        import yaml
+
+        with open(file, "r") as stream:
+            config = yaml.safe_load(stream)
+
+        self.clear()
+
+        for k,d in config["assemblies"].items():
+            self.add_assembly(
+                assembly=k,
+                reference=d["reference"],
+                biomol=d["biomol"],
+                chains=d["chains"],
+            )
+
 def clear_layout(layout):
     if layout is not None:
         while layout.count():
@@ -367,5 +504,9 @@ if __name__ == "__main__":
     if CONFIG_FILE.exists():
         backup_yaml(CONFIG_FILE)
         window.ui_config.load_yaml(CONFIG_FILE)
+
+    if ASSEMBLIES_FILE.exists():
+        backup_yaml(ASSEMBLIES_FILE)
+        window.ui_assemblies.load_yaml(ASSEMBLIES_FILE)
 
     sys.exit(app.exec())
