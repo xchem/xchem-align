@@ -31,6 +31,7 @@ from PyQt5.QtWidgets import (
     QFrame,
     QTextEdit,
     QWidget,
+    QScrollArea,
 )
 
 import pandas as pd
@@ -51,7 +52,7 @@ class XChemAlign(QWidget):
         self.setup_layout()
         self.ui_config = ConfigUI(self, self.layout_config)
 
-    def setup_window(self, width=800, height=200):
+    def setup_window(self, width=800, height=600):
         self.setWindowTitle("XChemAlign GUI")
         self.resize(width, height)
 
@@ -245,13 +246,21 @@ class InputsUI(ChildUI):
 
         clear_layout(self.layout_inputs)
 
+        container_widget = QWidget()
+        inner_layout = QVBoxLayout(container_widget)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(container_widget)
+
+        self.layout_inputs.addWidget(scroll_area)
+
         for i, row in self.inputs.iterrows():
 
             groupbox = QGroupBox()
-
             layout = QVBoxLayout()
-
             groupbox.setLayout(layout)
+            inner_layout.addWidget(groupbox)
 
             # title
             l = QHBoxLayout()
