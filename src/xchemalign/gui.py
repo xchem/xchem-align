@@ -628,10 +628,15 @@ if __name__ == "__main__":
     if CONFIG_FILE.exists():
         backup_yaml(CONFIG_FILE)
         window.ui_config.load_yaml(CONFIG_FILE)
+    else:
+        window.ui_config.ui_inputs.add_input()
 
     if ASSEMBLIES_FILE.exists():
         backup_yaml(ASSEMBLIES_FILE)
         window.ui_assemblies.load_yaml(ASSEMBLIES_FILE)
         window.ui_crystalforms.load_yaml(ASSEMBLIES_FILE)
+    else:
+        window.ui_assemblies.add_assembly()
+        window.ui_crystalforms.add_crystalform()
 
     sys.exit(app.exec())
