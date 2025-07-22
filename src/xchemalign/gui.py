@@ -1,8 +1,11 @@
 import sys
 
+
 import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+from datetime import datetime
 
 from PyQt5.QtCore import Qt
 
@@ -38,6 +41,7 @@ import pandas as pd
 import mrich
 from mrich import print
 from pathlib import Path
+from shutil import copy2
 
 DIRECTORY = Path(".").resolve()
 CONFIG_FILE = Path("config.yaml").resolve()
@@ -335,9 +339,6 @@ class InputsUI(ChildUI):
             layout.addWidget(label)
             layout.addWidget(widget)
 
-            self.layout_inputs.addWidget(groupbox)
-
-
 def clear_layout(layout):
     if layout is not None:
         while layout.count():
@@ -352,6 +353,11 @@ def clear_layout(layout):
             if child_layout is not None:
                 clear_layout(child_layout)  # Recursively clear nested layouts
 
+def backup_yaml(file):
+    timestamp_str = datetime.now().strftime("%Y-%m-%d.%H-%M-%S")
+    new_file = DIRECTORY / file.name.replace(".yaml", f".{timestamp_str}.yaml")
+    mrich.writing(new_file)
+    copy2(file, new_file)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -359,6 +365,7 @@ if __name__ == "__main__":
     window.show()
 
     if CONFIG_FILE.exists():
+        backup_yaml(CONFIG_FILE)
         window.ui_config.load_yaml(CONFIG_FILE)
 
     sys.exit(app.exec())
