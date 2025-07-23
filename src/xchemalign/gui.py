@@ -1,6 +1,6 @@
 import sys
 
-
+import subprocess
 import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -77,21 +77,19 @@ class XChemAlign(QWidget):
         label.setStyleSheet("background-color:black; color:white; padding:8px")
         self.layout_header.addWidget(label)
 
-        # legend_layout = QHBoxLayout()
-        # legend_layout.addWidget(QLabel("Legend:"))
-        # normal = QLineEdit("normal")
-        # normal.setReadOnly(True)
-        # legend_layout.addWidget(normal)
-        # modified = QLineEdit("modified")
-        # modified.setReadOnly(True)
-        # modified.setStyleSheet("background-color:yellow")
-        # legend_layout.addWidget(modified)
-        # invalid = QLineEdit("invalid")
-        # invalid.setReadOnly(True)
-        # invalid.setStyleSheet("background-color:red")
-        # normal.setStyleSheet("")
-        # legend_layout.addWidget(invalid)
-        # self.layout_header.addLayout(legend_layout)
+        button_layout = QHBoxLayout()
+        save = QPushButton("Save Changes")
+        button_layout.addWidget(save)
+        revert = QPushButton("Revert to backup")
+        revert.clicked.connect(revert_state)
+        button_layout.addWidget(revert)
+        collate = QPushButton("Run Collator")
+        collate.clicked.connect(run_collator)
+        button_layout.addWidget(collate)
+        align = QPushButton("Run Aligner")
+        align.clicked.connect(run_aligner)
+        button_layout.addWidget(align)
+        self.layout_header.addLayout(button_layout)
 
         self.layout.addLayout(self.layout_header)
         
@@ -141,9 +139,6 @@ class XChemAlign(QWidget):
         self.layout_crystalforms.addWidget(label)
 
         self.setLayout(self.layout)
-
-    def on_click(self):
-        self.button.setText("You clicked me!")
 
 
 class ChildUI(QWidget):
@@ -640,10 +635,19 @@ def backup_yaml(file):
     copy2(file, new_file)
     return new_file
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = XChemAlign()
-    window.show()
+def revert_state():
+    return load_yamls(from_backup=True)
+
+def load_yamls(from_backup=False):
+
+    global CONFIG_BACKUP
+    global ASSEMBLIES_BACKUP
+
+    if from_backup: 
+        window.ui_config.load_yaml(CONFIG_BACKUP)
+        window.ui_assemblies.load_yaml(ASSEMBLIES_BACKUP)
+        window.ui_crystalforms.load_yaml(ASSEMBLIES_BACKUP)
+        return
 
     if CONFIG_FILE.exists():
         CONFIG_BACKUP = backup_yaml(CONFIG_FILE)
@@ -658,5 +662,18 @@ if __name__ == "__main__":
     else:
         window.ui_assemblies.add_assembly()
         window.ui_crystalforms.add_crystalform()
+
+def run_collator():
+    subprocess.run(["python", "-m", "xchemalign.collator"])
+
+def run_aligner():
+    subprocess.run(["python", "-m", "xchemalign.aligner"])
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = XChemAlign()
+    window.show()
+
+    load_yamls()
 
     sys.exit(app.exec())
