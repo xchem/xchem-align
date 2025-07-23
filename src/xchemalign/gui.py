@@ -43,12 +43,14 @@ import mrich
 from pathlib import Path
 from shutil import copy2
 
+from .widgets import *
+
 DIRECTORY = Path(".").resolve()
 CONFIG_FILE = Path("config.yaml").resolve()
 ASSEMBLIES_FILE = Path("assemblies.yaml").resolve()
 
-MONO_FONT = QFont("Courier New")
-MONO_FONT.setStyleHint(QFont.Monospace)
+CONFIG_BACKUP = None
+ASSEMBLIES_BACKUP = None
 
 class XChemAlign(QWidget):
 
@@ -74,6 +76,23 @@ class XChemAlign(QWidget):
         label.setFont(MONO_FONT)
         label.setStyleSheet("background-color:black; color:white; padding:8px")
         self.layout_header.addWidget(label)
+
+        # legend_layout = QHBoxLayout()
+        # legend_layout.addWidget(QLabel("Legend:"))
+        # normal = QLineEdit("normal")
+        # normal.setReadOnly(True)
+        # legend_layout.addWidget(normal)
+        # modified = QLineEdit("modified")
+        # modified.setReadOnly(True)
+        # modified.setStyleSheet("background-color:yellow")
+        # legend_layout.addWidget(modified)
+        # invalid = QLineEdit("invalid")
+        # invalid.setReadOnly(True)
+        # invalid.setStyleSheet("background-color:red")
+        # normal.setStyleSheet("")
+        # legend_layout.addWidget(invalid)
+        # self.layout_header.addLayout(legend_layout)
+
         self.layout.addLayout(self.layout_header)
         
         ### MAIN LAYOUT
@@ -141,7 +160,7 @@ class ConfigUI(ChildUI):
 
         # target name
         self.label_target_name = QLabel("Target Name:")
-        self.widget_target_name = QLineEdit()
+        self.widget_target_name = LineEdit()
         l = QHBoxLayout()
         l.addWidget(self.label_target_name)
         l.addWidget(self.widget_target_name)
@@ -149,7 +168,7 @@ class ConfigUI(ChildUI):
 
         # target name
         self.label_base_dir = QLabel("Base Directory:")
-        self.widget_base_dir = QLineEdit("/")
+        self.widget_base_dir = LineEdit("/")
         l = QHBoxLayout()
         l.addWidget(self.label_base_dir)
         l.addWidget(self.widget_base_dir)
@@ -314,8 +333,7 @@ class InputsUI(ChildUI):
 
             # dir
             label = QLabel("dir")
-            widget = QLineEdit(row["dir"])
-            widget.setFont(MONO_FONT)
+            widget = LineEdit(row["dir"])
             l = QHBoxLayout()
             l.addWidget(label)
             l.addWidget(widget)
@@ -323,11 +341,14 @@ class InputsUI(ChildUI):
 
             # type
             label = QLabel("type")
-            widget = QComboBox()
+            widget = ComboBox()
             widget.addItems(["model_building", "manual"])
             index = widget.findText(row["type"])
             if index != -1:
                 widget.setCurrentIndex(index)
+                widget.starting_index = int(index)
+            widget.connect()
+
             l = QHBoxLayout()
             l.addWidget(label)
             l.addWidget(widget)
@@ -335,7 +356,7 @@ class InputsUI(ChildUI):
 
             # code_prefix
             label = QLabel("code_prefix")
-            widget = QLineEdit(row["code_prefix"])
+            widget = LineEdit(row["code_prefix"])
             l = QHBoxLayout()
             l.addWidget(label)
             l.addWidget(widget)
@@ -343,7 +364,7 @@ class InputsUI(ChildUI):
 
             # code_prefix
             label = QLabel("code_prefix_tooltip")
-            widget = QLineEdit(row["code_prefix_tooltip"])
+            widget = LineEdit(row["code_prefix_tooltip"])
             l = QHBoxLayout()
             l.addWidget(label)
             l.addWidget(widget)
@@ -352,16 +373,14 @@ class InputsUI(ChildUI):
             if row["type"] == "model_building":
                 # panddas_event_files
                 label = QLabel("panddas_event_files")
-                widget = QTextEdit()
-                widget.setFont(MONO_FONT)
+                widget = TextEdit()
                 widget.setPlainText("\n".join(row["panddas_event_files"]))
                 layout.addWidget(label)
                 layout.addWidget(widget)
 
             # panddas_event_files
             label = QLabel("exclude")
-            widget = QTextEdit()
-            widget.setFont(MONO_FONT)
+            widget = TextEdit()
             widget.setPlainText("\n".join(row["exclude"]))
             layout.addWidget(label)
             layout.addWidget(widget)
@@ -441,7 +460,7 @@ class AssembliesUI(ChildUI):
             # assembly name
             l = QHBoxLayout()
             label = QLabel("assembly")
-            widget = QLineEdit(row["assembly"])
+            widget = LineEdit(row["assembly"])
             l.addWidget(label)
             l.addWidget(widget)
             layout.addLayout(l)
@@ -449,7 +468,7 @@ class AssembliesUI(ChildUI):
             # reference
             l = QHBoxLayout()
             label = QLabel("reference")
-            widget = QLineEdit(row["reference"])
+            widget = LineEdit(row["reference"])
             l.addWidget(label)
             l.addWidget(widget)
             layout.addLayout(l)
@@ -457,7 +476,7 @@ class AssembliesUI(ChildUI):
             # biomol
             l = QHBoxLayout()
             label = QLabel("biomol")
-            widget = QLineEdit(row["biomol"])
+            widget = LineEdit(row["biomol"])
             l.addWidget(label)
             l.addWidget(widget)
             layout.addLayout(l)
@@ -465,7 +484,7 @@ class AssembliesUI(ChildUI):
             # chains
             l = QHBoxLayout()
             label = QLabel("chains")
-            widget = QLineEdit(row["chains"])
+            widget = LineEdit(row["chains"])
             l.addWidget(label)
             l.addWidget(widget)
             layout.addLayout(l)
@@ -619,6 +638,7 @@ def backup_yaml(file):
     new_file = DIRECTORY / file.name.replace(".yaml", f".{timestamp_str}.yaml")
     mrich.writing(new_file)
     copy2(file, new_file)
+    return new_file
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -626,13 +646,13 @@ if __name__ == "__main__":
     window.show()
 
     if CONFIG_FILE.exists():
-        backup_yaml(CONFIG_FILE)
+        CONFIG_BACKUP = backup_yaml(CONFIG_FILE)
         window.ui_config.load_yaml(CONFIG_FILE)
     else:
         window.ui_config.ui_inputs.add_input()
 
     if ASSEMBLIES_FILE.exists():
-        backup_yaml(ASSEMBLIES_FILE)
+        ASSEMBLIES_BACKUP = backup_yaml(ASSEMBLIES_FILE)
         window.ui_assemblies.load_yaml(ASSEMBLIES_FILE)
         window.ui_crystalforms.load_yaml(ASSEMBLIES_FILE)
     else:
