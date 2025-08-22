@@ -255,8 +255,6 @@ def get_upload_file(use_default=False, use_custom=None):
 
         # uploader can be run from 3 places
         root_path = Path(DATA_DIR).absolute()
-        print(root_path.parent)
-        print(root_path.parent.parent)
         if not root_path.exists():
             if root_path.parent.name == DATA_DIR:
                 root_path = root_path.parent
