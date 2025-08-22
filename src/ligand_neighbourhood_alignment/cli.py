@@ -1723,7 +1723,7 @@ def _update(
                                     ],
                                 )
                             mtz_path = datasets[dtag].mtz
-                            if mtz_path != "None":
+                            if mtz_path and mtz_path != "None":
                                 xmap = read_xmap_from_mtz(mtz_path, "2Fo-Fc")
                                 __align_xmap(
                                     ligand_neighbourhoods[(dtag, chain, residue, version)],

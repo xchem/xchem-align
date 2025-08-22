@@ -17,7 +17,7 @@ import gemmi
 from gemmi import cif
 
 
-def run(latest_mtz, free_mtz, event_map, output):
+def run(latest_mtz, free_mtz, event_maps, output):
     today = datetime.date.today()
     formatted_date = today.strftime("%Y-%m-%d")
 
@@ -45,16 +45,18 @@ def run(latest_mtz, free_mtz, event_map, output):
     doc_final.add_copied_block(mtz_blk)
 
     # handle the event map data
-    cif_s = read_ccp4(event_map)
-    mtz_doc = cif.read_string(cif_s)
-    mtz_blk = mtz_doc.sole_block()
-    mtz_blk.name = "rxxxxBsf"
-    mtz_blk.set_pair("_diffrn.id", "1")
-    mtz_blk.set_pair("_diffrn.details", "data for ligand evidence map (PanDDA event map), event_map_1.mtz")
-    mtz_blk.set_pair("_diffrn_radiation_wavelength.id", "1")
-    mtz_blk.set_pair("_diffrn_radiation_wavelength.wavelength", "0.92209")
+    if event_maps:
+        for i, event_map in enumerate(event_maps):
+            cif_s = read_ccp4(event_map)
+            mtz_doc = cif.read_string(cif_s)
+            mtz_blk = mtz_doc.sole_block()
+            mtz_blk.name = "rxxxxBsf" + str(i)
+            mtz_blk.set_pair("_diffrn.id", "1")
+            mtz_blk.set_pair("_diffrn.details", "data for ligand evidence map (PanDDA event map), event_map_1.mtz")
+            mtz_blk.set_pair("_diffrn_radiation_wavelength.id", "1")
+            mtz_blk.set_pair("_diffrn_radiation_wavelength.wavelength", "0.92209")
 
-    doc_final.add_copied_block(mtz_blk)
+            doc_final.add_copied_block(mtz_blk)
 
     doc_final.write_file(output)
 
@@ -62,7 +64,7 @@ def run(latest_mtz, free_mtz, event_map, output):
 def read_mtz(file):
     mtz = gemmi.read_mtz_file(file)
     mtz.title = "MMMM"
-    print("read mtz")
+    print("read mtz " + file)
     to_cif = gemmi.MtzToCif()
     cif_s = to_cif.write_cif_to_string(mtz)
     return cif_s
@@ -74,7 +76,7 @@ def read_ccp4(file):
     RESOLUTION_LIMIT = 1.5
 
     map = gemmi.read_ccp4_map(file)
-    print("read ccp4")
+    print("read ccp4 " + file)
     sf = gemmi.transform_map_to_f_phi(map.grid, half_l=True)
     data = sf.prepare_asu_data(dmin=RESOLUTION_LIMIT)
 

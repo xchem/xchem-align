@@ -34,7 +34,8 @@ def read_dbmeta(dbfile):
         df = pd.read_sql_query(
             """SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
                                 RefinementCIF, RefinementCIFStatus, RefinementBoundConformation, RefinementMTZ_latest,
-                                RefinementMTZfree, RefinementDate, RefinementOutcome, LastUpdated
+                                RefinementMTZfree, RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
+                                LastUpdated
                                 FROM mainTable WHERE RefinementOutcome IS NOT NULL""",
             cnx,
         )
@@ -73,7 +74,7 @@ def read_pdb_depo(dbfile):
             """SELECT ID, CrystalName,
                                 RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
                                 RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated
-                                FROM mainTable WHERE RefinementOutcome like '6%'""",
+                                FROM mainTable WHERE RefinementOutcome like '5%'""",
             cnx,
         )
         return df

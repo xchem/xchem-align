@@ -163,6 +163,7 @@ class Copier:
         dbfile = self.base_path / self.input_path / self.soakdb_file_path
         dbfile_out = self.output_path / self.input_path / self.soakdb_file_path
         dbfile_out.parent.mkdir(exist_ok=True, parents=True)
+        self.logger.info("copying soakdbfile", str(dbfile))
         f = self.copier.do_copy(dbfile, dbfile_out)
         if not f:
             self.logger.error("Failed to copy soakdb file {} to {}. Can't continue".format(dbfile, dbfile_out))
@@ -170,6 +171,7 @@ class Copier:
 
         self.logger.info("reading soakdb file", dbfile_out)
         df = dbreader.filter_dbmeta(dbfile_out, self.ref_datasets)
+        self.logger.info("soakdb shape is", df.shape)
         count = 0
         num_files = 0
         num_csv = 0
@@ -187,36 +189,36 @@ class Copier:
             expected_path = self.base_path / self.input_path / Constants.DEFAULT_MODEL_BUILDING_DIR
 
             file = row[Constants.SOAKDB_COL_PDB]
-            if file:
-                path = Path(file)
-                # self.check_path(path, expected_path)
-                ok = self.copy_file(path, xtal_dir_path)
+            result = self.copy_file_and_log(
+                xtal_name, Constants.SOAKDB_COL_PDB, row[Constants.SOAKDB_COL_PDB], xtal_dir_path
+            )
+            num_files += result
+            if result:
+                datasets[xtal_name] = row[Constants.SOAKDB_COL_PDB]
+
+            num_files += self.copy_file_and_log(
+                xtal_name, Constants.SOAKDB_COL_MTZ_LATEST, row[Constants.SOAKDB_COL_MTZ_LATEST], xtal_dir_path
+            )
+            num_files += self.copy_file_and_log(
+                xtal_name, Constants.SOAKDB_COL_MTZ_FREE, row[Constants.SOAKDB_COL_MTZ_FREE], xtal_dir_path
+            )
+            num_files += self.copy_file_and_log(
+                xtal_name,
+                Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST,
+                row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST],
+                xtal_dir_path,
+            )
+            result = self.copy_file_and_log(
+                xtal_name, Constants.SOAKDB_COL_CIF, row[Constants.SOAKDB_COL_CIF], xtal_dir_path
+            )
+            if result:
+                # for the ligand CIF file also copy the corresponding PDB file
+                filename = row[Constants.SOAKDB_COL_CIF]
+                ok = self.copy_file(Path(filename).with_suffix(".pdb"), xtal_dir_path)
                 if ok:
                     num_files += 1
-                    datasets[xtal_name] = path
-                    # if PDB is OK then continue with the other files
-                    file = row[Constants.SOAKDB_COL_MTZ_LATEST]
-                    if file:
-                        path = Path(file)
-                        ok = self.copy_file(path, xtal_dir_path)
-                        if ok:
-                            num_files += 1
-                    file = row[Constants.SOAKDB_COL_MTZ_FREE]
-                    if file:
-                        path = Path(file)
-                        ok = self.copy_file(path, xtal_dir_path)
-                        if ok:
-                            num_files += 1
-                    file = row[Constants.SOAKDB_COL_CIF]
-                    if file:
-                        path = Path(file)
-                        ok = self.copy_file(path, xtal_dir_path)
-                        if ok:
-                            num_files += 1
-                            # for the ligand CIF file also copy the corresponding PDB file
-                            ok = self.copy_file(path.with_suffix(".pdb"), xtal_dir_path)
-                            if ok:
-                                num_files += 1
+                else:
+                    self._log_warning("Ligand PDB file " + filename + " not copied for crystal " + xtal_name)
 
         # copy the specified csv files with the panddas info
         self.logger.info("Copying", len(self.panddas_file_paths), "panddas csv files")
@@ -234,6 +236,21 @@ class Copier:
         num_ccp4 = self.copy_panddas(datasets, copied_csv)
 
         self.logger.info("Copied {} structure, {} csv, {} ccp4 files".format(num_files, num_csv, num_ccp4))
+
+    def copy_file_and_log(self, xtal_name, col_name, col_value, xtal_dir_path):
+        if col_value:
+            path = Path(col_value)
+            ok = self.copy_file(path, xtal_dir_path)
+            if ok:
+                return 1
+            else:
+                self._log_warning(
+                    "File " + col_value + " not copied for column " + col_name + " and crystal " + xtal_name
+                )
+                return 0
+        else:
+            self._log_warning("Column value not defined for column " + col_name + " and crystal " + xtal_name)
+            return 0
 
     def copy_file(self, filepath: Path, xtal_dir_path: Path):
         if filepath.is_absolute():
@@ -390,8 +407,10 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
     copiers = []
 
     for i, input_dir in enumerate(input_dirs_model_building):
-        msg = "Running copier. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
-            base_dir, input_dir, output_dir, soakdb_files[i], ", ".join(panddas_files[i])
+        msg = (
+            "Running model_building copier. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
+                base_dir, input_dir, output_dir, soakdb_files[i], ", ".join(panddas_files[i])
+            )
         )
         logger.info(msg)
 
@@ -414,6 +433,8 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
             copiers.append(c)
 
     for input_dir, excludes in zip(input_dirs_manual, excludes_manual):
+        msg = "Running manual copier. base_dir={}, input_dir={} output_dir={}".format(base_dir, input_dir, output_dir)
+        logger.info(msg)
         c = ManualCopier(Path(base_dir), Path(input_dir), Path(output_dir), excludes, logger)
         errors, warnings = c.validate()
         if errors:
@@ -424,8 +445,9 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
         else:
             copiers.append(c)
 
-        for copier in copiers:
-            copier.copy_files()
+    for copier in copiers:
+        logger.info("copying ...")
+        copier.copy_files()
 
 
 def main():
