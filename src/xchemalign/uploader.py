@@ -255,8 +255,6 @@ def get_upload_file(use_default=False, use_custom=None):
 
         # uploader can be run from 3 places
         root_path = Path(DATA_DIR).absolute()
-        print(root_path.parent)
-        print(root_path.parent.parent)
         if not root_path.exists():
             if root_path.parent.name == DATA_DIR:
                 root_path = root_path.parent
@@ -548,6 +546,9 @@ def upload_target(
             errors = []
 
             logger.info(f'{filename} uploaded, processing:')
+            # messages are appended to task as list, keep track on
+            # what's already been displayied
+            last_msg = ''
             while True:
                 # ping the task url endpoint for a while and print the messages
                 status = session.get(status_url)
@@ -560,13 +561,23 @@ def upload_target(
                     continue
 
                 if task_status != statjson:
+                    # reset the counter when status changes
+                    count = 0
                     task_status = statjson
                     msg = task_status.get("messages", None)
                     if isinstance(msg, list):
-                        for m in msg:
+                        # only print messages that have not been printed yet
+                        last_idx = -1
+                        for i, val in enumerate(reversed(msg)):
+                            if val == last_msg:
+                                last_idx = len(msg) - 1 - i
+                                break
+
+                        for m in msg[last_idx + 1 :]:
                             logger.log(m, level=-1)
                             if m.startswith('ERROR'):
                                 errors.append(m)
+                        last_msg = m
                     else:
                         logger.info(f'{task_status.get("status", "")}: {msg}')
                     if task_status in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
@@ -583,6 +594,7 @@ def upload_target(
                     break
                 if count > 100:
                     # if no changes for {randomly selected number of pings}, quit
+                    logger.info('No changes in 100 pings, quitting')
                     break
 
                 time.sleep(1)
