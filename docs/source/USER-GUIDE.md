@@ -470,6 +470,17 @@ This will find the latest upload directory, compress it to a tarball, and then u
 python -m xchemalign.uploader -h
 ```
 
+>   Note: You can only upload data against proposals that you are a member of.
+    Fragalysis does this using an _Authenticator_ service that checks your membership
+    using Diamond's proposal database. Fragalysis refers to _proposal numbers_ as
+    **Target Access Strings** (TAS for short), which must consist of a proposal _code_,
+    a _number_, and a _visit_ (_session number_). As an example, a TAS for the `sw` code,
+    proposal `12345`, and visit `1` would be `sw12345-1`. Fragalysis might also
+    be configured to limit the _codes_ that you can use. For a more on TAS
+    strings, and help understanding any problems you might have, refer to the
+    Fragalysis [Target Access Strings] page on **ReadTheDocs**.
+
+[target access strings]: https://fragalysis.readthedocs.io/en/latest/api.html#target-access-strings
 
 ### Uploading using the API endpoint
 
@@ -651,7 +662,7 @@ inputs:  # The datasources to collate
     code_prefix_tooltip: Mpro structures
     soakdb: processing/database/soakDBDataFile.sqlite  # The path to the soakdb database relative to 'dir'.
     # Datasets that are not to be processed with XChemAlign can be added to a list to exclude
-    exclude: [  
+    exclude: [
       Mpro-IBM0057,
     ]
     panddas_event_files:  # The paths to the inspect tables of the PanDDAs used to model the bound state.
