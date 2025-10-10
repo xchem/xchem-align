@@ -476,11 +476,11 @@ python -m xchemalign.uploader -h
     **Target Access Strings** (TAS for short), which must consist of a proposal _code_,
     a _number_, and a _visit_ (_session number_). As an example, a TAS for the `sw` code,
     proposal `12345`, and visit `1` would be `sw12345-1`. Fragalysis might also
-    be configured to limit the _codes_ that you can use. For a more discussion of TAS
+    be configured to limit the _codes_ that you can use. For a more on TAS
     strings, and help understanding any problems you might have, refer to the
-    Fragalysis [Target Access Strings] page on ReadTheDocs.
+    Fragalysis [Target Access Strings] page on **ReadTheDocs**.
 
-[target access strings]: https://example.com
+[target access strings]: https://fragalysis.readthedocs.io/en/latest/api.html#target-access-strings
 
 ### Uploading using the API endpoint
 
