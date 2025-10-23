@@ -1,3 +1,5 @@
+DEBUG: bool = True
+
 ALIGNABILITY_GRAPH_FILE_NAME: str = "alignability.gml"
 CONNECTED_COMPONENTS_FILE_NAME: str = "connected_components.json"
 TRANSFORMS_FILE_NAME: str = "transforms.json"

@@ -165,6 +165,7 @@ def _calculate_assembly_transform(ref=None, mov=None, chain=None, debug=False):
     mov_matches = [atom_id for atom_id in mov if atom_id in ref]
     chain_matches_ref = [atom_id for atom_id in ref if atom_id[0] == chain]
     chain_matches_mov = [atom_id for atom_id in ref if atom_id[0] == chain]
+
     ref_poss = [
         gemmi.Position(x, y, z)
         for atom_id, (x, y, z) in ref.items()
@@ -292,10 +293,16 @@ def _get_structure_chain_to_assembly_transform(st, chain, xtalform, assemblies, 
     # Map the chain to an xtalform assembly
     xtalform_assembly_name = _chain_to_xtalform_assembly(chain, xtalform)
     xtalform_assembly = xtalform.assemblies[xtalform_assembly_name]
+    if debug:
+        rprint('Xtalform assembly for generating the structure to be aligned')
+        rprint(xtalform_assembly_name)
 
     # Generate the assembly from the dataset structure
     assembly_st = _generate_assembly_from_xtalform(st, xtalform_assembly, assemblies[xtalform_assembly.assembly])
     assembly_st_chains = [chain.name for model in assembly_st for chain in model]
+    if debug:
+        rprint('Chains in assembly')
+        rprint(assembly_st_chains)
 
     # Get the landmarks of the structure
     mov_lm = structure_to_landmarks(assembly_st)
@@ -305,6 +312,11 @@ def _get_structure_chain_to_assembly_transform(st, chain, xtalform, assemblies, 
     ), f"Should always have more than 0 move landmarks. Chain was {chain}, xtalform assembly name was {xtalform_assembly_name} and assembly chains are {assembly_st_chains}"
 
     # Align the structure assembly to the reference assembly
+    if debug:
+        rprint('Assembly landmarks')
+        rprint(assembly_landmarks[xtalform_assembly.assembly])
+        rprint('Moving landmarks')
+        rprint(mov_lm)
     tr = _calculate_assembly_transform(
         ref=assembly_landmarks[xtalform_assembly.assembly],
         mov=mov_lm,

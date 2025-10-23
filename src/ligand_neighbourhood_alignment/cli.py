@@ -1301,6 +1301,10 @@ def _update(
             continue
         as_st = alignment_heirarchy._get_assembly_st(assembly, structures[assembly.reference])
         assembly_landmarks[assembly_name] = alignment_heirarchy.structure_to_landmarks(as_st)
+    
+    if constants.DEBUG:
+        print(assembly_landmarks)
+    
     alignment_heirarchy.save_yaml(
         fs_model.assembly_landmarks, assembly_landmarks, alignment_heirarchy.assembly_landmarks_to_dict
     )
@@ -1342,6 +1346,9 @@ def _update(
     logger.info(f"Found {len(ligand_neighbourhoods)} ligand neighbourhoods!")
     _save_neighbourhoods(fs_model, ligand_neighbourhoods)
 
+    if constants.DEBUG:
+        print(assembly_landmarks)
+
     # Get chain to assembly transforms
     logger.info(f"Getting chain-to-assembly transforms...")
     chain_to_assembly_transforms = {}
@@ -1362,6 +1369,11 @@ def _update(
                     f"A xtalform assignment error has occured. Dataset {dtag} has chain {_chain} in its chains {dataset_chains} however its assigned xtalform {dataset_assignments[dtag]} has chain {xtalform_chains}"
                 )
             try:
+                if constants.DEBUG & (dtag == 'A71EV2A-x7510'):
+                    _debug = True
+                else:
+                    _debug = False
+                
                 chain_to_assembly_transforms[
                     (
                         dtag,
@@ -1374,6 +1386,7 @@ def _update(
                     xtalforms[dataset_assignments[dtag]],
                     assemblies,
                     assembly_landmarks,
+                    _debug
                 )
             except Exception as e:
                 print(f'Exception in dataset: {dtag}, in xtalform {dataset_assignments[dtag]}')
