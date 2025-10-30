@@ -22,7 +22,7 @@ from ligand_neighbourhood_alignment.data import (
     read_system_data,
     save_site_transforms,
 )
-from ligand_neighbourhood_alignment.save_sites import save_sites
+from src.ligand_neighbourhood_alignment.dep.save_sites import save_sites
 from ligand_neighbourhood_alignment.structures import get_structures, get_transform_from_residues
 
 

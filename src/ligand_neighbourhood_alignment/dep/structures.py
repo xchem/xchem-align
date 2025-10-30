@@ -2,16 +2,8 @@ import gemmi
 from loguru import logger
 
 from ligand_neighbourhood_alignment.data import LigandNeighbourhood, ResidueID, SystemData, XtalForm
-from ligand_neighbourhood_alignment.matching import match_atom
+from src.ligand_neighbourhood_alignment.alignment_core import match_atom
 
-
-def get_structures(system_data: SystemData):
-    structures = {}
-    for dataset in system_data.datasets:
-        structure: gemmi.Structure = gemmi.read_structure(dataset.pdb)
-        structures[dataset.dtag] = structure
-
-    return structures
 
 
 def _get_transform():
@@ -61,50 +53,7 @@ def get_transform_from_residues(rs: list[ResidueID], srs, ssrs):
     return sup.transform
 
 
-def _get_transform_from_residues(rs: list[tuple[str, str]], srs, ssrs, other_rs=None):
-    # Transform from ssrs to srs
-    acs = []
-    for j, resid in enumerate(rs):
-        chain, num = resid
-        try:
-            srsr = srs[0][chain][f"{num}"][0]
-            if other_rs:
-                other_chain, other_num = other_rs[j]
-            else:
-                other_chain, other_num = chain, num
-            ssrsr = ssrs[0][other_chain][f"{other_num}"][0]
-            srsca = srsr["CA"][0]
-            ssrsca = ssrsr["CA"][0]
-            acs.append((srsca, ssrsca))
-        except Exception as e:
-            print(f"{chain} : {num} : {e}")
 
-            continue
-
-    logger.debug(f"{len(acs)}")
-    if len(acs) < 3:
-        print("####### SRS")
-
-        for model in srs:
-            for c in model:
-                for r in c:
-                    print(f"{c.name}: {r.seqid.num}")
-
-        print("####### SSRS")
-        for model in ssrs:
-            for c in model:
-                for r in c:
-                    print(f"{c.name}: {r.seqid.num}")
-
-        print("####### RESIDS")
-        for rid in rs:
-            print(f"{rid[0]} {rid[1]}")
-
-        raise Exception()
-
-    sup = gemmi.superpose_positions([x[0].pos for x in acs], [x[1].pos for x in acs])
-
-    return sup.transform
 
 
 def get_transforms(

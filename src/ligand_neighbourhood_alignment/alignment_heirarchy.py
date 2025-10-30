@@ -1,12 +1,10 @@
 from rich import print as rprint
 import gemmi
 import numpy as np
-import yaml
 
-from ligand_neighbourhood_alignment import dt, constants
-
-AlignmentHeirarchy = dict[str, tuple[str, str]]
-
+from ligand_neighbourhood_alignment import dt
+from src.ligand_neighbourhood_alignment import alignment_core
+from ligand_neighbourhood_alignment.alignment_landmarks import structure_to_landmarks
 
 def _derive_alignment_heirarchy(assemblies: dict[str, dt.Assembly], debug=False):
     # The Alignment hierarchy is the graph of alignments one must perform in order to get from
@@ -74,23 +72,6 @@ def _chain_to_biochain(chain_name, xtalform: dt.XtalForm, assemblies: dict[str, 
     raise Exception(f'No biochain found for chain {chain_name}')
 
 
-StructureLandmarks = dict[tuple[str, str, str], tuple[float, float, float]]
-
-
-def structure_to_landmarks(st):
-    landmarks = {}
-    for model in st:
-        for chain in model:
-            for residue in chain:
-                if residue.name not in constants.RESIDUE_NAMES:
-                    continue
-                for atom in residue:
-                    pos = atom.pos
-                    landmarks[(chain.name, (residue.name, str(residue.seqid.num)), atom.name)] = (pos.x, pos.y, pos.z)
-
-    return landmarks
-
-
 def _get_assembly_st(as1, as1_ref):
     # Setup new structure to add biochains to
     new_st = gemmi.Structure()
@@ -119,33 +100,7 @@ def _get_assembly_st(as1, as1_ref):
     return new_st
 
 
-def _landmark_to_structure(lm):
-    st = gemmi.Structure()
-    model = gemmi.Model("0")
-    st.add_model(model)
 
-    used_chains = []
-    used_ress = []
-    for (chain, (res_name, seqid), atom), (x, y, z) in lm.items():
-        if chain not in used_chains:
-            st[0].add_chain(gemmi.Chain(chain))
-            used_chains.append(chain)
-
-        if (chain, seqid) not in used_ress:
-            new_residue = gemmi.Residue()
-            new_residue.name = res_name
-            new_residue.seqid = gemmi.SeqId(str(seqid))
-            st[0][chain].add_residue(new_residue)
-            used_ress.append((chain, seqid))
-
-        new_atom = gemmi.Atom()
-        new_atom.name = atom
-        pos = gemmi.Position(x, y, z)
-        new_atom.pos = pos
-        st[0][chain][seqid][0].add_atom(new_atom)
-
-    st.setup_entities()
-    return st
 
 
 def _get_atoms(st):
@@ -161,28 +116,52 @@ def _get_atoms(st):
 
 def _calculate_assembly_transform(ref=None, mov=None, chain=None, debug=False):
     # Convert to gemmi structures to use superposition algorithm there
-    ref_matches = [atom_id for atom_id in ref if atom_id in mov]
-    mov_matches = [atom_id for atom_id in mov if atom_id in ref]
-    chain_matches_ref = [atom_id for atom_id in ref if atom_id[0] == chain]
-    chain_matches_mov = [atom_id for atom_id in ref if atom_id[0] == chain]
+    ref_to_mov = alignment_core.calculate_insertion_matching_from_landmarks(ref, mov, chain, chain)  # Keys are ref atomids
+    mov_insertion_to_res = {mov_atom_id[1][1]: mov_atom_id[1][0] for mov_atom_id in mov if mov_atom_id[0] == chain}
 
-    ref_poss = [
-        gemmi.Position(x, y, z)
-        for atom_id, (x, y, z) in ref.items()
-        if (atom_id[0] == chain) & (atom_id in mov) & (atom_id[2] == 'CA')
-    ]
-    mov_poss = [
-        gemmi.Position(x, y, z)
-        for atom_id, (x, y, z) in mov.items()
-        if (atom_id[0] == chain) & (atom_id in ref) & (atom_id[2] == 'CA')
-    ]
+    ref_poss = []
+    mov_poss = []
+    for ref_atom_id in ref:
+        # Only consider the chain
+        if ref_atom_id[0] != chain:
+            continue
+
+        # Don't consider unmatched items
+        if ref_atom_id[1][1] not in ref_to_mov:
+            continue
+
+        # Only align on CAs
+        if ref_atom_id[2] != 'CA': 
+            continue
+
+        # Get the ref pos
+        x, y, z = ref[ref_atom_id]
+        pos = gemmi.Position(x, y, z)
+        ref_poss.append(pos)
+
+        # Determine the corresponding mov atom id
+        mov_insertion = ref_to_mov[ref_atom_id[1][1]]
+        mov_res = mov_insertion_to_res[mov_insertion]
+        mov_atom_id = (ref_atom_id[0], (mov_res, mov_insertion), ref_atom_id[2])
+        
+        # Get the mov
+        x, y, z = mov[mov_atom_id]
+        pos = gemmi.Position(x, y, z)
+        mov_poss.append(pos)
+
 
     assert (
         len(ref_poss) > 0
-    ), "There are no valid reference positions to align. You may want to check residues numbers are the same between your assembly reference and datasets."
+    ), f"""
+    There are no valid reference positions to align. You may want to check residues numbers are the same between your assembly reference and datasets.
+    {ref_to_mov}
+    """
     assert (
         len(mov_poss) > 0
-    ), "There are no valid dataset positions to align. You may want to check residues numbers are the same between your assembly reference and datasets."
+    ), f"""
+    There are no valid dataset positions to align. You may want to check residues numbers are the same between your assembly reference and datasets.
+    {ref_to_mov}
+    """
 
     sup = gemmi.superpose_positions(ref_poss, mov_poss)
     transform = sup.transform
@@ -191,7 +170,13 @@ def _calculate_assembly_transform(ref=None, mov=None, chain=None, debug=False):
     assert not np.isnan(np.array(transform.vec.tolist())).any()
     assert not np.isnan(np.array(transform.mat.tolist())).any()
 
-    return {'vec': transform.vec.tolist(), 'mat': transform.mat.tolist(), 'rmsd': sup.rmsd, "count": sup.count}
+    return {
+        'vec': transform.vec.tolist(), 
+        'mat': transform.mat.tolist(), 
+        'rmsd': sup.rmsd, 
+        "count": sup.count,
+        'matching': ref_to_mov,
+        }
 
 
 def _calculate_assembly_sequence(
@@ -229,7 +214,9 @@ def _calculate_assembly_transform_sequence(hierarchy, mov_assembly, assembly_lan
     moving = mov_assembly
     for assembly, chain in sequence:
         transform = _calculate_assembly_transform(
-            ref=assembly_landmarks[assembly], mov=assembly_landmarks[moving], chain=chain
+            ref=assembly_landmarks[assembly], 
+            mov=assembly_landmarks[moving], 
+            chain=chain
         )
         if debug:
             rprint(f'{moving} -> {assembly}')
@@ -257,7 +244,7 @@ def _chain_to_xtalform_assembly(chain, xtalform):
     raise Exception(f'Chain {chain} not found in assembly chains: {all_chains}')
 
 
-def _generate_assembly_from_xtalform(st, xtalform_assembly: dt.XtalFormAssembly, assembly):
+def _generate_assembly_from_xtalform(st, xtalform_assembly: dt.XtalFormAssembly, assembly, _debug=False):
     # Setup new structure to add biochains to
     new_st = gemmi.Structure()
     new_model = gemmi.Model("0")
@@ -269,6 +256,9 @@ def _generate_assembly_from_xtalform(st, xtalform_assembly: dt.XtalFormAssembly,
         xtalform_assembly.chains,
         xtalform_assembly.transforms,
     ):
+        if _debug:
+            rprint(f'Biomol: {biomol}')
+            rprint(f'Chain: {chain}')
         # Generate the symmetry operation
         op = gemmi.Op(transform)
 
@@ -290,6 +280,16 @@ def _generate_assembly_from_xtalform(st, xtalform_assembly: dt.XtalFormAssembly,
 
 
 def _get_structure_chain_to_assembly_transform(st, chain, xtalform, assemblies, assembly_landmarks, debug=False):
+    """
+    Get the transform from a chain into a structure onto its biological assembly chain.
+
+    This involves:
+    1. Determine the assembly chain that corresponds to the structure chain
+    2. Generating the biological assembly from THIS structure
+    3. Transforming to landmarks for alignment
+    4. Aligning the moving assembly generated from this chain against the canonical version of 
+       that biological assembly
+    """
     # Map the chain to an xtalform assembly
     xtalform_assembly_name = _chain_to_xtalform_assembly(chain, xtalform)
     xtalform_assembly = xtalform.assemblies[xtalform_assembly_name]
@@ -317,37 +317,19 @@ def _get_structure_chain_to_assembly_transform(st, chain, xtalform, assemblies, 
         rprint(assembly_landmarks[xtalform_assembly.assembly])
         rprint('Moving landmarks')
         rprint(mov_lm)
+    
     tr = _calculate_assembly_transform(
         ref=assembly_landmarks[xtalform_assembly.assembly],
         mov=mov_lm,
         chain=[x.biomol for x in assemblies[xtalform_assembly.assembly].generators][0],
     )
 
+    if debug:
+        rprint(tr)
+
     return tr
 
 
-def save_yaml(path, obj, obj_to_dict):
-    with open(path, "w") as f:
-        dic = obj_to_dict(obj)
-        yaml.safe_dump(dic, f, sort_keys=False)
-
-
-def load_yaml(path, dict_to_obj):
-    with open(path, "r") as f:
-        dic = yaml.safe_load(f)
-
-    return dict_to_obj(dic)
-
-
-def assembly_landmarks_to_dict(assembly_landmarks: dict[tuple[str, tuple[str, str], str], tuple[float, float, float]]):
-    dic = {}
-    for assembly, data in assembly_landmarks.items():
-        dic[assembly] = {}
-        for k, v in data.items():
-            key = "~".join([k[0], k[1][0], k[1][1], k[2]])
-            dic[assembly][key] = v
-
-    return dic
 
 
 def chain_to_assembly_transforms_to_dict(chain_to_assembly_transforms: dict[tuple[str, str]]):
@@ -367,13 +349,27 @@ def dict_to_chain_to_assembly_transforms(dic):
     return obj
 
 
-def dict_to_assembly_landmarks(dic):
-    obj = {}
-    for assembly, data in dic.items():
-        obj[assembly] = {}
-        for k, v in data.items():
-            # key = [x for x in '~'.split(k)]
-            chain, rname, rid, aname = [x for x in k.split('~')]
-            obj[assembly][(chain, (rname, rid), aname)] = v
+def get_canonical_site_biochain(
+    site_reference_ligand_id,
+    site_reference_ligand_xtalform_id,
+    site_reference_ligand_xtalform,
+    xtalform_sites, 
+    canonical_site_id, 
+    assemblies,
+    ):
 
-    return obj
+
+    for xsid, _xtalform_site in xtalform_sites.items():
+        _xtalform_id = _xtalform_site.xtalform_id
+        if (
+            (_xtalform_id == site_reference_ligand_xtalform_id)
+            & (_xtalform_site.canonical_site_id == canonical_site_id)
+            & (site_reference_ligand_id in _xtalform_site.members)
+        ):
+            xtalform_site = _xtalform_site
+    site_chain = xtalform_site.crystallographic_chain
+    canonical_site_biochain = _chain_to_biochain(
+        site_chain, site_reference_ligand_xtalform, assemblies
+    )
+
+    return canonical_site_biochain, site_reference_ligand_xtalform

@@ -50,7 +50,12 @@ def test_aligner_upload_1(constants, assemblies_file):
         print(a.logger.errors)
         exit(1)
     else:
-        a.run()
+        meta = a.run()
+
+    # Makre sure there are two observations for Mpro-IBM0078 A1101's different altlocs
+    assert 'C' in meta[Constants.META_XTALS]["Mpro-IBM0078"][Constants.META_ALIGNED_FILES]['A']['1101']
+    assert 'D' in meta[Constants.META_XTALS]["Mpro-IBM0078"][Constants.META_ALIGNED_FILES]['A']['1101']
+
 
 
 @pytest.mark.order(after="test_aligner_upload_1")
@@ -95,6 +100,8 @@ def test_aligner_upload_2(constants):
         exit(1)
     else:
         a.run()
+
+    # Make sure there are aligned files for Mpro-i0130
     assert "Mpro-i0130" in [x.name for x in (Path(constants.UPLOAD_2_DIR) / "aligned_files").glob("*")]
 
 

@@ -37,6 +37,8 @@ from xchemalign import setup
 from xchemalign.utils import Constants
 from xchemalign.decoder import decoder
 
+from ligand_neighbourhood_alignment import dt
+
 
 def generate_xtal_dir(input_path: Path, xtal_name: str):
     """
@@ -1215,7 +1217,8 @@ class Collator:
                                         Constants.META_PROT_MODEL: ligand_key[0],
                                         Constants.META_PROT_CHAIN: ligand_key[1],
                                         Constants.META_PROT_RES: ligand_key[2],
-                                        Constants.META_PROT_NAME: ligand_key[3],
+                                        Constants.META_PROT_ALTLOC: dt.altloc_to_string(ligand_key[3]),
+                                        Constants.META_PROT_NAME: ligand_key[4],
                                         Constants.META_PROT_INDEX: attested_ligand_event_data[4],
                                         Constants.META_PROT_BDC: attested_ligand_event_data[5],
                                     }
@@ -1227,6 +1230,7 @@ class Collator:
                                     Constants.META_PROT_MODEL: ligand_key[0],
                                     Constants.META_PROT_CHAIN: ligand_key[1],
                                     Constants.META_PROT_RES: ligand_key[2],
+                                    Constants.META_PROT_ALTLOC: dt.altloc_to_string(ligand_key[3]),
                                 }
                                 ligand_binding_events.append(data)
 
@@ -1379,6 +1383,13 @@ class Collator:
             return False
         return True
 
+    def _get_residue_altlocs(self, residue):
+        altlocs = []
+        for atom in residue:
+            altlocs.append(atom.altloc)
+
+        return set(altlocs)
+
     def get_dataset_ligands(
         self, structure_path: Path, ligand_names: list[str]
     ) -> dict[tuple[str, str, str], np.array]:
@@ -1389,14 +1400,17 @@ class Collator:
             for chain in model:
                 for residue in chain:
                     if residue.name in ligand_names:
-                        poss = []
-                        for atom in residue:
-                            pos = atom.pos
-                            poss.append([pos.x, pos.y, pos.z])
+                        for altloc in self._get_residue_altlocs(residue):
+                            poss = []
+                            for atom in residue:
+                                if atom.altloc != altloc:
+                                    continue
+                                pos = atom.pos
+                                poss.append([pos.x, pos.y, pos.z])
 
-                        arr = np.array(poss)
-                        mean = np.mean(arr, axis=0)
-                        ligand_coords[(model.name, chain.name, residue.seqid.num, residue.name)] = mean
+                            arr = np.array(poss)
+                            mean = np.mean(arr, axis=0)
+                            ligand_coords[(model.name, chain.name, residue.seqid.num, altloc, residue.name)] = mean
 
         return ligand_coords
 

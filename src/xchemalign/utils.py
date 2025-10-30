@@ -95,6 +95,7 @@ class Constants:
     META_PROT_MODEL = "model"
     META_PROT_CHAIN = "chain"
     META_PROT_RES = "res"
+    META_PROT_ALTLOC = 'altloc'
     META_PROT_NAME = "name"
     META_PROT_INDEX = "index"
     META_PROT_BDC = "bdc"

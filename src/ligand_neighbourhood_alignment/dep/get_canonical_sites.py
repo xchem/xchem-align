@@ -6,7 +6,7 @@ from ligand_neighbourhood_alignment.data import (
     LigandNeighbourhood,
     SystemSites,
 )
-from ligand_neighbourhood_alignment.matching import (
+from src.ligand_neighbourhood_alignment.alignment_core import (
     match_neighbourhood_to_site,
     match_neighbourhood_to_sites,
 )

@@ -41,17 +41,17 @@ MODEL_DIR_XMAP: str = "refine.ccp4"
 MODEL_DIR_MTZ: str = "refine.mtz"
 
 OUTPUT_JSON_PATH: str = "output.json"
-ALIGNED_STRUCTURE_TEMPLATE: str = "{dtag}_{chain}_{residue}_{version}_{site}.pdb"
-ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE: str = "{dtag}_{chain}_{residue}_{version}_{site}_artefacts.pdb"
+ALIGNED_STRUCTURE_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}.pdb"
+ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_artefacts.pdb"
 
-ALIGNED_XMAP_TEMPLATE: str = "{dtag}_{chain}_{residue}_{version}_{site}_sigmaa.ccp4"
-ALIGNED_DIFF_TEMPLATE: str = "{dtag}_{chain}_{residue}_{version}_{site}_diff.ccp4"
-ALIGNED_EVENT_MAP_TEMPLATE: str = "{dtag}_{chain}_{residue}_{version}_{site}_event.ccp4"
+ALIGNED_XMAP_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_sigmaa.ccp4"
+ALIGNED_DIFF_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_diff.ccp4"
+ALIGNED_EVENT_MAP_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_event.ccp4"
 
-ALIGNED_XMAP_CRYSTALLOGRAPHIC_TEMPLATE: str = "{dtag}_{chain}_{residue}_{version}_{site}_sigmaa_crystallographic.ccp4"
-ALIGNED_DIFF_CRYSTALLOGRAPHIC_TEMPLATE: str = "{dtag}_{chain}_{residue}_{version}_{site}_diff_crystallographic.ccp4"
+ALIGNED_XMAP_CRYSTALLOGRAPHIC_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_sigmaa_crystallographic.ccp4"
+ALIGNED_DIFF_CRYSTALLOGRAPHIC_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_diff_crystallographic.ccp4"
 ALIGNED_EVENT_MAP_CRYSTALLOGRAPHIC_TEMPLATE: str = (
-    "{dtag}_{chain}_{residue}_{version}_{site}_event_crystallographic.ccp4"
+    "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_event_crystallographic.ccp4"
 )
 
 

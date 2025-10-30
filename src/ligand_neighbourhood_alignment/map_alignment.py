@@ -8,7 +8,7 @@ import numpy as np
 from loguru import logger
 
 from ligand_neighbourhood_alignment import alignment_heirarchy
-from ligand_neighbourhood_alignment.data import (
+from ligand_neighbourhood_alignment.dt import (
     Block,
     CanonicalSites,
     ConformerSites,
@@ -416,7 +416,7 @@ def _write_xmap(xmap, path: Path, neighbourhood: dt.Neighbourhood, transform):
         box_max = box.maximum
         box_min_str = f"{round(box_min.x, 2)} {round(box_min.y, 2)} {round(box_min.z, 2)}"
         box_max_str = f"{round(box_max.x, 2)} {round(box_max.y, 2)} {round(box_max.z, 2)}"
-        print(f"Box Extent is: min {box_min_str} : max {box_max_str}")
+        # print(f"Box Extent is: min {box_min_str} : max {box_max_str}")
 
         ccp4.set_extent(box)
 
@@ -503,9 +503,6 @@ def __align_xmap(
     subsite_reference_id: tuple[str, str, str],
     lid: tuple[str, str, str],
     xmap,
-    conformer_site_transforms,
-    conformer_site_id,
-    canonical_site_id,
     output_path: Path,
     crystallographic_output_path,
     aligned_res,

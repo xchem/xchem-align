@@ -24,12 +24,15 @@ from rich.traceback import install
 
 # Local alignment imports
 from ligand_neighbourhood_alignment import constants as lna_constants
-from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
+from src.ligand_neighbourhood_alignment.map_alignment import _align_xmaps
 
 from ligand_neighbourhood_alignment import dt
 
 
-from ligand_neighbourhood_alignment.cli import (
+from ligand_neighbourhood_alignment.update import (
+    update
+)
+from ligand_neighbourhood_alignment.io import (
     _load_assemblies,
     _load_xtalforms,
     _load_dataset_assignments,
@@ -38,13 +41,11 @@ from ligand_neighbourhood_alignment.cli import (
     _load_connected_components,
     _load_ligand_neighbourhood_transforms,
     _load_conformer_sites,
-    _load_conformer_site_transforms,
     _load_canonical_sites,
-    _load_canonical_site_transforms,
     _load_xtalform_sites,
     _load_reference_stucture_transforms,
-    _update,
 )
+
 from ligand_neighbourhood_alignment import alignment_heirarchy as ah
 
 from xchemalign import utils
@@ -126,11 +127,13 @@ def get_datasets_from_crystals(
                     str(dtag),
                     str(binding_event.get(Constants.META_PROT_CHAIN)),
                     str(binding_event.get(Constants.META_PROT_RES)),
+                    dt.string_to_altloc(str(binding_event.get(Constants.META_PROT_ALTLOC))),
                 ): dt.LigandBindingEvent(
                     id=0,
                     dtag=str(dtag),
                     chain=str(binding_event.get(Constants.META_PROT_CHAIN)),
                     residue=str(binding_event.get(Constants.META_PROT_RES)),
+                    altloc=dt.string_to_altloc(str(binding_event.get(Constants.META_PROT_ALTLOC))),
                     xmap=_get_xmap_path_or_none(output_path, binding_event),
                 )
                 for binding_event in crystal[Constants.META_XTAL_FILES].get(Constants.META_BINDING_EVENT, {})
@@ -156,7 +159,7 @@ def get_datasets_from_crystals(
 
 
 class Aligner:
-    def __init__(self, dir, log_file=None, log_level=0):
+    def __init__(self, dir, log_file=None, log_level=0, debug=False):
         self.num_alignments = 0
         self.errors = []
         self.warnings = []
@@ -259,6 +262,8 @@ class Aligner:
 
         new_meta = self._perform_alignments(input_meta)
         self._write_output(input_meta, new_meta)
+
+        return new_meta
 
     def _write_output(self, collator_dict, aligner_dict):
         # keep a copy of the assemblies config
@@ -427,14 +432,14 @@ class Aligner:
             conformer_sites = _load_conformer_sites(fs_model.conformer_sites, fail_if_not_found=False)
 
         #
-        if source_fs_model:
-            conformer_site_transforms: dict[tuple[str, str], dt.Transform] = _load_conformer_site_transforms(
-                source_fs_model.conformer_site_transforms, fail_if_not_found=True
-            )
-        else:
-            conformer_site_transforms = _load_conformer_site_transforms(
-                fs_model.conformer_site_transforms, fail_if_not_found=False
-            )
+        # if source_fs_model:
+        #     conformer_site_transforms: dict[tuple[str, str], dt.Transform] = _load_conformer_site_transforms(
+        #         source_fs_model.conformer_site_transforms, fail_if_not_found=True
+        #     )
+        # else:
+        #     conformer_site_transforms = _load_conformer_site_transforms(
+        #         fs_model.conformer_site_transforms, fail_if_not_found=False
+        #     )
 
         # Get canonical sites
         if source_fs_model:
@@ -445,14 +450,14 @@ class Aligner:
             canonical_sites = _load_canonical_sites(fs_model.canonical_sites, fail_if_not_found=False)
 
         #
-        if source_fs_model:
-            canonical_site_transforms: dict[str, dt.Transform] = _load_canonical_site_transforms(
-                source_fs_model.conformer_site_transforms, fail_if_not_found=True
-            )
-        else:
-            canonical_site_transforms = _load_canonical_site_transforms(
-                fs_model.conformer_site_transforms, fail_if_not_found=False
-            )
+        # if source_fs_model:
+        #     canonical_site_transforms: dict[str, dt.Transform] = _load_canonical_site_transforms(
+        #         source_fs_model.conformer_site_transforms, fail_if_not_found=True
+        #     )
+        # else:
+        #     canonical_site_transforms = _load_canonical_site_transforms(
+        #         fs_model.conformer_site_transforms, fail_if_not_found=False
+        #     )
 
         # Get xtalform sites
         if source_fs_model:
@@ -498,7 +503,7 @@ class Aligner:
             assembly_transforms = {}
 
         # Run the update
-        updated_fs_model = _update(
+        updated_fs_model = update(
             fs_model,
             datasets,
             reference_datasets,
@@ -511,7 +516,6 @@ class Aligner:
             connected_components,
             ligand_neighbourhood_transforms,
             conformer_sites,
-            conformer_site_transforms,
             canonical_sites,
             xtalform_sites,
             reference_structure_transforms,
@@ -596,8 +600,10 @@ class Aligner:
                 i = 0
                 for ligand_residue, ligand_output in chain_output.items():
                     aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
-                    for version, version_output in ligand_output.items():
-                        aligned_version_output = aligned_ligand_output[version] = {}
+                    for altoloc, altloc_output in ligand_output.items():
+                        aligned_altloc_output = aligned_ligand_output[altoloc] = {}
+                    for version, version_output in altloc_output.items():
+                        aligned_version_output = aligned_altloc_output[version] = {}
                         for site_id, aligned_structure_path in version_output.aligned_structures.items():
                             # Is the event map file present?
                             # We do this assuming the order is the same as the info in the crystallographic files section
@@ -634,6 +640,7 @@ class Aligner:
 
                             aligned_version_output[site_id] = {
                                 Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
+                                Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
                                 Constants.META_AIGNED_X_MAP: aligned_xmap_path,
                                 Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
                                 Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_crystallographic_xmap_path,
@@ -671,21 +678,21 @@ class Aligner:
         ] = ligand_neighbourhood_transforms
 
         ## Get the conformer site to canonical site transforms
-        conformer_site_transforms = read_yaml(updated_fs_model.conformer_site_transforms)
-        new_meta[Constants.META_TRANSFORMS][
-            Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON
-        ] = conformer_site_transforms
-        num_extract_errors = self._extract_components(crystals, new_meta)
-        if num_extract_errors == 1:
-            self.logger.warn(
-                "there was a problem extracting components for 1 aligned structure. See above for details"
-            )
-        elif num_extract_errors > 1:
-            self.logger.warn(
-                "there were problems extracting components for",
-                num_extract_errors,
-                "aligned structures. See above for details",
-            )
+        # conformer_site_transforms = read_yaml(updated_fs_model.conformer_site_transforms)
+        # new_meta[Constants.META_TRANSFORMS][
+        #     Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON
+        # ] = conformer_site_transforms
+        # num_extract_errors = self._extract_components(crystals, new_meta)
+        # if num_extract_errors == 1:
+        #     self.logger.warn(
+        #         "there was a problem extracting components for 1 aligned structure. See above for details"
+        #     )
+        # elif num_extract_errors > 1:
+        #     self.logger.warn(
+        #         "there were problems extracting components for",
+        #         num_extract_errors,
+        #         "aligned structures. See above for details",
+        #     )
 
         # cleanup empty aligned files dirs
         empty_dir_count = 0

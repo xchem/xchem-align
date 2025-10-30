@@ -7,7 +7,7 @@ from ligand_neighbourhood_alignment.data import (
     Transform,
     Transforms,
 )
-from ligand_neighbourhood_alignment.matching import match_atom
+from src.ligand_neighbourhood_alignment.alignment_core import match_atom
 
 
 def get_transform(

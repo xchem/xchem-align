@@ -11,7 +11,7 @@ from rich import print as rprint
 from ligand_neighbourhood_alignment import dt
 
 
-from ligand_neighbourhood_alignment.data import (
+from ligand_neighbourhood_alignment.dt import (
     AssignedXtalForms,
     CanonicalSites,
     ConformerSites,
@@ -35,11 +35,6 @@ def superpose_structure(transform, structure):
             span.transform_pos_and_adp(transform)
 
     return new_structure
-
-
-def expand_structure(_structure, xtalforms: AssignedXtalForms, moving_ligand_id):
-    # TODO: Make this work
-    return _structure
 
 
 def align_structure(
@@ -258,31 +253,179 @@ def _drop_non_binding_chains_and_symmetrize_waters(
     return new_structure
 
 
-def _align_structure(
-    _structure,
-    moving_ligand_id: tuple[str, str, str],
-    reference_ligand_id: tuple[str, str, str],
-    neighbourhood: dt.Neighbourhood,
-    dataset_ligand_neighbourhood_ids,
-    g,
-    neighbourhood_transforms: dict[tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform],
-    # conformer_site_transforms: dict[tuple[str, str], dt.Transform],
-    # canonical_site_id: str,
-    # conformer_site_id: str,
-    xtalform: dt.XtalForm,
-    out_path: Path,
-    # site_reference_xform,
+def _drop_non_assembly_chains_and_symmetrize_waters(
+    _structure, neighbourhood, moving_ligand_id, dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
+):
+    # Other Ligand IDs
+    other_ligand_ids = [
+        (lid[1], lid[2])
+        for lid in dataset_ligand_neighbourhood_ids
+        if not ((lid[1] == moving_ligand_id[1]) & (lid[2] == moving_ligand_id[2]))
+    ]
+    # Get a copy of structure to edit
+    new_structure = _structure.clone()
+
+    # Determine which chains have binding residues
+    neighbourhood_chains = set([_atom_id[0] for _atom_id in neighbourhood.atoms])
+
+    # Determine the assembly each chain is part of
+    chain_assemblies = {
+        _chain: _assembly for _assembly_name, _assembly in xtalform.assemblies.items() for _chain in _assembly.chains
+    }
+
+    # Get the assembly the ligand is modelled as part of
+    for xsid, _xtalform_site in xtalform_sites.items():
+        _xtalform_id = _xtalform_site.xtalform_id
+        if moving_ligand_id in _xtalform_site.members:
+            xtalform_site = _xtalform_site
+    site_chain = xtalform_site.crystallographic_chain
+    lig_assembly = chain_assemblies[site_chain]
+
+    # Determine which waters are bound near the ligand, and at what positions
+    ns = gemmi.NeighborSearch(new_structure[0], new_structure.cell, 10).populate(include_h=False)
+
+    # # Iterate ligand heavy atoms, finding marks and collating
+    all_marks = {}
+    atom_multiplicities = {}
+    for atom in new_structure[0][moving_ligand_id[1]][moving_ligand_id[2]][0]:
+        point = atom.pos
+        marks = ns.find_atoms(point, '\0', radius=5)
+
+        # # Get cras
+        for mark in marks:
+            cra = mark.to_cra(new_structure[0])
+
+            if cra.residue.name != 'HOH':
+                continue
+
+            base_atom_id = (
+                cra.chain.name,
+                str(cra.residue.seqid.num),
+                cra.atom.name,
+            )
+
+            # Note first occurence of each atom
+            if base_atom_id not in atom_multiplicities:
+                atom_multiplicities[base_atom_id] = 1
+
+            # Get the atom id with multiplicity
+            atom_id = base_atom_id + (atom_multiplicities[base_atom_id],)
+
+            pos1 = _mark_atom_pos_to_ni_pos_tup(point, mark, new_structure)
+
+            #
+            if atom_id in all_marks:
+                # Get current marks with same base_atom_id
+                comparator_ids = [(a, b, c, d) for a, b, c, d in all_marks if (a, b, c) == base_atom_id]
+
+                # Check if it is distinct from all of them
+                poss = [
+                    _mark_atom_pos_to_ni_pos_tup(
+                        all_marks[comparator_id][0], all_marks[comparator_id][1], new_structure
+                    )
+                    for comparator_id in comparator_ids
+                ]
+
+                # If so increase the multiplicity by one and add the atom with the new multiplicity
+                if not any([np.allclose(pos1, pos2, atol=0.1) for pos2 in poss]):
+                    atom_multiplicities[base_atom_id] += 1
+                    atom_id = base_atom_id + (atom_multiplicities[base_atom_id],)
+
+                # Otherwise skip
+                else:
+                    continue
+
+            all_marks[atom_id] = (point, mark, pos1)
+
+    # Update water positions if they are near ligand but modelled elsewhere
+    local_water_chains = {}
+    chain_name_to_chain = {_chain.name: _chain for _chain in new_structure[0]}
+    for atom_id, (point, mark, mark_pos) in all_marks.items():
+        # Get the corresponding atom
+        cra = mark.to_cra(new_structure[0])
+
+        # if not a water, skip
+        if cra.residue.name != 'HOH':
+            continue
+
+        # If a symatom, find the symchain to associate it with
+        if atom_id[3] > 1:
+            chain_name = f'{cra.chain.name}{atom_id[3]}'
+            # # If associated with a new symchain, add it to the structure
+            if chain_name not in chain_name_to_chain:
+                chain = gemmi.Chain(chain_name)
+                new_structure[0].add_chain(chain)
+                chain_name_to_chain[chain_name] = chain
+
+            # # Otherwise get the knewn chain
+            chain = new_structure[0][chain_name]
+
+            # Add the new residue, and select the relevant atom
+            residue = cra.residue.clone()
+            chain.add_residue(residue)
+            residue = new_structure[0][chain_name][atom_id[1]][0]
+            atom = residue[atom_id[2]][0]
+
+        # Otherwise get the original atom for modification
+        else:
+            chain = cra.chain
+            residue = cra.residue
+            atom = cra.atom
+
+        # If water update position and note chain
+        if residue.name == 'HOH':
+            # Record local water chain and seqid
+            if chain.name not in local_water_chains:
+                local_water_chains[chain.name] = []
+            local_water_chains[chain.name].append(residue.seqid.num)
+
+            # Update water position from mark
+            pos = atom.pos
+            pos.x = mark_pos[0]
+            pos.y = mark_pos[1]
+            pos.z = mark_pos[2]
+
+    # Drop residues and non-local waters from non-binding chains containing site waters
+    new_chains = []
+    for _model in new_structure:
+        for _chain in _model:
+            # Create a new chain to hold symmetry waters from non-binding chains
+            new_chain = gemmi.Chain(_chain.name)
+            # Iterate residues in the old chain, adding the local waters
+            for _residue in _chain:
+                if (_chain.name, str(_residue.seqid.num)) in other_ligand_ids:
+                    continue
+                if _residue.name == 'HOH':
+                    if _chain.name in local_water_chains:
+                        if _residue.seqid.num in local_water_chains[_chain.name]:
+                            new_chain.add_residue(_residue.clone())
+                else:
+                    # Only add the chains that are part of the biological assemly the ligand
+                    # is modelled as part of
+                    if (_chain.name in lig_assembly.chains):
+                        # Don't include other ligands
+                        new_chain.add_residue(_residue.clone())
+
+            if len(new_chain) > 0:
+                new_chains.append(new_chain)
+
+    for new_chain in new_chains:
+        del new_structure[0][new_chain.name]
+        new_structure[0].add_chain(new_chain)
+
+    return new_structure
+
+
+def get_alignment_transform(
+    g, 
+    moving_ligand_id, 
+    reference_ligand_id,
+    neighbourhood_transforms,
     chain_to_assembly_transform,
     assembly_transform,
-    xtalform_sites,
 ):
     shortest_path: list[tuple[str, str, str]] = nx.shortest_path(g, moving_ligand_id, reference_ligand_id)
     logger.debug(f"Shortest path: {shortest_path}")
-
-    # Drop chains without atoms in neighbourhood
-    reduced_structure = _drop_non_binding_chains_and_symmetrize_waters(
-        _structure, neighbourhood, moving_ligand_id, dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
-    )
 
     previous_ligand_id = moving_ligand_id
     running_transform = gemmi.Transform()
@@ -310,12 +453,49 @@ def _align_structure(
     # # Get the assembly alignment transform
     running_transform = alignment_heirarchy._transform_to_gemmi(assembly_transform).combine(running_transform)
 
-    logger.debug(f"Transform from native frame to reference frame is: {gemmi_to_transform(running_transform)}")
+    return running_transform
 
-    _structure = superpose_structure(running_transform, reduced_structure)
+
+def _align_structure(
+    _structure,
+    moving_ligand_id: tuple[str, str, str],
+    reference_ligand_id: tuple[str, str, str],
+    neighbourhood: dt.Neighbourhood,
+    dataset_ligand_neighbourhood_ids,
+    g,
+    neighbourhood_transforms: dict[tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform],
+    # conformer_site_transforms: dict[tuple[str, str], dt.Transform],
+    # canonical_site_id: str,
+    # conformer_site_id: str,
+    xtalform: dt.XtalForm,
+    out_path: Path,
+    # site_reference_xform,
+    chain_to_assembly_transform,
+    assembly_transform,
+    xtalform_sites,
+):
+
+
+    # Drop chains that are not in the ligand's biological assembly
+    reduced_structure = _drop_non_assembly_chains_and_symmetrize_waters(
+        _structure, neighbourhood, moving_ligand_id, dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
+    )
+
+    transform = get_alignment_transform(
+        g, 
+        moving_ligand_id, 
+        reference_ligand_id,
+        neighbourhood_transforms,
+        chain_to_assembly_transform,
+        assembly_transform,
+    )
+
+    logger.debug(f"Transform from native frame to reference frame is: {gemmi_to_transform(transform)}")
+
+    aligned_structure = superpose_structure(transform, reduced_structure)
 
     # Write the fully aligned structure
-    _structure.write_pdb(str(out_path))
+    aligned_structure.write_pdb(str(out_path))
 
 
 def _align_reference_structure(
@@ -391,3 +571,115 @@ def _align_structures_from_sites(
                     conformer_site_id,
                     output_path,
                 )
+
+
+def get_structure_from_template(structure):
+    new_structure = structure.clone()
+    chain_names = [chain.name for chain in new_structure[0]]
+    model = new_structure[0]
+    for chain_name in chain_names:
+        del model[chain_name]
+    
+    num_chains = len([x for x in new_structure[0]])
+    assert num_chains == 0, f'Should have no chains in template structure! Got {num_chains}'
+
+    return new_structure
+
+
+def transform_chain(structure, chain_name, image):
+    new_chain = gemmi.Chain(chain_name)
+
+    transform = dt.transform_to_gemmi(image)
+
+    for residue in structure[0][chain_name]:
+        new_residue = residue.clone()
+        for atom in new_residue:
+            pos = atom.pos
+            pos_frac = structure.cell.fractionalize(pos)
+            pos_frac_transformed = gemmi.Fractional(transform.apply(pos_frac))
+            new_pos = structure.cell.orthogonalize(pos_frac_transformed)
+            atom.pos = new_pos
+        new_chain.add_residue(new_residue)
+
+    return new_chain
+
+
+def get_structure_from_chain_images(structure, artefact_chains):
+    # Get a clean template structure
+    new_structure = get_structure_from_template(structure)
+    
+    # Build the transformed chains
+    new_chains = []
+    chain_counts = {chain_name: 0 for chain_name, _ in artefact_chains}
+    for (chain_name, image_name), image in artefact_chains.items():
+        transformed_chain = transform_chain(structure, chain_name, image)
+        transformed_chain.name = f'{chain_name}{chain_counts[chain_name]}'
+        new_chains.append(transformed_chain)
+        
+        chain_counts[chain_name] += 1
+
+    # Add the transformed chains with unique names 
+    for chain in new_chains:
+        new_structure[0].add_chain(chain)
+
+    num_chains = len([x for x in new_structure[0]])
+    assert num_chains == len(artefact_chains), f'Should have {len(artefact_chains)} but have {num_chains}'
+
+    return new_structure
+
+
+
+def _align_artefacts(
+    _structure,
+    moving_ligand_id: tuple[str, str, str],
+    reference_ligand_id: tuple[str, str, str],
+    neighbourhood: dt.Neighbourhood,
+    dataset_ligand_neighbourhood_ids,
+    g,
+    neighbourhood_transforms: dict[tuple[tuple[str, str, str], tuple[str, str, str]], dt.Transform],
+    xtalform: dt.XtalForm,
+    out_path: Path,
+    # site_reference_xform,
+    chain_to_assembly_transform,
+    assembly_transform,
+    xtalform_sites,
+):
+    # Get the artefact chains in the neighbourhood
+    identity_transform = dt.Transform(
+        [0.0,0.0,0.0],
+        [[1.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]]
+    )
+    identity_transform_string = dt.transform_to_string(identity_transform)
+    artefact_chains = {
+        (atom_id[0], dt.transform_to_string(atom.image)): atom.image 
+        for atom_id, atom 
+        in neighbourhood.artefact_atoms.items()
+        if dt.transform_to_string(atom.image) != identity_transform_string
+        }
+    # print(f'{moving_ligand_id[0]} : {artefact_chains}')
+
+    # Build the artefact structure
+    artefact_structure = get_structure_from_chain_images(
+        _structure, 
+        artefact_chains,
+        )
+
+    # Align it with the same transform as was used for the non-artefact atoms
+    transform = get_alignment_transform(
+        g, 
+        moving_ligand_id, 
+        reference_ligand_id,
+        neighbourhood_transforms,
+        chain_to_assembly_transform,
+        assembly_transform,
+    )
+
+    logger.debug(f"Transform from native frame to reference frame is: {gemmi_to_transform(transform)}")
+
+    aligned_structure = superpose_structure(
+        transform, 
+        artefact_structure,
+        )
+
+    # Write the fully aligned structure
+    aligned_structure.write_pdb(str(out_path))

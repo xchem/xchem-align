@@ -33,6 +33,7 @@ dependencies = [
     'rich',
     'fire',
     'boto3',
+    'joblib',
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
