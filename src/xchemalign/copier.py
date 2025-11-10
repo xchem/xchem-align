@@ -235,7 +235,7 @@ class Copier:
                 stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
                 if stats_cif_p.is_file():
                     self.logger.info('copying', str(stats_cif_p))
-                    num_files += self.copy_file_and_log(xtal_name, 'xia2.mmcif.bz2', str(dp_log_p), xtal_dir_path)
+                    num_files += self.copy_file_and_log(xtal_name, 'xia2.mmcif.bz2', str(stats_cif_p), xtal_dir_path)
                 else:
                     self.logger.info(str(stats_cif_p), 'not found')
             else:
