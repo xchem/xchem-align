@@ -202,11 +202,12 @@ class Copier:
             num_files += self.copy_file_and_log(
                 xtal_name, Constants.SOAKDB_COL_MTZ_FREE, row[Constants.SOAKDB_COL_MTZ_FREE], xtal_dir_path
             )
-            if row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]:
+            mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
+            if mmcif and mmcif != 'None':
                 num_files += self.copy_file_and_log(
                     xtal_name,
                     Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST,
-                    row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST],
+                    mmcif,
                     xtal_dir_path,
                 )
             else:
@@ -225,7 +226,7 @@ class Copier:
                 else:
                     self._log_warning("Ligand PDB file " + filename + " not copied for crystal " + xtal_name)
             dp_log = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
-            if dp_log:
+            if dp_log and dp_log != 'None':
                 print('copying', str(dp_log))
                 num_files += self.copy_file_and_log(
                     xtal_name, Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE, dp_log, xtal_dir_path
