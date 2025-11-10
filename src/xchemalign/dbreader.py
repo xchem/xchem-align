@@ -35,6 +35,7 @@ def read_dbmeta(dbfile):
             """SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
                                 RefinementCIF, RefinementCIFStatus, RefinementBoundConformation, RefinementMTZ_latest,
                                 RefinementMTZfree, RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
+                                DataProcessingProgram, DataProcessingPathToLogfile,
                                 LastUpdated
                                 FROM mainTable WHERE RefinementOutcome IS NOT NULL""",
             cnx,

@@ -170,6 +170,8 @@ class Constants:
     SOAKDB_COL_COMPOUND_CODE = "CompoundCode"
     SOAKDB_COL_COMPOUND_SMILES = "CompoundSMILES"
     SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST = "RefinementMMCIFmodel_latest"
+    SOAKDB_COL_DATA_PROCESSING_PROGRAM = "DataprocessingProgram"
+    SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE = "DataProcessingPathToLogfile"
     SOAKDB_VALUE_BUSTER = 'Buster'
     SOAKDB_VALUE_REFMAC = 'Refmac'
     CRYSTAL_NEW = "crystal_new"

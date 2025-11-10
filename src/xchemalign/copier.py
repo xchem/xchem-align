@@ -219,6 +219,17 @@ class Copier:
                     num_files += 1
                 else:
                     self._log_warning("Ligand PDB file " + filename + " not copied for crystal " + xtal_name)
+            dp_log = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
+            if dp_log:
+                num_files += self.copy_file_and_log(
+                    xtal_name, Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE, dp_log, xtal_dir_path
+                )
+                dp_log_p = Path()
+                stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
+                if stats_cif_p.is_file():
+                    num_files += self.copy_file_and_log(xtal_name, 'xia2.mmcif.bz2', str(dp_log_p), xtal_dir_path)
+            else:
+                self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 
         # copy the specified csv files with the panddas info
         self.logger.info("Copying", len(self.panddas_file_paths), "panddas csv files")
