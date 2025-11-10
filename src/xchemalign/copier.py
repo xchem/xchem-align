@@ -202,12 +202,17 @@ class Copier:
             num_files += self.copy_file_and_log(
                 xtal_name, Constants.SOAKDB_COL_MTZ_FREE, row[Constants.SOAKDB_COL_MTZ_FREE], xtal_dir_path
             )
-            num_files += self.copy_file_and_log(
-                xtal_name,
-                Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST,
-                row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST],
-                xtal_dir_path,
-            )
+            if row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]:
+                num_files += self.copy_file_and_log(
+                    xtal_name,
+                    Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST,
+                    row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST],
+                    xtal_dir_path,
+                )
+            else:
+                self._log_warning(
+                    Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST + " not defined for crystal " + xtal_name
+                )
             result = self.copy_file_and_log(
                 xtal_name, Constants.SOAKDB_COL_CIF, row[Constants.SOAKDB_COL_CIF], xtal_dir_path
             )
@@ -221,13 +226,17 @@ class Copier:
                     self._log_warning("Ligand PDB file " + filename + " not copied for crystal " + xtal_name)
             dp_log = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
             if dp_log:
+                print('copying', str(dp_log))
                 num_files += self.copy_file_and_log(
                     xtal_name, Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE, dp_log, xtal_dir_path
                 )
                 dp_log_p = Path()
                 stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
                 if stats_cif_p.is_file():
+                    print('copying', str(stats_cif_p))
                     num_files += self.copy_file_and_log(xtal_name, 'xia2.mmcif.bz2', str(dp_log_p), xtal_dir_path)
+                else:
+                    print(str(stats_cif_p), 'not found')
             else:
                 self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 
