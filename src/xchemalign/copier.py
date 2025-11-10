@@ -231,7 +231,7 @@ class Copier:
                 num_files += self.copy_file_and_log(
                     xtal_name, Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE, dp_log, xtal_dir_path
                 )
-                dp_log_p = Path()
+                dp_log_p = Path(dp_log)
                 stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
                 if stats_cif_p.is_file():
                     self.logger.info('copying', str(stats_cif_p))
