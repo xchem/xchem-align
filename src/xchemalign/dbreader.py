@@ -74,8 +74,9 @@ def read_pdb_depo(dbfile):
         df = pd.read_sql_query(
             """SELECT ID, CrystalName,
                                 RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
-                                RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated
-                                FROM mainTable WHERE RefinementOutcome like '5%'""",
+                                RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated,
+                                DataProcessingProgram, DataProcessingPathToLogfile
+                                FROM mainTable WHERE RefinementOutcome like '6%'""",
             cnx,
         )
         return df

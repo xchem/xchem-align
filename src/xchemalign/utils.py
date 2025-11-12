@@ -170,7 +170,7 @@ class Constants:
     SOAKDB_COL_COMPOUND_CODE = "CompoundCode"
     SOAKDB_COL_COMPOUND_SMILES = "CompoundSMILES"
     SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST = "RefinementMMCIFmodel_latest"
-    SOAKDB_COL_DATA_PROCESSING_PROGRAM = "DataprocessingProgram"
+    SOAKDB_COL_DATA_PROCESSING_PROGRAM = "DataProcessingProgram"
     SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE = "DataProcessingPathToLogfile"
     SOAKDB_VALUE_BUSTER = 'Buster'
     SOAKDB_VALUE_REFMAC = 'Refmac'
@@ -378,7 +378,7 @@ def find_path(my_dict, key, default=None):
         return default
 
 
-def make_path_relative(p):
+def make_path_relative(p: Path):
     if p.is_absolute():
         return p.relative_to("/")
     else:

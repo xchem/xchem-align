@@ -11,8 +11,10 @@
 # limitations under the License.
 
 import argparse
+import bz2
 import shutil
 from pathlib import Path
+from collections import OrderedDict
 
 import gemmi
 from gemmi import cif
@@ -38,10 +40,10 @@ def process_input(
     logger.info("read {} rows".format(len(df)))
     for index, row in df.iterrows():
         mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
-        if mmcif:
-            refinement_type = Constants.SOAKDB_VALUE_BUSTER
-        else:
+        if mmcif is None or mmcif == 'None':
             refinement_type = Constants.SOAKDB_VALUE_REFMAC
+        else:
+            refinement_type = Constants.SOAKDB_VALUE_BUSTER
         xtal_name = row[Constants.SOAKDB_XTAL_NAME]
         xtal_out_dir = output_dir / xtal_name
         if xtal_out_dir.is_dir():
@@ -49,7 +51,7 @@ def process_input(
             shutil.rmtree(xtal_out_dir)
         # create the output dir
         xtal_out_dir.mkdir(parents=True)
-        print(index, xtal_name, refinement_type)
+        logger.info(index, xtal_name, refinement_type)
         meta_data = crystals.get(xtal_name)
         if meta_data is None:
             logger.warn("Crystal {} not found in metadata. This is strange.".format(xtal_name))
@@ -64,7 +66,7 @@ def process_input(
                 for ligand_binding_event in ligand_binding_events:
                     ccp4_filename = ligand_binding_event.get(Constants.META_FILE)
                     if not ccp4_filename:
-                        print("WARNING: no event map file for " + xtal_name)
+                        logger.info("WARNING: no event map file for " + xtal_name)
                     else:
                         ccp4_files.append(str(collator_output_dir.parent / ligand_binding_event[Constants.META_FILE]))
 
@@ -77,15 +79,15 @@ def process_input(
                     while True:
                         parent = parent.parent
                         if parent == Path('/'):
-                            print("Couldn't find dir ")
+                            logger.info("Couldn't find dir ")
                             break
                         if parent.name == xtal_name:
                             mtz_free_path = parent / mtz_free
                             break
                 if not (base_dir / utils.make_path_relative(mtz_free_path)).is_file():
-                    print("WARNING: couldn't find mtz_free file " + mtz_free)
+                    logger.warn("couldn't find mtz_free file " + mtz_free)
 
-            print(
+            logger.info(
                 "  mtz_latest: {}\n  mtz_free: {}\n  mmcif: {}\n  pdb: {}\n  ccp4: {}".format(
                     mtz_latest, str(mtz_free_path), mmcif, pdb, ccp4_files
                 )
@@ -95,6 +97,56 @@ def process_input(
                 cif_doc = read_buster_structure(base_dir / utils.make_path_relative(Path(mmcif)))
             else:
                 cif_doc = read_refmac_structure(base_dir / utils.make_path_relative(Path(pdb)))
+
+            prog = row.get(Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM)
+            if prog == 'dials':
+                prog = 'xia2-dials'
+            if prog and prog != 'None':
+                logger.info('data processing was done with ' + prog)
+                if prog == 'xia2-dials' or prog == 'xia2-3dii':
+                    logfile = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
+                    if logfile and logfile != 'None':
+                        stats_cif = base_dir / utils.make_path_relative(Path(logfile).parent) / 'xia2.mmcif.bz2'
+                        if not stats_cif.is_file():
+                            logger.warn(str(stats_cif) + ' file containing data processing stats not found')
+                        else:
+                            logger.info('FOUND DATA PROCESSING STATS')
+                            item_software = None
+                            item_reflns_shell = None
+                            pair_reflns = OrderedDict()
+                            with bz2.open(stats_cif) as stats:
+                                txt = stats.read()
+                                doc = cif.read_string(txt)
+                                # logger.info("STATS:", str(doc))
+
+                                # grab the software loop from first block
+                                for item in doc[0]:
+                                    if item.loop:
+                                        for tag in item.loop.tags:
+                                            if tag.startswith('_software'):
+                                                item_software = item
+
+                                # grab the reflns data from second block
+                                for item in doc[1]:
+                                    if item.loop is None:
+                                        p = item.pair
+                                        if p[0].startswith('_reflns'):
+                                            pair_reflns[p[0]] = p[1]
+                                    else:
+                                        for tag in item.loop.tags:
+                                            if tag.startswith('_reflns_shell'):
+                                                item_reflns_shell = item
+
+                            block0 = cif_doc[0]
+                            existing_software_loop_item = find_loop_item(block0, '_software')
+                            merge_loops(existing_software_loop_item.loop, item_software.loop, block0)
+
+                            if pair_reflns:
+                                for k, v in pair_reflns.items():
+                                    block0.set_pair(k, v)
+                            if item_reflns_shell:
+                                block0.add_item(item_reflns_shell)
+
             cif_doc.write_file(str(xtal_out_dir / 'structure.mmcif'))
 
             # handle the structure factors
@@ -104,6 +156,67 @@ def process_input(
                 ccp4_files,
                 str(xtal_out_dir / 'structure_factors.cif'),
             )
+
+
+def find_loop_item(block, starting_with):
+    for item in block:
+        if item.loop is not None:
+            for tag in item.loop.tags:
+                if tag.startswith(starting_with):
+                    return item
+    return None
+
+
+def merge_loops(loop1: cif.Loop, loop2: cif.Loop, into: cif.Block):
+    d = OrderedDict()
+    for tag in loop1.tags:
+        d[tag] = []
+    for tag in loop2.tags:
+        if tag not in d:
+            d[tag] = []
+    num_rows1 = int(len(loop1.values) / len(loop1.tags))
+    num_values = num_rows1
+    expanded_tags1 = []
+    for i in range(num_rows1):
+        expanded_tags1.extend(loop1.tags)
+    for tag, value in zip(expanded_tags1, loop1.values):
+        d[tag].append(value)
+    for k, v in d.items():
+        if len(v) < num_values:
+            for i in range(num_rows1):
+                v.append('?')
+
+    num_rows2 = int(len(loop2.values) / len(loop2.tags))
+    num_values = num_values + num_rows2
+    expanded_tags2 = []
+    for i in range(num_rows2):
+        expanded_tags2.extend(loop2.tags)
+    for tag, value in zip(expanded_tags2, loop2.values):
+        d[tag].append(value)
+    for k, v in d.items():
+        if len(v) < num_values:
+            for i in range(num_rows2):
+                v.append('?')
+
+    # fix the pdbx_ordinal column
+    for k in d:
+        if k.endswith('.pdbx_ordinal'):
+            values = d[k]
+            for i, k in enumerate(values):
+                values[i] = str(i + 1)
+
+    new_loop = into.init_loop('', list(d.keys()))
+    for i in range(num_values):
+        values = []
+        for k, v in d.items():
+            values.append(v[i])
+        new_loop.add_row(values)
+
+
+def prune_loop(loop, retain):
+    for tag in loop.tags:
+        if not tag.startswith(retain):
+            loop.remove_column(tag)
 
 
 def read_buster_structure(mmcif):
