@@ -35,7 +35,7 @@ def _generate_assembly(xtalform: dt.XtalForm, structure, assemblies: dict[str, d
             chains_to_delete.append((str(model.num), chain.name))
 
     for model_name, chain_name in chains_to_delete:
-        del full_st[int(model_name)][chain_name]
+        del full_st[int(model_name)-1][chain_name]
 
     cloned_chains = []
     for xtalform_assembly_id, xtalform_assembly in xtalform.assemblies.items():
