@@ -103,7 +103,7 @@ def generate_assembly(xtalform: XtalForm, structure):
             chains_to_delete.append((str(model.num), chain.name))
 
     for model_name, chain_name in chains_to_delete:
-        del full_st[model_name][chain_name]
+        del full_st[int(model_name)][chain_name]
 
     for assembly_id, assembly in xtalform.assemblies.items():
         for generator_id, generator in assembly.generators.items():
@@ -153,4 +153,4 @@ def remove_non_contact_chains(assembly, neighbourhood: LigandNeighbourhood):
 
     for model_name, chain_name in chains:
         if (model_name, chain_name) not in contact_chains:
-            del assembly[model_name][chain_name]
+            del assembly[int(model_name)][chain_name]
