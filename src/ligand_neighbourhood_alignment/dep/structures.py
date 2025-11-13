@@ -100,7 +100,7 @@ def generate_assembly(xtalform: XtalForm, structure):
     chains_to_delete = []
     for model in full_st:
         for chain in model:
-            chains_to_delete.append((model.name, chain.name))
+            chains_to_delete.append((str(model.num), chain.name))
 
     for model_name, chain_name in chains_to_delete:
         del full_st[model_name][chain_name]
@@ -132,7 +132,7 @@ def remove_non_contact_chains(assembly, neighbourhood: LigandNeighbourhood):
     chains_list = []
     for model in assembly:
         for chain in model:
-            chains_list.append((model.name, chain.name))
+            chains_list.append((str(model.num), chain.name))
 
     chains = list(set(chains_list))
 
@@ -146,7 +146,7 @@ def remove_non_contact_chains(assembly, neighbourhood: LigandNeighbourhood):
                         neighbourhood.artefact_atoms,
                     ):
                         if atom.pos.dist(gemmi.Position(art_atom.x, art_atom.y, art_atom.z)) < 0.1:
-                            contact_chains_list.append((model.name, chain.name))
+                            contact_chains_list.append((str(model.num), chain.name))
 
     contact_chains = list(set(contact_chains_list))
     logger.debug(f"Num contact chains: {len(contact_chains)}")

@@ -32,7 +32,7 @@ def _generate_assembly(xtalform: dt.XtalForm, structure, assemblies: dict[str, d
     chains_to_delete = []
     for model in full_st:
         for chain in model:
-            chains_to_delete.append((model.name, chain.name))
+            chains_to_delete.append((str(model.num), chain.name))
 
     for model_name, chain_name in chains_to_delete:
         del full_st[model_name][chain_name]

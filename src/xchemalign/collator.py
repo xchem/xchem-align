@@ -1410,7 +1410,7 @@ class Collator:
 
                             arr = np.array(poss)
                             mean = np.mean(arr, axis=0)
-                            ligand_coords[(model.name, chain.name, residue.seqid.num, altloc, residue.name)] = mean
+                            ligand_coords[(str(model.num), chain.name, residue.seqid.num, altloc, residue.name)] = mean
 
         return ligand_coords
 
