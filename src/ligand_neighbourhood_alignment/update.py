@@ -67,8 +67,11 @@ def perform_all_alignments(
         chain_to_assembly_transforms,
         assembly_transforms,
         datasets,
-        reference_xmap,
+        reference_xmap_path,
 ):
+    reference_xmap = read_xmap_from_mtz(reference_xmap_path)
+
+
     aligned_structure_path = ligand_neighbourhood_output.aligned_structures[canonical_site_id]
     aligned_artefacts_path = ligand_neighbourhood_output.aligned_artefacts[canonical_site_id]
     aligned_event_map_path = ligand_neighbourhood_output.aligned_event_maps[canonical_site_id]
@@ -551,7 +554,7 @@ def update(
     _save_fs_model(fs_model)
 
     # Perform the alignments
-    reference_xmap = read_xmap_from_mtz(datasets[[x for x in canonical_sites.values()][0].global_reference_dtag].mtz)
+    reference_xmap_path = datasets[[x for x in canonical_sites.values()][0].global_reference_dtag].mtz
 
     fs = []
     for dtag, dataset_alignment_info in fs_model.alignments.items():
@@ -581,7 +584,7 @@ def update(
                                 chain_to_assembly_transforms,
                                 assembly_transforms,
                                 datasets,
-                                reference_xmap,
+                                reference_xmap_path,
                             )
                             )
 
