@@ -32,7 +32,8 @@ def match_summary_line(line: str, key: str, pattern: str, reflns: dict, shell: d
     x = re.search(pattern, line)
     if x:
         reflns[key] = x.group(1)
-        shell[key] = (x.group(2), x.group(3))
+        # first row is outer shell, second is inner
+        shell[key] = (x.group(3), x.group(2))
         return True
     else:
         return False
@@ -54,25 +55,39 @@ KEY_REFLNS_CHI_SQ = 'pdbx_chi_squared'
 KEY_REFLNS_POSSIBLE_OBS = 'percent_possible_obs'
 KEY_REFLNS_NETI_OVER_SIGMA = 'pdbx_netI_over_sigmaI'
 
+# this is for the .table1 files
+d_autoproc = {
+    KEY_REFLNS_RESO_LOW: r'Low resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_RESO_HIGH: r'High resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RMERGE_I_OBS: r'Rmerge\s+\(all\s+I\+\s*&\s*I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RRIM_I_ALL: r'Rmeas\s+\(all\s*I\+\s*&\s*I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RPIM_I_ALL: r'Rpim\s+\(all I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_CC_HALF: r'CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\s+of\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_POSSIBLE_OBS: r'Completeness \(ellipsoidal\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_NETI_OVER_SIGMA: r'Mean\(I\)\/sd\(I\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+}
 
-def handle_autoproc(file):
+# this is for the .log files
+d_xia_3dii = {
+    KEY_REFLNS_RESO_LOW: r'Low resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_RESO_HIGH: r'High resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RMERGE_I_OBS: r'Rmerge\s+\(all\s+I\+\s+and\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RRIM_I_ALL: r'Rmeas\s+\(all\s+I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RPIM_I_ALL: r'Rpim\s+\(all\s+I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_CC_HALF: r'Mn\(I\)\s+half-set\s+correlation\s+CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\sof\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_CHI_SQ: r'Mean\(Chi\^2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_POSSIBLE_OBS: r'Completeness\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_NETI_OVER_SIGMA: r'Mean\(\(I\)\/sd\(I\)\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+}
+
+
+def handle_text_file(file, regexes):
     reflns = {KEY_REFLNS_ENTRY_ID: 'UNNAMED', KEY_REFLNS_DIFFRN_ID: 1, KEY_REFLNS_PDBX_ORDINAL: 1}
     shell = {KEY_REFLNS_DIFFRN_ID: (1, 1), KEY_REFLNS_PDBX_ORDINAL: (1, 2)}
-
-    d = {
-        KEY_REFLNS_RESO_LOW: r'Low resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_RESO_HIGH: r'High resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_PDBX_RMERGE_I_OBS: r'Rmerge\s+\(all I\+ and I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_PDBX_RRIM_I_ALL: r'Rmeas\s+\(all I\+ & I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_PDBX_RPIM_I_ALL: r'Rpim\s+\(all I\+ & I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_PDBX_CC_HALF: r'Mn\(I\)\s+half-set\s+correlation\s+CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\sof\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_CHI_SQ: r'Mean\(Chi\^2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_POSSIBLE_OBS: r'Completeness\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-        KEY_REFLNS_NETI_OVER_SIGMA: r'Mean\(\(I\)\/sd\(I\)\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-    }
-
     with open(file, "rt") as f:
         processed_count = 0
         read_count = find_summary_section(f, r'\s+Overall\s+InnerShell\s+OuterShell')
@@ -81,12 +96,13 @@ def handle_autoproc(file):
             for line in f:
                 read_count += 1
                 processed_count += 1
-                if line.startswith('Anomalous completeness'):
+                line = line.strip()
+                if line.startswith('Anomalous'):
                     break
 
-                handle_summary_line(line, d, reflns, shell)
+                handle_summary_line(line, regexes, reflns, shell)
 
-    for k in d:
+    for k in regexes:
         if k not in reflns:
             print('WARNING: key', k, 'not found for reflns')
         if k not in shell:
@@ -96,8 +112,12 @@ def handle_autoproc(file):
     return reflns, shell
 
 
+def handle_autoproc(file):
+    return handle_text_file(file, d_autoproc)
+
+
 def handle_autoproc_staraniso(file):
-    return {}, {}
+    return handle_autoproc
 
 
 def handle_xia2_dials(file):
@@ -105,7 +125,7 @@ def handle_xia2_dials(file):
 
 
 def handle_xia_3dii(file):
-    return {}, {}
+    return handle_text_file(file, d_xia_3dii)
 
 
 def handle_file(file, type, doc: cif.Document, outputfile: str):
@@ -117,14 +137,14 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
         print('Unsupported type: ' + type)
         return
 
-    print('reflns:', reflns)
-    print('shell:', shell)
+    # print('reflns:', reflns)
+    # print('shell:', shell)
 
     if not doc:
         doc = cif.Document()
     block = doc.add_new_block('x')
-    create_pairs(reflns, '_reflns', block)
-    create_loop(shell, '_reflns_shell', block)
+    create_pairs(reflns, '_reflns.', block)
+    create_loop(shell, '_reflns_shell.', block)
 
     if outputfile:
         doc.write_file(outputfile)
@@ -139,7 +159,6 @@ def create_pairs(data: dict, prefix: str, block: cif.Block):
 def create_loop(data: dict, prefix: str, block: cif.Block):
     loop = block.init_loop(prefix, list(data.keys()))
     size = len(next(iter(data.values())))
-    print('SIZE: ' + str(size))
     for i in range(size):
         values = []
         for k, v in data.items():
