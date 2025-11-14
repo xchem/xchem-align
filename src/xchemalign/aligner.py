@@ -23,15 +23,9 @@ import gemmi
 from rich.traceback import install
 
 # Local alignment imports
-from ligand_neighbourhood_alignment import constants as lna_constants
-from src.ligand_neighbourhood_alignment.map_alignment import _align_xmaps
-
 from ligand_neighbourhood_alignment import dt
-
-
-from ligand_neighbourhood_alignment.update import (
-    update
-)
+from ligand_neighbourhood_alignment import alignment_heirarchy as ah
+from ligand_neighbourhood_alignment.update import update
 from ligand_neighbourhood_alignment.io import (
     _load_assemblies,
     _load_xtalforms,
@@ -46,13 +40,14 @@ from ligand_neighbourhood_alignment.io import (
     _load_reference_stucture_transforms,
 )
 
-from ligand_neighbourhood_alignment import alignment_heirarchy as ah
-
 from xchemalign import utils
 from xchemalign.utils import Constants
 from xchemalign.pdb_xtal import PDBXtal
 
 install(show_locals=True)
+
+# disable the nanobind leak warnings
+gemmi.set_leak_warnings(False)
 
 
 def try_make(path):

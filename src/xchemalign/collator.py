@@ -39,6 +39,9 @@ from xchemalign.decoder import decoder
 
 from ligand_neighbourhood_alignment import dt
 
+# disable the naobind leak warnings
+gemmi.set_leak_warnings(False)
+
 
 def generate_xtal_dir(input_path: Path, xtal_name: str):
     """
@@ -265,7 +268,11 @@ class Collator:
         self.warnings.append(msg)
 
     def _migrate_version(self):
-        inp = input("Do you want an environment for a new version of your data creating? (Y/N)")
+        inp = input(
+            "Do you want an environment for a new data format version ({}) creating? (Y/N)".format(
+                utils.DATA_FORMAT_VERSION
+            )
+        )
         if inp == "Y" or inp == "y":
             self.logger.info("migrating data for new data format version", utils.DATA_FORMAT_VERSION)
 
@@ -296,7 +303,8 @@ class Collator:
                 "have been copied there.",
                 "\n      It is possible that you might need to update those files.",
                 "\n      The old data is in a directory named upload_v? where ? is the old version number",
-                "\n      Once ready you can re-run collator using the same command you just used.",
+                "\n      Once ready you can re-run collator using the same command you just used,"
+                "maybe updating the name of the directory to 'upload-current'.",
             )
         else:
             self.logger.info(
@@ -741,6 +749,30 @@ class Collator:
         return data
 
     def read_versions(self):
+        # check if we're using the correct upload-v? dir
+        if self.output_path.is_symlink():  # e.g. upload-current
+            d = self.output_path.readlink()
+        else:
+            d = self.output_path
+        v_num_s = d.name[8:]
+        fail = True
+        data_format_version_major = utils.get_major_data_format_version()
+        try:
+            v_num_i = int(v_num_s)
+            if v_num_i == data_format_version_major:
+                fail = False
+        except:
+            pass
+
+        if fail:
+            self.logger.error(
+                "Unexpected base directory found. Expected upload-v" + str(data_format_version_major),
+                "but found",
+                d.name,
+            )
+            self._migrate_version()
+            exit(1)
+
         # find out which version dirs exist
         version = 1
         while True:
