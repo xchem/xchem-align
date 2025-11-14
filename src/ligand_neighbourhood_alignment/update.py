@@ -17,12 +17,16 @@ import gemmi
 
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import constants
-from ligand_neighbourhood_alignment.forced_alignments import (  
+from ligand_neighbourhood_alignment.forced_alignments import (
     _update_reference_structure_transforms,
 )
 from ligand_neighbourhood_alignment import alignment_landmarks
-from src.ligand_neighbourhood_alignment.structure_alignment import _align_structure, _align_reference_structure, _align_artefacts
-from src.ligand_neighbourhood_alignment.map_alignment import read_xmap, read_xmap_from_mtz, __align_xmap
+from ligand_neighbourhood_alignment.structure_alignment import (
+    _align_structure,
+    _align_reference_structure,
+    _align_artefacts,
+)
+from ligand_neighbourhood_alignment.map_alignment import read_xmap, read_xmap_from_mtz, __align_xmap
 from ligand_neighbourhood_alignment import alignment_heirarchy
 from ligand_neighbourhood_alignment.io import (
     _get_structures,
@@ -38,7 +42,10 @@ from ligand_neighbourhood_alignment.io import (
     _save_fs_model,
     save_yaml,
 )
-from ligand_neighbourhood_alignment.ligand_neighbourhoods import _get_neighbourhoods, _update_ligand_neighbourhood_transforms
+from ligand_neighbourhood_alignment.ligand_neighbourhoods import (
+    _get_neighbourhoods,
+    _update_ligand_neighbourhood_transforms,
+)
 from ligand_neighbourhood_alignment.conformer_sites import _update_conformer_sites, _get_connected_components
 from ligand_neighbourhood_alignment.xtalform_sites import _update_xtalform_sites
 from ligand_neighbourhood_alignment.canonical_sites import _update_canonical_sites
@@ -51,36 +58,35 @@ logger.add(sys.stdout, level="WARNING")
 
 
 def perform_all_alignments(
-        dtag, chain, residue, altloc, version,
-        ligand_neighbourhood_output,
-        canonical_site_id,
-        fs_model,
-        structures,
-        conformer_sites,
-        canonical_sites,
-        dataset_assignments,
-        xtalforms,
-        xtalform_sites,
-        ligand_neighbourhoods,
-        alignability_graph,
-        ligand_neighbourhood_transforms,
-        chain_to_assembly_transforms,
-        assembly_transforms,
-        datasets,
-        reference_xmap_path,
+    dtag,
+    chain,
+    residue,
+    altloc,
+    version,
+    ligand_neighbourhood_output,
+    canonical_site_id,
+    fs_model,
+    structures,
+    conformer_sites,
+    canonical_sites,
+    dataset_assignments,
+    xtalforms,
+    xtalform_sites,
+    ligand_neighbourhoods,
+    alignability_graph,
+    ligand_neighbourhood_transforms,
+    chain_to_assembly_transforms,
+    assembly_transforms,
+    datasets,
+    reference_xmap_path,
 ):
     reference_xmap = read_xmap_from_mtz(reference_xmap_path)
-
 
     aligned_structure_path = ligand_neighbourhood_output.aligned_structures[canonical_site_id]
     aligned_artefacts_path = ligand_neighbourhood_output.aligned_artefacts[canonical_site_id]
     aligned_event_map_path = ligand_neighbourhood_output.aligned_event_maps[canonical_site_id]
 
-    if not (
-        (fs_model.source_dir.parent / aligned_structure_path).exists()
-        | Path(aligned_structure_path).exists()
-    ):
-        
+    if not (fs_model.source_dir.parent / aligned_structure_path).exists() | Path(aligned_structure_path).exists():
         _structure = structures[dtag].clone()
         canonical_site = canonical_sites[canonical_site_id]
 
@@ -127,10 +133,7 @@ def perform_all_alignments(
                 xtalforms[dataset_assignments[dtag]],
                 aligned_structure_path,
                 chain_to_assembly_transform=chain_to_assembly_transforms[
-                    (
-                        conformer_site.reference_ligand_id[0],
-                        site_chain
-                    )
+                    (conformer_site.reference_ligand_id[0], site_chain)
                 ],
                 assembly_transform=assembly_transforms[
                     xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
@@ -162,10 +165,7 @@ def perform_all_alignments(
             xtalforms[dataset_assignments[dtag]],
             aligned_artefacts_path,
             chain_to_assembly_transform=chain_to_assembly_transforms[
-                (
-                    conformer_site.reference_ligand_id[0],
-                    site_chain
-                )
+                (conformer_site.reference_ligand_id[0], site_chain)
             ],
             assembly_transform=assembly_transforms[
                 xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
@@ -179,11 +179,10 @@ def perform_all_alignments(
             ],
             xtalform_sites=xtalform_sites,
         )
-    # else:
-    #     logger.info(f"Already output aligned artefacts!")
-    # else:
-    #     logger.info(f"Already output structure!")
-
+        # else:
+        #     logger.info(f"Already output aligned artefacts!")
+        # else:
+        #     logger.info(f"Already output structure!")
 
         # Align the xmaps
         try:
@@ -287,7 +286,6 @@ def perform_all_alignments(
             logger.info(f"Already output xmap!")
 
 
-
 def update(
     fs_model: dt.FSModel,
     datasets: dict[str, dt.Dataset],
@@ -307,7 +305,7 @@ def update(
     assembly_landmarks,
     assembly_transforms,
     version,
-    debug=False
+    debug=False,
 ):
     """
     The main interface for XCA to LNA functionality.
@@ -316,7 +314,7 @@ def update(
     1.  Deriving the alignment hierarchy. This creates an artifical "reference assembly" that defines
         the relative positions of biological chains to one another in the final alignment.
         Note that the binding site alignments will then be relative to this articial assembly
-        of chains, maximizing the -local- goodness of fit to the binding sites 
+        of chains, maximizing the -local- goodness of fit to the binding sites
     2.  Generate the landmarks that will be used for alignment.
     3.  Determine how to transform each assembly onto the reference assembly. This way binding sites
         can be aligned to their own biological assembly and then to the reference assembly.
@@ -324,9 +322,9 @@ def update(
         a crystalform. It seems fairly reliable.
     5.  Get the neighbourhoods around the ligand. This will determine both the local biological
         residues and local crystalographic residues.
-    6.  Get the chain to assembly transforms. These will map each chain in each dataset to their 
+    6.  Get the chain to assembly transforms. These will map each chain in each dataset to their
         local assembly (which can then be mapped to the reference assembly).
-    7.  Determine the transforms between ligand neighbourhoods and by extension the graph of 
+    7.  Determine the transforms between ligand neighbourhoods and by extension the graph of
         which transforms are possible.
     8.  Get the conformer sites
     9.  Get the canonical sites
@@ -352,13 +350,11 @@ def update(
             continue
         as_st = alignment_heirarchy._get_assembly_st(assembly, structures[assembly.reference])
         assembly_landmarks[assembly_name] = alignment_landmarks.structure_to_landmarks(as_st)
-    
+
     if debug:
         print(assembly_landmarks)
-    
-    save_yaml(
-        fs_model.assembly_landmarks, assembly_landmarks, alignment_landmarks.assembly_landmarks_to_dict
-    )
+
+    save_yaml(fs_model.assembly_landmarks, assembly_landmarks, alignment_landmarks.assembly_landmarks_to_dict)
 
     for assembly_name, assembly in assemblies.items():
         # Do not update if already have assembly transform!
@@ -423,19 +419,14 @@ def update(
                     _debug = True
                 else:
                     _debug = False
-                
+
                 chain_to_assembly_transforms[
                     (
                         dtag,
                         _chain,
                     )
                 ] = alignment_heirarchy._get_structure_chain_to_assembly_transform(
-                    st,
-                    _chain,
-                    xtalforms[dataset_assignments[dtag]],
-                    assemblies,
-                    assembly_landmarks,
-                    _debug
+                    st, _chain, xtalforms[dataset_assignments[dtag]], assemblies, assembly_landmarks, _debug
                 )
             except Exception as e:
                 print(f'Exception in dataset: {dtag}, in xtalform {dataset_assignments[dtag]}')
@@ -568,24 +559,28 @@ def update(
                         ) in ligand_neighbourhood_output.aligned_structures.items():
                             fs.append(
                                 delayed(perform_all_alignments)(
-                                dtag, chain, residue, altloc, version,
-                                ligand_neighbourhood_output,
-                                canonical_site_id,
-                                fs_model,
-                                structures,
-                                conformer_sites,
-                                canonical_sites,
-                                dataset_assignments,
-                                xtalforms,
-                                xtalform_sites,
-                                ligand_neighbourhoods,
-                                alignability_graph,
-                                ligand_neighbourhood_transforms,
-                                chain_to_assembly_transforms,
-                                assembly_transforms,
-                                datasets,
-                                reference_xmap_path,
-                            )
+                                    dtag,
+                                    chain,
+                                    residue,
+                                    altloc,
+                                    version,
+                                    ligand_neighbourhood_output,
+                                    canonical_site_id,
+                                    fs_model,
+                                    structures,
+                                    conformer_sites,
+                                    canonical_sites,
+                                    dataset_assignments,
+                                    xtalforms,
+                                    xtalform_sites,
+                                    ligand_neighbourhoods,
+                                    alignability_graph,
+                                    ligand_neighbourhood_transforms,
+                                    chain_to_assembly_transforms,
+                                    assembly_transforms,
+                                    datasets,
+                                    reference_xmap_path,
+                                )
                             )
 
     Parallel(verbose=100, n_jobs=-1)(f for f in fs)
@@ -608,8 +603,6 @@ def update(
                 )
             else:
                 logger.info(f"Already output reference structure!")
-
-            
 
     # # Align the maps
 
@@ -672,6 +665,4 @@ def update(
     #                                 xtalform_site = _xtalform_site
     #                         site_chain = xtalform_site.crystallographic_chain
 
-                            
     return fs_model
-
