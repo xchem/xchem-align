@@ -39,9 +39,6 @@ from xchemalign.decoder import decoder
 
 from ligand_neighbourhood_alignment import dt
 
-# disable the naobind leak warnings
-gemmi.set_leak_warnings(False)
-
 
 def generate_xtal_dir(input_path: Path, xtal_name: str):
     """

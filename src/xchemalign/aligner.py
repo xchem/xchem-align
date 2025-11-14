@@ -46,9 +46,6 @@ from xchemalign.pdb_xtal import PDBXtal
 
 install(show_locals=True)
 
-# disable the nanobind leak warnings
-gemmi.set_leak_warnings(False)
-
 
 def try_make(path):
     if not Path(path).exists():
