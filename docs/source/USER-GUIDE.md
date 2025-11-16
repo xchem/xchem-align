@@ -12,7 +12,6 @@ _XChemAlign_ is a small suite of tools for preparing PDB models for loading into
 There are a few steps involved.
 1. [**Enable**](#enabling-the-xchemalign-environment) the XChemAlign environment
 2. [**Declare**](#declaring-things) a few things about your data in two structured files in `yaml`[^1]
-2. [**Declare**](#declaring-things) a few things about your data in two structured files in `yaml`[^1]
 3. [**Collate**](#collating-files) your files in a new (specific) directory structure
 4. [**Align**](#aligning-everything) all binding sites to common origins
 5. [**Release**](#upload-to-fragalysis) the data to Fragalysis
@@ -91,11 +90,15 @@ Your actions to set this up need to be:
 
 1. Create a working directory e.g. `mkdir xchem-align`
 2. cd into it (or use the `-d` arguments when you run `collator` and `aligner`)
-3. Run `collator` - it will notice that the working directory has not been initialised and will create the `upload-v?`
-   directory and the `upload-current` symbolic link, and dummy `config.yaml` and `assemblies.yaml` files.
-4. Edit the `config.yaml` and `assemblies.yaml` files (see below)
-5. Run collator again and it will recognise that everything is now present and will run
-6. Run aligner
+3. Run `collator`:
+   
+    ```commandline
+    python -m xchemalign.collator -d <your working dir>
+    ```
+     The -d <your working dir> bit is only needed if you are not already in your working directory. The collator script will notice that the working directory has not been initialised and will create the `upload-v?` directory and the `upload-current` symbolic link, and dummy `config.yaml` and `assemblies.yaml` files.
+5. Edit the `config.yaml` and `assemblies.yaml` files (see below)
+6. Run collator again and it will recognise that everything is now present and will run
+7. Run aligner
 
 When running `collator` for the first time you will see something like this if the working directory needs to be
 initialised:
@@ -460,7 +463,7 @@ The preferred way to upload data to Fragalysis is using the uploader tool in XCh
 Then run the upload command:
 
 ```commandline
-python -m xchemalign.uploader -u <fragalysis url> -p <proposal number> -t <token>
+python -m xchemalign.uploader -u <fragalysis url> -p <proposal number-visit number> -t <token>
 ```
 
 This will find the latest upload directory, compress it to a tarball, and then upload it to the given URL. If the tarball already exists, the compression step can be skipped by specifying either
