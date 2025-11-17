@@ -13,7 +13,7 @@ from ligand_neighbourhood_alignment import dt
 def constants():
     class Constants:
         TEST_DATA_DIR = "test-data"
-        VERSION_DIR = "upload-v2"
+        VERSION_DIR = "upload-v3"
         INPUT_1_DIR = "test-data/input_1"
         INPUT_2_DIR = "test-data/input_2"
         INPUT_3_DIR = "test-data/input_3"
@@ -22,10 +22,10 @@ def constants():
         CONFIG_2_FILE = "config_2.yaml"
         CONFIG_3_FILE = "test-data/config_3.yaml"
         TEST_DIR = "test-data/outputs"
-        CONFIG_FILE = TEST_DIR + "/upload-v2/config.yaml"
-        UPLOAD_1_DIR = TEST_DIR + "/upload-v2/upload_1"
-        UPLOAD_2_DIR = TEST_DIR + "/upload-v2/upload_2"
-        UPLOAD_3_DIR = TEST_DIR + "/upload-v2/upload_3"
+        CONFIG_FILE = TEST_DIR + "/upload-v3/config.yaml"
+        UPLOAD_1_DIR = TEST_DIR + "/upload-v3/upload_1"
+        UPLOAD_2_DIR = TEST_DIR + "/upload-v3/upload_2"
+        UPLOAD_3_DIR = TEST_DIR + "/upload-v3/upload_3"
         METADATA_FILE = "meta_collator.yaml"
         ASSEMBLIES_FILENAME = "assemblies.yaml"
 
