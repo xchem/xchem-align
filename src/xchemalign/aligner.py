@@ -289,10 +289,10 @@ class Aligner:
             lambda x: path_to_relative_string(x, self.base_dir),
         )
 
-        # Change any "\0" altlocs into "0"s 
+        # Change any "\0" altlocs into "0"s
         to_add = []
         to_delete = []
-        for crystal_name, crystal_data in aligner_dict[Constants.META_XTALS].items(): 
+        for crystal_name, crystal_data in aligner_dict[Constants.META_XTALS].items():
             if Constants.META_ALIGNED_FILES in crystal_data:
                 print(crystal_name)
                 print(crystal_data)
@@ -300,16 +300,36 @@ class Aligner:
                     for residue_number, residue_data in chain_data.items():
                         for altloc, altloc_data in residue_data.items():
                             if dt.altloc_to_string(altloc) != altloc:
-                                to_add.append(((crystal_name, Constants.META_ALIGNED_FILES, chain_name, residue_number, dt.altloc_to_string(altloc)), altloc_data))
-                                to_delete.append(((crystal_name, Constants.META_ALIGNED_FILES, chain_name, residue_number, altloc), altloc_data))
+                                to_add.append(
+                                    (
+                                        (
+                                            crystal_name,
+                                            Constants.META_ALIGNED_FILES,
+                                            chain_name,
+                                            residue_number,
+                                            dt.altloc_to_string(altloc),
+                                        ),
+                                        altloc_data,
+                                    )
+                                )
+                                to_delete.append(
+                                    (
+                                        (
+                                            crystal_name,
+                                            Constants.META_ALIGNED_FILES,
+                                            chain_name,
+                                            residue_number,
+                                            altloc,
+                                        ),
+                                        altloc_data,
+                                    )
+                                )
 
         for _add, _delete in zip(to_add, to_delete):
-            (_crystal_name, _aligned_files, _chain, _res, _alt), data = _add 
+            (_crystal_name, _aligned_files, _chain, _res, _alt), data = _add
             aligner_dict[Constants.META_XTALS][_crystal_name][_aligned_files][_chain][_res][_alt] = data
             (_crystal_name, _aligned_files, _chain, _res, _alt), data = _delete
             del aligner_dict[Constants.META_XTALS][_crystal_name][_aligned_files][_chain][_res][_alt]
-
-
 
         # remove this eventually
         with open(self.version_dir / 'aligner_tmp.yaml', "w") as stream:
@@ -691,22 +711,22 @@ class Aligner:
             Constants.META_TRANSFORMS_OBSERVATION_TO_CONFORMER_SITES
         ] = ligand_neighbourhood_transforms
 
-        ## Get the conformer site to canonical site transforms
+        # Get the conformer site to canonical site transforms
         # conformer_site_transforms = read_yaml(updated_fs_model.conformer_site_transforms)
         # new_meta[Constants.META_TRANSFORMS][
         #     Constants.META_TRANSFORMS_CONFORMER_SITES_TO_CANON
         # ] = conformer_site_transforms
-        # num_extract_errors = self._extract_components(crystals, new_meta)
-        # if num_extract_errors == 1:
-        #     self.logger.warn(
-        #         "there was a problem extracting components for 1 aligned structure. See above for details"
-        #     )
-        # elif num_extract_errors > 1:
-        #     self.logger.warn(
-        #         "there were problems extracting components for",
-        #         num_extract_errors,
-        #         "aligned structures. See above for details",
-        #     )
+        num_extract_errors = self._extract_components(crystals, new_meta)
+        if num_extract_errors == 1:
+            self.logger.warn(
+                "there was a problem extracting components for 1 aligned structure. See above for details"
+            )
+        elif num_extract_errors > 1:
+            self.logger.warn(
+                "there were problems extracting components for",
+                num_extract_errors,
+                "aligned structures. See above for details",
+            )
 
         # cleanup empty aligned files dirs
         empty_dir_count = 0
@@ -746,57 +766,67 @@ class Aligner:
                 for k2, v2 in v1[Constants.META_ALIGNED_FILES].items():  # chain
                     for k3, v3 in v2.items():  # ligand
                         for k4, v4 in v3.items():  # version
-                            for k5, v5 in v4.items():  # conf site
-                                pdb = v5[Constants.META_AIGNED_STRUCTURE]
-                                self.logger.info("extracting components", k1, k2, k3, k4, k5, pdb)
-                                # pth = self.version_dir / pdb
-                                pth = Path(pdb)
-                                if not pth.is_file():
-                                    self.logger.error("can't find file", pth)
-                                    num_errors += 1
-                                else:
-                                    pdbxtal = PDBXtal(pth, pth.parent, logger=self.logger)
-                                    errs = pdbxtal.validate()
-                                    if errs:
-                                        self.logger.error("validation errors - can't extract components")
+                            for k5, v5 in v4.items():  # altloc
+                                num_pdb_observations = 0
+                                for k6, v6 in v5.items():  # # conf site
+                                    num_pdb_observations += 1
+                                    pdb = v6[Constants.META_AIGNED_STRUCTURE]
+                                    self.logger.info("extracting components", k1, k2, k3, k4, k5, k6, pdb)
+                                    pth = Path(pdb)
+                                    if not pth.is_file():
+                                        self.logger.error("can't find file", pth)
                                         num_errors += 1
                                     else:
-                                        num_pdbs += 1
-                                        pdbxtal.create_apo_file()
-                                        pdbxtal.create_apo_solv_desolv()
+                                        pdbxtal = PDBXtal(pth, pth.parent, logger=self.logger)
+                                        errs = pdbxtal.validate()
+                                        if errs:
+                                            self.logger.error("validation errors - can't extract components")
+                                            num_errors += 1
+                                        else:
+                                            num_pdbs += 1
+                                            pdbxtal.create_apo_file()
+                                            pdbxtal.create_apo_solv_desolv()
 
-                                        v5[Constants.META_PDB_APO] = str(pdbxtal.apo_file.relative_to(self.base_dir))
-                                        v5[Constants.META_PDB_APO_SOLV] = str(
-                                            pdbxtal.apo_solv_file.relative_to(self.base_dir)
-                                        )
-                                        v5[Constants.META_PDB_APO_DESOLV] = str(
-                                            pdbxtal.apo_desolv_file.relative_to(self.base_dir)
-                                        )
-                                        if cif_file:
-                                            try:
-                                                pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
-                                                v5[Constants.META_LIGAND_MOL] = (
-                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.mol'
-                                                )
-                                                v5[Constants.META_LIGAND_SDF] = (
-                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.sdf'
-                                                )
-                                                v5[Constants.META_LIGAND_PDB] = (
-                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.pdb'
-                                                )
-                                                v5[Constants.META_LIGAND_SMILES] = (
-                                                    str(pdbxtal.ligand_base_file.relative_to(self.base_dir)) + '.smi'
-                                                )
-                                                v5[Constants.META_LIGAND_NAME] = pdbxtal.ligand_name
-                                                v5[Constants.META_LIGAND_SMILES_STRING] = pdbxtal.smiles
-                                            except:
-                                                num_errors += 1
-                                                self.logger.warn(
-                                                    "failed to create ligand for",
-                                                    k1,
-                                                    "Check that the ligand in PDB file and the CIF file are compatible",
-                                                )
-                                                traceback.print_exc()
+                                            v6[Constants.META_PDB_APO] = str(
+                                                pdbxtal.apo_file.relative_to(self.base_dir)
+                                            )
+                                            v6[Constants.META_PDB_APO_SOLV] = str(
+                                                pdbxtal.apo_solv_file.relative_to(self.base_dir)
+                                            )
+                                            v6[Constants.META_PDB_APO_DESOLV] = str(
+                                                pdbxtal.apo_desolv_file.relative_to(self.base_dir)
+                                            )
+                                            if cif_file:
+                                                try:
+                                                    pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
+                                                    v6[Constants.META_LIGAND_MOL] = (
+                                                        str(pdbxtal.ligand_base_file.relative_to(self.base_dir))
+                                                        + '.mol'
+                                                    )
+                                                    v6[Constants.META_LIGAND_SDF] = (
+                                                        str(pdbxtal.ligand_base_file.relative_to(self.base_dir))
+                                                        + '.sdf'
+                                                    )
+                                                    v6[Constants.META_LIGAND_PDB] = (
+                                                        str(pdbxtal.ligand_base_file.relative_to(self.base_dir))
+                                                        + '.pdb'
+                                                    )
+                                                    v6[Constants.META_LIGAND_SMILES] = (
+                                                        str(pdbxtal.ligand_base_file.relative_to(self.base_dir))
+                                                        + '.smi'
+                                                    )
+                                                    v6[Constants.META_LIGAND_NAME] = pdbxtal.ligand_name
+                                                    v6[Constants.META_LIGAND_SMILES_STRING] = pdbxtal.smiles
+                                                except:
+                                                    num_errors += 1
+                                                    self.logger.warn(
+                                                        "failed to create ligand for",
+                                                        k1,
+                                                        "Check that the ligand in PDB file and the CIF file are compatible",
+                                                    )
+                                                    traceback.print_exc()
+                                if num_pdb_observations == 0:
+                                    self.logger.warn("no aligned PDB files found")
 
         self.num_alignments = num_pdbs
         return num_errors

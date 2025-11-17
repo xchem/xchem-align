@@ -300,8 +300,7 @@ class Collator:
                 "have been copied there.",
                 "\n      It is possible that you might need to update those files.",
                 "\n      The old data is in a directory named upload_v? where ? is the old version number",
-                "\n      Once ready you can re-run collator using the same command you just used,"
-                "maybe updating the name of the directory to 'upload-current'.",
+                "\n      Once ready you can re-run collator using the same command you just used.",
             )
         else:
             self.logger.info(
