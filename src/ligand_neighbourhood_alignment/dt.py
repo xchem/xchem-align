@@ -16,6 +16,7 @@ from pydantic import BaseModel, field_validator
 from ligand_neighbourhood_alignment import constants
 
 
+
 logger.remove()  # for someone not familiar with the lib, whats going on here?
 logger.add(sys.stdout, level="INFO")
 
@@ -975,6 +976,7 @@ class FSModel:
                 for residue, residue_alignments in chain_alignments.items():
                     alignments[dtag][chain][residue] = {}
                     for altloc, altloc_alignments in residue_alignments.items():
+                        altloc = string_to_altloc(altloc)
                         alignments[dtag][chain][residue][altloc] = {}
                         for version, ligand_neighbourhood_alignments in altloc_alignments.items():
                             alignments[dtag][chain][residue][altloc][version] = LigandNeighbourhoodOutput.from_dict(
@@ -1026,6 +1028,7 @@ class FSModel:
                 for residue, residue_alignments in chain_alignments.items():
                     alignments[dtag][chain][residue] = {}
                     for altloc, altloc_alignments in residue_alignments.items():
+                        altloc = altloc_to_string(altloc)
                         alignments[dtag][chain][residue][altloc] = {}
                         for version, ligand_neighbourhood_alignments in altloc_alignments.items():
                             alignments[dtag][chain][residue][altloc][version] = LigandNeighbourhoodOutput.to_dict(

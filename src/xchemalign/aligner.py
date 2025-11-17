@@ -297,6 +297,28 @@ class Aligner:
             lambda x: path_to_relative_string(x, self.base_dir),
         )
 
+        # Change any "\0" altlocs into "0"s 
+        to_add = []
+        to_delete = []
+        for crystal_name, crystal_data in aligner_dict[Constants.META_XTALS].items(): 
+            if Constants.META_ALIGNED_FILES in crystal_data:
+                print(crystal_name)
+                print(crystal_data)
+                for chain_name, chain_data in crystal_data[Constants.META_ALIGNED_FILES].items():
+                    for residue_number, residue_data in chain_data.items():
+                        for altloc, altloc_data in residue_data.items():
+                            if dt.altloc_to_string(altloc) != altloc:
+                                to_add.append(((crystal_name, Constants.META_ALIGNED_FILES, chain_name, residue_number, dt.altloc_to_string(altloc)), altloc_data))
+                                to_delete.append(((crystal_name, Constants.META_ALIGNED_FILES, chain_name, residue_number, altloc), altloc_data))
+
+        for _add, _delete in zip(to_add, to_delete):
+            (_crystal_name, _aligned_files, _chain, _res, _alt), data = _add 
+            aligner_dict[Constants.META_XTALS][_crystal_name][_aligned_files][_chain][_res][_alt] = data
+            (_crystal_name, _aligned_files, _chain, _res, _alt), data = _delete
+            del aligner_dict[Constants.META_XTALS][_crystal_name][_aligned_files][_chain][_res][_alt]
+
+
+
         # remove this eventually
         with open(self.version_dir / 'aligner_tmp.yaml', "w") as stream:
             yaml.dump(aligner_dict, stream, sort_keys=False, default_flow_style=None)
