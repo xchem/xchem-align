@@ -3,8 +3,9 @@ import gemmi
 import numpy as np
 
 from ligand_neighbourhood_alignment import dt
-from src.ligand_neighbourhood_alignment import alignment_core
+from ligand_neighbourhood_alignment import alignment_core
 from ligand_neighbourhood_alignment.alignment_landmarks import structure_to_landmarks
+
 
 def _derive_alignment_heirarchy(assemblies: dict[str, dt.Assembly], debug=False):
     # The Alignment hierarchy is the graph of alignments one must perform in order to get from
@@ -100,9 +101,6 @@ def _get_assembly_st(as1, as1_ref):
     return new_st
 
 
-
-
-
 def _get_atoms(st):
     atoms = {}
     for model in st:
@@ -116,7 +114,9 @@ def _get_atoms(st):
 
 def _calculate_assembly_transform(ref=None, mov=None, chain=None, debug=False):
     # Convert to gemmi structures to use superposition algorithm there
-    ref_to_mov = alignment_core.calculate_insertion_matching_from_landmarks(ref, mov, chain, chain)  # Keys are ref atomids
+    ref_to_mov = alignment_core.calculate_insertion_matching_from_landmarks(
+        ref, mov, chain, chain
+    )  # Keys are ref atomids
     mov_insertion_to_res = {mov_atom_id[1][1]: mov_atom_id[1][0] for mov_atom_id in mov if mov_atom_id[0] == chain}
 
     ref_poss = []
@@ -131,7 +131,7 @@ def _calculate_assembly_transform(ref=None, mov=None, chain=None, debug=False):
             continue
 
         # Only align on CAs
-        if ref_atom_id[2] != 'CA': 
+        if ref_atom_id[2] != 'CA':
             continue
 
         # Get the ref pos
@@ -143,12 +143,11 @@ def _calculate_assembly_transform(ref=None, mov=None, chain=None, debug=False):
         mov_insertion = ref_to_mov[ref_atom_id[1][1]]
         mov_res = mov_insertion_to_res[mov_insertion]
         mov_atom_id = (ref_atom_id[0], (mov_res, mov_insertion), ref_atom_id[2])
-        
+
         # Get the mov
         x, y, z = mov[mov_atom_id]
         pos = gemmi.Position(x, y, z)
         mov_poss.append(pos)
-
 
     assert (
         len(ref_poss) > 0
@@ -171,12 +170,12 @@ def _calculate_assembly_transform(ref=None, mov=None, chain=None, debug=False):
     assert not np.isnan(np.array(transform.mat.tolist())).any()
 
     return {
-        'vec': transform.vec.tolist(), 
-        'mat': transform.mat.tolist(), 
-        'rmsd': sup.rmsd, 
+        'vec': transform.vec.tolist(),
+        'mat': transform.mat.tolist(),
+        'rmsd': sup.rmsd,
         "count": sup.count,
         'matching': ref_to_mov,
-        }
+    }
 
 
 def _calculate_assembly_sequence(
@@ -214,9 +213,7 @@ def _calculate_assembly_transform_sequence(hierarchy, mov_assembly, assembly_lan
     moving = mov_assembly
     for assembly, chain in sequence:
         transform = _calculate_assembly_transform(
-            ref=assembly_landmarks[assembly], 
-            mov=assembly_landmarks[moving], 
-            chain=chain
+            ref=assembly_landmarks[assembly], mov=assembly_landmarks[moving], chain=chain
         )
         if debug:
             rprint(f'{moving} -> {assembly}')
@@ -287,7 +284,7 @@ def _get_structure_chain_to_assembly_transform(st, chain, xtalform, assemblies, 
     1. Determine the assembly chain that corresponds to the structure chain
     2. Generating the biological assembly from THIS structure
     3. Transforming to landmarks for alignment
-    4. Aligning the moving assembly generated from this chain against the canonical version of 
+    4. Aligning the moving assembly generated from this chain against the canonical version of
        that biological assembly
     """
     # Map the chain to an xtalform assembly
@@ -317,7 +314,7 @@ def _get_structure_chain_to_assembly_transform(st, chain, xtalform, assemblies, 
         rprint(assembly_landmarks[xtalform_assembly.assembly])
         rprint('Moving landmarks')
         rprint(mov_lm)
-    
+
     tr = _calculate_assembly_transform(
         ref=assembly_landmarks[xtalform_assembly.assembly],
         mov=mov_lm,
@@ -328,8 +325,6 @@ def _get_structure_chain_to_assembly_transform(st, chain, xtalform, assemblies, 
         rprint(tr)
 
     return tr
-
-
 
 
 def chain_to_assembly_transforms_to_dict(chain_to_assembly_transforms: dict[tuple[str, str]]):
@@ -353,12 +348,10 @@ def get_canonical_site_biochain(
     site_reference_ligand_id,
     site_reference_ligand_xtalform_id,
     site_reference_ligand_xtalform,
-    xtalform_sites, 
-    canonical_site_id, 
+    xtalform_sites,
+    canonical_site_id,
     assemblies,
-    ):
-
-
+):
     for xsid, _xtalform_site in xtalform_sites.items():
         _xtalform_id = _xtalform_site.xtalform_id
         if (
@@ -368,8 +361,6 @@ def get_canonical_site_biochain(
         ):
             xtalform_site = _xtalform_site
     site_chain = xtalform_site.crystallographic_chain
-    canonical_site_biochain = _chain_to_biochain(
-        site_chain, site_reference_ligand_xtalform, assemblies
-    )
+    canonical_site_biochain = _chain_to_biochain(site_chain, site_reference_ligand_xtalform, assemblies)
 
     return canonical_site_biochain, site_reference_ligand_xtalform

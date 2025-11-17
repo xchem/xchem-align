@@ -544,7 +544,12 @@ def parse_compound_smiles(val: str):
 
 # the integer part is the major version number (increment when the data format changes in an incompatible way)
 # the decimal part is the minor version number (something changed in XCA but does not impact the data format)
-DATA_FORMAT_VERSION = 2.2
+DATA_FORMAT_VERSION = 3.0
+
+
+def get_major_data_format_version():
+    my_major_ver = math.floor(DATA_FORMAT_VERSION)
+    return int(my_major_ver)
 
 
 def check_data_format_version(ver_to_check):

@@ -1,11 +1,10 @@
 import gemmi
 from loguru import logger
-from rich import print as rprint 
+from rich import print as rprint
 import numpy as np
 
 from ligand_neighbourhood_alignment import dt
-from src.ligand_neighbourhood_alignment.alignment_core import _match_cas
-
+from ligand_neighbourhood_alignment.alignment_core import _match_cas
 
 
 def _get_centroid_res(
@@ -26,7 +25,6 @@ def _get_centroid_res(
     return (closest_atom_id[0], closest_atom_id[1])
 
 
-
 def _generate_assembly(xtalform: dt.XtalForm, structure, assemblies: dict[str, dt.Assembly], pdb, dataset):
     full_st = structure.clone()
     chains_to_delete = []
@@ -35,7 +33,7 @@ def _generate_assembly(xtalform: dt.XtalForm, structure, assemblies: dict[str, d
             chains_to_delete.append((str(model.num), chain.name))
 
     for model_name, chain_name in chains_to_delete:
-        del full_st[int(model_name)-1][chain_name]
+        del full_st[int(model_name) - 1][chain_name]
 
     cloned_chains = []
     for xtalform_assembly_id, xtalform_assembly in xtalform.assemblies.items():
@@ -121,8 +119,6 @@ def _get_structure_fragments(dataset: dt.Dataset, structure, version):
     return fragments
 
 
-
-
 def get_model_and_artefact_atoms(
     residue_neighbours: list[tuple[gemmi.Position, gemmi.CRA]],
     structure: dt.Structure,
@@ -161,6 +157,7 @@ def get_model_and_artefact_atoms(
 
     # return model_atoms, artefact_atoms
     return updated_model_atoms, updated_artefact_atoms
+
 
 def _get_ligand_neighbourhood(
     structure,
@@ -325,6 +322,7 @@ def _get_neighbourhoods(
         dataset, xtalform, assemblies, version
     )
     return dataset_ligand_neighbourhoods
+
 
 def _update_ligand_neighbourhood_transforms(
     ligand_neighbourhood_transforms: dict[tuple[dt.LigandNeighbourhoodID, dt.LigandNeighbourhoodID], dt.Transform],
