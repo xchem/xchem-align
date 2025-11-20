@@ -103,24 +103,41 @@ def process_input(
             if prog == 'dials':
                 prog = 'xia2-dials'
             if prog and prog != 'None':
+                prog = prog.lower()
                 logger.info('data processing was done with ' + prog)
                 logfile = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
                 if logfile and logfile != 'None':
                     stats_cif = base_dir / utils.make_path_relative(Path(logfile).parent) / 'xia2.mmcif.bz2'
                     if not stats_cif.is_file():
-                        logger.info(str(stats_cif) + ' mmcif file containing data processing stats not found')
-                        p = base_dir / utils.make_path_relative(Path(logfile))
-                        stats_doc = scrape_processing_stats.handle_file(p, prog.lower(), None, None)
-                        if stats_doc is None:
-                            logger.warn('stats could not be scraped from log file')
+                        p = None
+                        # logger.info(str(stats_cif) + ' mmcif file containing data processing stats not found')
+                        logfile_p = Path(logfile)
+                        if logfile_p.is_file():
+                            p = base_dir / utils.make_path_relative(logfile_p)
+                            logger.info('processing stats from', logfile_p.name)
+                        elif prog == 'autoproc' and logfile.endswith('.log'):
+                            # look for the aimless.log file
+                            aimless = base_dir / utils.make_path_relative(logfile_p).parent / 'aimless.log'
+                            if aimless.is_file():
+                                p = aimless
+                                logger.info('processing stats from aimless.log')
+                            else:
+                                logger.warn('no aimless.log file found')
                         else:
-                            cif_block0 = cif_doc[0]
-                            stats_block0 = stats_doc[0]
-                            for item in stats_block0:
-                                cif_block0.add_item(item)
+                            logger.warn('could not find log')
+
+                        if p:
+                            stats_doc = scrape_processing_stats.handle_file(p, prog, None, None)
+                            if stats_doc is None:
+                                logger.warn('stats could not be scraped from log file')
+                            else:
+                                cif_block0 = cif_doc[0]
+                                stats_block0 = stats_doc[0]
+                                for item in stats_block0:
+                                    cif_block0.add_item(item)
 
                     else:
-                        logger.info('found data processing stats mmcif file')
+                        logger.info('processing stats from xia2.mmcif.bz2')
                         item_software = None
                         item_reflns_shell = None
                         pair_reflns = OrderedDict()

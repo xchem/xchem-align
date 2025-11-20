@@ -75,8 +75,22 @@ KEY_REFLNS_CHI_SQ = 'pdbx_chi_squared'
 KEY_REFLNS_POSSIBLE_OBS = 'percent_possible_obs'
 KEY_REFLNS_NETI_OVER_SIGMA = 'pdbx_netI_over_sigmaI'
 
-# this is for the .table1 files
+# this is for the aimless.log files
 d_autoproc = {
+    KEY_REFLNS_RESO_LOW: r'Low resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_RESO_HIGH: r'High resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RMERGE_I_OBS: r'Rmerge\s+\(all\s+I\+\s*and\s*I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RRIM_I_ALL: r'Rmeas\s+\(all\s*I\+\s*&\s*I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_RPIM_I_ALL: r'Rpim\s+\(all I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_CC_HALF: r'Mn\(I\)\s+half\-set\s+correlation\s+CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\s+of\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_POSSIBLE_OBS: r'Completeness\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_NETI_OVER_SIGMA: r'Mean\(\(I\)\/sd\(I\)\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+}
+
+# this is for the .table1 files
+d_autoproc_staraniso = {
     KEY_REFLNS_RESO_LOW: r'Low resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_RESO_HIGH: r'High resolution limit\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_RMERGE_I_OBS: r'Rmerge\s+\(all\s+I\+\s*&\s*I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
@@ -85,6 +99,7 @@ d_autoproc = {
     KEY_REFLNS_PDBX_CC_HALF: r'CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\s+of\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_CHI_SQ: r'Mean\(Chi\^2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_POSSIBLE_OBS: r'Completeness \(ellipsoidal\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_NETI_OVER_SIGMA: r'Mean\(I\)\/sd\(I\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
 }
@@ -96,7 +111,7 @@ d_xia_3dii = {
     KEY_REFLNS_PDBX_RMERGE_I_OBS: r'Rmerge\s+\(all\s+I\+\s+and\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_RRIM_I_ALL: r'Rmeas\s+\(all\s+I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_RPIM_I_ALL: r'Rpim\s+\(all\s+I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-    KEY_REFLNS_PDBX_CC_HALF: r'Mn\(I\)\s+half-set\s+correlation\s+CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_PDBX_CC_HALF: r'Mn\(I\)\s+half\-set\s+correlation\s+CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\sof\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_CHI_SQ: r'Mean\(Chi\^2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
@@ -118,7 +133,7 @@ def handle_text_file(file, regexes):
     with open(file, "rt") as f:
         processed_count = 0
         read_count = find_summary_section(f, r'\s+Overall\s+InnerShell\s+OuterShell')
-        info('read', read_count, 'lines to find start of summary section')
+        # info('read', read_count, 'lines to find start of summary section')
         if read_count is not None:
             for line in f:
                 read_count += 1
@@ -144,11 +159,11 @@ def handle_autoproc(file):
 
 
 def handle_autoproc_staraniso(file):
-    return handle_autoproc
+    return handle_text_file(file, d_autoproc_staraniso)
 
 
 def handle_xia2_dials(file):
-    return {}, {}
+    return handle_text_file(file, d_xia_3dii)
 
 
 def handle_xia_3dii(file):
@@ -177,8 +192,8 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
 
     if outputfile:
         doc.write_file(outputfile)
-    else:
-        info(doc.as_string(cif.Style.Simple))
+    # else:
+    #     info(doc.as_string(cif.Style.Simple))
 
     return doc
 
@@ -194,7 +209,7 @@ def create_loop(data: dict, prefix: str, block: cif.Block):
         values = []
         for k, v in data.items():
             values.append(str(v[i]))
-        info('adding: ' + str(values))
+        # info('adding: ' + str(values))
         loop.add_row(values)
 
 
