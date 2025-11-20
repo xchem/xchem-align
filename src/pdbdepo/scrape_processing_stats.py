@@ -6,7 +6,7 @@ from gemmi import cif
 
 from xchemalign import utils
 
-LOG = None
+LOG = utils.Logger()
 
 
 def info(*args, **kwargs):

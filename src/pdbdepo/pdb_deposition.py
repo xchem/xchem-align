@@ -296,6 +296,7 @@ def main():
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
     utils.LOG = logger
     scrape_processing_stats.LOG = logger
+    merge_sf.LOG = logger
     logger.info("pdb_deposition: ", args)
 
     run(args.collator_dir, args.output_dir, logger)
