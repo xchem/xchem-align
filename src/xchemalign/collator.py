@@ -1250,14 +1250,15 @@ class Collator:
 
             # Handle the presence of ligand without event maps that have not been permitted
             if len(forbidden_unattested_ligand_events) != 0:
-                exception = (
+                panddas_errors = (
                     "No PanDDA event map found that correspond to the following ligands. If you want to allow these then "
                     "add the corresponding crystal names to the panddas_missing_ok list in the config file:\n"
                 )
                 for dtag, ligand_key in forbidden_unattested_ligand_events.items():
                     lk = ligand_key
-                    exception = exception + f"{dtag} : Model: {lk[0]}; Chain: {lk[1]}; Residue: {lk[2]}\n"
-                raise Exception(exception)
+                    panddas_errors = panddas_errors + f"{dtag} : Model: {lk[0]}; Chain: {lk[1]}; Residue: {lk[2]}\n"
+                self._log_error(panddas_errors)
+                exit(1)
 
             return meta
 

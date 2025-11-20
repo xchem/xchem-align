@@ -22,6 +22,7 @@ from gemmi import cif
 from xchemalign import dbreader, utils
 from xchemalign.utils import Constants
 from pdbdepo import merge_sf
+from pdbdepo import scrape_processing_stats
 
 
 def process_input(
@@ -88,7 +89,7 @@ def process_input(
                     logger.warn("couldn't find mtz_free file " + mtz_free)
 
             logger.info(
-                "  mtz_latest: {}\n  mtz_free: {}\n  mmcif: {}\n  pdb: {}\n  ccp4: {}".format(
+                "located files:\n  mtz_latest: {}\n  mtz_free: {}\n  mmcif: {}\n  pdb: {}\n  ccp4: {}".format(
                     mtz_latest, str(mtz_free_path), mmcif, pdb, ccp4_files
                 )
             )
@@ -103,49 +104,63 @@ def process_input(
                 prog = 'xia2-dials'
             if prog and prog != 'None':
                 logger.info('data processing was done with ' + prog)
-                if prog == 'xia2-dials' or prog == 'xia2-3dii':
-                    logfile = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
-                    if logfile and logfile != 'None':
-                        stats_cif = base_dir / utils.make_path_relative(Path(logfile).parent) / 'xia2.mmcif.bz2'
-                        if not stats_cif.is_file():
-                            logger.warn(str(stats_cif) + ' file containing data processing stats not found')
+                logfile = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
+                if logfile and logfile != 'None':
+                    stats_cif = base_dir / utils.make_path_relative(Path(logfile).parent) / 'xia2.mmcif.bz2'
+                    if not stats_cif.is_file():
+                        logger.info(str(stats_cif) + ' mmcif file containing data processing stats not found')
+                        p = base_dir / utils.make_path_relative(Path(logfile))
+                        stats_doc = scrape_processing_stats.handle_file(p, prog.lower(), None, None)
+                        if stats_doc is None:
+                            logger.warn('stats could not be scraped from log file')
                         else:
-                            logger.info('FOUND DATA PROCESSING STATS')
-                            item_software = None
-                            item_reflns_shell = None
-                            pair_reflns = OrderedDict()
-                            with bz2.open(stats_cif) as stats:
-                                txt = stats.read()
-                                doc = cif.read_string(txt)
-                                # logger.info("STATS:", str(doc))
+                            cif_block0 = cif_doc[0]
+                            stats_block0 = stats_doc[0]
+                            for item in stats_block0:
+                                cif_block0.add_item(item)
 
-                                # grab the software loop from first block
-                                for item in doc[0]:
-                                    if item.loop:
-                                        for tag in item.loop.tags:
-                                            if tag.startswith('_software'):
-                                                item_software = item
+                    else:
+                        logger.info('found data processing stats mmcif file')
+                        item_software = None
+                        item_reflns_shell = None
+                        pair_reflns = OrderedDict()
+                        with bz2.open(stats_cif) as stats:
+                            txt = stats.read()
+                            doc = cif.read_string(txt)
+                            # logger.info("STATS:", str(doc))
 
-                                # grab the reflns data from second block
-                                for item in doc[1]:
-                                    if item.loop is None:
-                                        p = item.pair
-                                        if p[0].startswith('_reflns'):
-                                            pair_reflns[p[0]] = p[1]
-                                    else:
-                                        for tag in item.loop.tags:
-                                            if tag.startswith('_reflns_shell'):
-                                                item_reflns_shell = item
+                            # grab the software loop from first block
+                            for item in doc[0]:
+                                if item.loop:
+                                    for tag in item.loop.tags:
+                                        if tag.startswith('_software'):
+                                            item_software = item
 
-                            block0 = cif_doc[0]
-                            existing_software_loop_item = find_loop_item(block0, '_software')
+                            # grab the reflns data from second block
+                            for item in doc[1]:
+                                if item.loop is None:
+                                    p = item.pair
+                                    if p[0].startswith('_reflns'):
+                                        pair_reflns[p[0]] = p[1]
+                                else:
+                                    for tag in item.loop.tags:
+                                        if tag.startswith('_reflns_shell'):
+                                            item_reflns_shell = item
+
+                        block0 = cif_doc[0]
+                        existing_software_loop_item = find_loop_item(block0, '_software')
+                        if existing_software_loop_item is None:
+                            logger.warn('existing software loop not found')
+                        elif item_software is None:
+                            logger.warn('item software loop not found')
+                        else:
                             merge_loops(existing_software_loop_item.loop, item_software.loop, block0)
 
-                            if pair_reflns:
-                                for k, v in pair_reflns.items():
-                                    block0.set_pair(k, v)
-                            if item_reflns_shell:
-                                block0.add_item(item_reflns_shell)
+                        if pair_reflns:
+                            for k, v in pair_reflns.items():
+                                block0.set_pair(k, v)
+                        if item_reflns_shell:
+                            block0.add_item(item_reflns_shell)
 
             cif_doc.write_file(str(xtal_out_dir / 'structure.mmcif'))
 
@@ -262,8 +277,9 @@ def main():
 
     args = parser.parse_args()
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
-    logger.info("pdb_deposition: ", args)
     utils.LOG = logger
+    scrape_processing_stats.LOG = logger
+    logger.info("pdb_deposition: ", args)
 
     run(args.collator_dir, args.output_dir, logger)
 

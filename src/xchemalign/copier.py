@@ -230,20 +230,28 @@ class Copier:
             # TODO - review which statuses should be copied
             if status_str.startswith("5") or status_str.startswith("6"):
                 dp_log = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
+                dp_prog = row[Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM]
                 if dp_log and dp_log != 'None':
-                    self.logger.info('copying', str(dp_log))
-                    num_files += self.copy_file_and_log(
-                        xtal_name, Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE, dp_log, xtal_dir_path
-                    )
                     dp_log_p = Path(dp_log)
+                    if dp_log_p.is_file():
+                        self.logger.info('copying', str(dp_log))
+                        num_files += self.copy_file_and_log(
+                            xtal_name, Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE, dp_log, xtal_dir_path
+                        )
+
+                    if dp_prog and dp_prog.lower() == 'autoproc' and stats_cif_p.name.endswith('.log'):
+                        # probably a broken symlink which should be to the aimless.log file
+                        self.logger.info('copying aimless.log')
+                        aimless = dp_log_p.parent / 'aimless.log'
+                        if aimless.is_file():
+                            num_files += self.copy_file_and_log(xtal_name, 'aimless.log', str(aimless), xtal_dir_path)
                     stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
+
                     if stats_cif_p.is_file():
                         self.logger.info('copying', str(stats_cif_p))
                         num_files += self.copy_file_and_log(
                             xtal_name, 'xia2.mmcif.bz2', str(stats_cif_p), xtal_dir_path
                         )
-                    else:
-                        self.logger.info(str(stats_cif_p), 'not found')
                 else:
                     self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 

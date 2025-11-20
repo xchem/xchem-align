@@ -1,7 +1,27 @@
 import argparse
 import re
+from pathlib import Path
 import gemmi
 from gemmi import cif
+
+from xchemalign import utils
+
+LOG = None
+
+
+def info(*args, **kwargs):
+    if LOG:
+        LOG.info(*args, **kwargs)
+
+
+def warn(*args, **kwargs):
+    if LOG:
+        LOG.warn(*args, **kwargs)
+
+
+def error(*args, **kwargs):
+    if LOG:
+        LOG.error(*args, **kwargs)
 
 
 def find_summary_section(file, begin_patt):
@@ -18,7 +38,7 @@ def match(line, pattern, keys, results):
     x = re.search(pattern, line)
     if x:
         for i, k in enumerate(keys):
-            print('adding', k, i, x.group(i + 1))
+            info('adding', k, i, x.group(i + 1))
             results[k] = x.group(i + 1)
 
 
@@ -86,12 +106,19 @@ d_xia_3dii = {
 
 
 def handle_text_file(file, regexes):
+    if file is None:
+        error('Log file not defined')
+        return {}, {}
+    elif not Path(file).is_file():
+        error('Log file ' + str(file) + ' not present')
+        return {}, {}
+
     reflns = {KEY_REFLNS_ENTRY_ID: 'UNNAMED', KEY_REFLNS_DIFFRN_ID: 1, KEY_REFLNS_PDBX_ORDINAL: 1}
     shell = {KEY_REFLNS_DIFFRN_ID: (1, 1), KEY_REFLNS_PDBX_ORDINAL: (1, 2)}
     with open(file, "rt") as f:
         processed_count = 0
         read_count = find_summary_section(f, r'\s+Overall\s+InnerShell\s+OuterShell')
-        print('read', read_count, 'lines to find start of summary section')
+        info('read', read_count, 'lines to find start of summary section')
         if read_count is not None:
             for line in f:
                 read_count += 1
@@ -104,11 +131,11 @@ def handle_text_file(file, regexes):
 
     for k in regexes:
         if k not in reflns:
-            print('WARNING: key', k, 'not found for reflns')
+            warn('key', k, 'not found for reflns')
         if k not in shell:
-            print('WARNING: key', k, 'not found for shell')
+            warn('key', k, 'not found for shell')
 
-    print("read", read_count, "lines,  processed", processed_count)
+    info("read", read_count, "lines,  processed", processed_count)
     return reflns, shell
 
 
@@ -134,22 +161,26 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
     elif type == 'xia_3dii':
         reflns, shell = handle_xia_3dii(file)
     else:
-        print('Unsupported type: ' + type)
-        return
+        info('Unsupported type: ' + type)
+        return None
 
-    # print('reflns:', reflns)
-    # print('shell:', shell)
+    # info('reflns:', reflns)
+    # info('shell:', shell)
 
     if not doc:
         doc = cif.Document()
     block = doc.add_new_block('x')
-    create_pairs(reflns, '_reflns.', block)
-    create_loop(shell, '_reflns_shell.', block)
+    if reflns:
+        create_pairs(reflns, '_reflns.', block)
+    if shell:
+        create_loop(shell, '_reflns_shell.', block)
 
     if outputfile:
         doc.write_file(outputfile)
     else:
-        print(doc.as_string(cif.Style.Simple))
+        info(doc.as_string(cif.Style.Simple))
+
+    return doc
 
 
 def create_pairs(data: dict, prefix: str, block: cif.Block):
@@ -163,25 +194,35 @@ def create_loop(data: dict, prefix: str, block: cif.Block):
         values = []
         for k, v in data.items():
             values.append(str(v[i]))
-        print('adding: ' + str(values))
+        info('adding: ' + str(values))
         loop.add_row(values)
 
 
 def main():
+    global LOG
+
     parser = argparse.ArgumentParser(description="scrape_processing_stats")
 
     parser.add_argument("-f", "--file", required=True, help="Log file to parse")
-    # parser.add_argument("-m", "--mmcif", help="MMCIF to add to")
+    parser.add_argument("-m", "--mmcif", help="MMCIF to add to")
     parser.add_argument("-p", "--pdb", help="PDB to convert and add to")
     parser.add_argument("-o", "--output", help="MMCIF file to create")
     parser.add_argument("-t", "--type", required=True, help="Type of logfile")
+    parser.add_argument("-l", "--log-file", help="File to write logs to")
+    parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
     args = parser.parse_args()
+
+    LOG = utils.Logger(logfile=args.log_file, level=args.log_level)
+    utils.LOG = LOG
+    LOG.info("scrape_processing_stats: ", args)
 
     doc = None
     if args.pdb:
         struc = gemmi.read_pdb(args.pdb)
         doc = struc.make_mmcif_document()
+    elif args.mmcif:
+        doc = cif.read(args.mmcif)
 
     handle_file(args.file, args.type, doc, args.output)
 
