@@ -6,6 +6,8 @@ from gemmi import cif
 
 from xchemalign import utils
 
+from pdbdepo import pdb_deposition
+
 LOG = utils.Logger()
 
 
@@ -186,9 +188,9 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
         doc = cif.Document()
     block = doc.add_new_block('x')
     if reflns:
-        create_pairs(reflns, '_reflns.', block)
+        pdb_deposition.create_pairs(reflns, '_reflns.', block)
     if shell:
-        create_loop(shell, '_reflns_shell.', block)
+        pdb_deposition.create_loop(shell, '_reflns_shell.', block)
 
     if outputfile:
         doc.write_file(outputfile)
@@ -196,21 +198,6 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
     #     info(doc.as_string(cif.Style.Simple))
 
     return doc
-
-
-def create_pairs(data: dict, prefix: str, block: cif.Block):
-    block.set_pairs(prefix, data)
-
-
-def create_loop(data: dict, prefix: str, block: cif.Block):
-    loop = block.init_loop(prefix, list(data.keys()))
-    size = len(next(iter(data.values())))
-    for i in range(size):
-        values = []
-        for k, v in data.items():
-            values.append(str(v[i]))
-        # info('adding: ' + str(values))
-        loop.add_row(values)
 
 
 def main():

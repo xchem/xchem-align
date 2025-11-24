@@ -13,6 +13,8 @@
 import argparse
 import datetime
 
+from pathlib import Path
+
 import gemmi
 from gemmi import cif
 
@@ -21,11 +23,28 @@ from xchemalign import utils
 LOG = utils.Logger()
 
 
-def run(latest_mtz, free_mtz, event_maps, output):
+def write_mtz_to_cif_file(mtz_file, cif_file):
+    mtz = gemmi.read_mtz_file(mtz_file)
+    to_cif = gemmi.MtzToCif()
+    s = to_cif.write_cif_to_string(mtz)
+    with open(cif_file, 'wt') as f:
+        f.write(s)
+
+
+def run(latest_mtz, free_mtz, event_maps, output, output_individual=False):
     today = datetime.date.today()
     formatted_date = today.strftime("%Y-%m-%d")
 
     doc_final = cif.Document()
+
+    if output_individual:
+        dir = Path(output).parent
+        write_mtz_to_cif_file(latest_mtz, dir / 'mtz_latest.cif')
+        write_mtz_to_cif_file(free_mtz, dir / 'mtz_free.cif')
+        for i, event_map in enumerate(event_maps):
+            cif_s = read_ccp4(event_map)
+            with open(dir / ('event_map_' + str(i) + '.cif'), 'wt') as f:
+                f.write(cif_s)
 
     # handle the latest_mtz data
     cif_s = read_mtz(latest_mtz)
