@@ -260,7 +260,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
     other_ligand_ids = [
         (lid[1], lid[2])
         for lid in dataset_ligand_neighbourhood_ids
-        if not ((lid[1] == moving_ligand_id[1]) & (lid[2] == moving_ligand_id[2]))
+        if not ((lid[1] == moving_ligand_id[1]) & (lid[2] == moving_ligand_id[2]) )
     ]
     # Get a copy of structure to edit
     new_structure = _structure.clone()
@@ -403,8 +403,26 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
                     # Only add the chains that are part of the biological assemly the ligand
                     # is modelled as part of
                     if (_chain.name in lig_assembly.chains):
-                        # Don't include other ligands
-                        new_chain.add_residue(_residue.clone())
+                        # If ligand drop other altlocs
+                        if (_chain.name, str(_residue.seqid.num)) == (moving_ligand_id[1], moving_ligand_id[2]):
+                            new_residue = _residue.clone()
+                            atoms_to_delete = set(
+                                [
+                                    (_atom.name, _atom.altloc) 
+                                    for _atom in new_residue 
+                                    if _atom.altloc != moving_ligand_id[3]
+                                    ]
+                            )
+                            for _atom_name, _altloc in atoms_to_delete:
+                                new_residue.remove_atom(_atom_name, _altloc)
+                            # if len(atoms_to_delete) > 0:
+                            #     print([len(_residue), len(new_residue), moving_ligand_id[3], atoms_to_delete])
+                            #     exit()
+                            new_chain.add_residue(new_residue)
+                        else:
+                            # Don't include other ligands
+                            new_chain.add_residue(_residue.clone())
+                    
 
             if len(new_chain) > 0:
                 new_chains.append(new_chain)
