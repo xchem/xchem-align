@@ -143,7 +143,7 @@ def _update_xtalform_sites(
 
             # Otherwise create a new crystalform site
             else:
-                xtalform_site_id = "/".join(centroid_residue)
+                xtalform_site_id = "/".join([dt.altloc_to_string(x) for x in centroid_residue])
                 xtalform_site = dt.XtalFormSite(
                     xtalform_name,
                     crystalform_observation_centroids[xtalform_name][centroid_residue][0],

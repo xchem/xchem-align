@@ -20,7 +20,7 @@ def _save_neighbourhoods(
     with open(fs_model.ligand_neighbourhoods, "w") as f:
         dic = {}
         for ligand_id, neighbourhood in ligand_neighbourhoods.items():
-            dic["/".join(ligand_id)] = neighbourhood.to_dict()
+            dic["/".join([dt.altloc_to_string(x) for x in ligand_id])] = neighbourhood.to_dict()
         yaml.safe_dump(dic, f)
 
 
@@ -57,7 +57,7 @@ def _save_conformer_sites(fs_model: dt.FSModel, conformer_sites: dict[str, dt.Co
     with open(fs_model.conformer_sites, "w") as f:
         dic = {}
         for conformer_site_id, conformer_site in conformer_sites.items():
-            dic[conformer_site_id] = conformer_site.to_dict()
+            dic[dt.altloc_to_string(conformer_site_id)] = conformer_site.to_dict()
         yaml.safe_dump(dic, f)
 
 
@@ -65,14 +65,14 @@ def _save_canonical_sites(fs_model, canonical_sites: dict[str, dt.CanonicalSite]
     with open(fs_model.canonical_sites, "w") as f:
         dic = {}
         for canonical_site_id, canonical_site in canonical_sites.items():
-            dic[canonical_site_id] = canonical_site.to_dict()
+            dic[dt.altloc_to_string(canonical_site_id)] = canonical_site.to_dict()
         yaml.safe_dump(dic, f)
 
 def _save_xtalform_sites(fs_model, xtalform_sites: dict[str, dt.XtalFormSite]):
     with open(fs_model.xtalform_sites, "w") as f:
         dic = {}
         for xtalform_site_id, xtalform_site in xtalform_sites.items():
-            dic[xtalform_site_id] = xtalform_site.to_dict()
+            dic[dt.altloc_to_string(xtalform_site_id)] = xtalform_site.to_dict()
         yaml.safe_dump(dic, f)
 
 
@@ -297,7 +297,7 @@ def _load_conformer_sites(conformer_sites_yaml, fail_if_not_found=False):
         with open(conformer_sites_yaml, "r") as f:
             dic = yaml.safe_load(f)
         for conformer_site_id, conformer_site_info in dic.items():
-            conformer_sites[conformer_site_id] = dt.ConformerSite.from_dict(conformer_site_info)
+            conformer_sites[dt.string_to_altloc(conformer_site_id)] = dt.ConformerSite.from_dict(conformer_site_info)
 
     return conformer_sites
 

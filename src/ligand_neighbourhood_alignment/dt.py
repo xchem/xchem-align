@@ -1428,7 +1428,7 @@ class ConformerSite:
         members = []
         for member in dic["members"]:
             dtag, chain, residue, altloc, version = [string_to_altloc(x) for x in member.split("/")]
-            members.append((dtag, chain, residue, altloc, version))
+            members.append((dtag, chain, residue, string_to_altloc(altloc), version))
         ref_dtag, ref_chain, ref_residue, ref_altloc, version = [string_to_altloc(x) for x in dic["reference_ligand_id"].split("/")]
         return ConformerSite(residues, residues_aligned, members, (ref_dtag, ref_chain, ref_residue, ref_altloc, version))
 
@@ -1438,8 +1438,8 @@ class ConformerSite:
         return {
             "residues": [x for x in sorted(["/".join(resid) for resid in self.residues])],
             "residues_aligned": [x for x in sorted(["/".join(resid) for resid in self.residues_aligned])],
-            "members": [x for x in sorted(["/".join(lid) for lid in self.members])],
-            "reference_ligand_id": "/".join(self.reference_ligand_id),
+            "members": [x for x in sorted(["/".join([altloc_to_string(x) for x in lid]) for lid in self.members])],
+            "reference_ligand_id": "/".join([altloc_to_string(x) for x in self.reference_ligand_id]),
         }
 
 
@@ -1475,7 +1475,7 @@ class CanonicalSite:
 
     def to_dict(self):
         return {
-            "conformer_site_ids": self.conformer_site_ids,
+            "conformer_site_ids": [altloc_to_string(x) for x in self.conformer_site_ids],
             "residues": [x for x in sorted(["/".join(res) for res in self.residues])],
             "reference_conformer_site_id": self.reference_conformer_site_id,
             "global_reference_dtag": self.global_reference_dtag,
@@ -1501,14 +1501,14 @@ class XtalFormSite:
         members = []
         for member in dic["members"]:
             dtag, chain, residue, altloc, version = [string_to_altloc(x) for x in member.split("/")]
-            members.append((dtag, chain, residue, altloc, version))
+            members.append((dtag, chain, residue, string_to_altloc(altloc), version))
         return XtalFormSite(dic["xtalform_id"], dic["crystallographic_chain"], dic["canonical_site_id"], members)
 
     def to_dict(self):
         dic = {}
         dic["members"] = []
         for member in self.members:
-            dic["members"].append("/".join(member))
+            dic["members"].append("/".join([altloc_to_string(x) for x in member]))
 
         dic["xtalform_id"] = self.xtalform_id
         dic["crystallographic_chain"] = self.crystallographic_chain
