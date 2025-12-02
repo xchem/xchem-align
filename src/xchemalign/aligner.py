@@ -636,59 +636,59 @@ class Aligner:
                     aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
                     for altoloc, altloc_output in ligand_output.items():
                         aligned_altloc_output = aligned_ligand_output[altoloc] = {}
-                    for version, version_output in altloc_output.items():
-                        aligned_version_output = aligned_altloc_output[version] = {}
-                        for site_id, aligned_structure_path in version_output.aligned_structures.items():
-                            # Is the event map file present?
-                            # We do this assuming the order is the same as the info in the crystallographic files section
-                            # But first do a check that event_map_dict_list contains the expected entry, as when the
-                            # ligand residue number changes between versions then you get an error, so we try to
-                            # handle this nicely. But there could be other things that cause this error.
-                            if i >= len(event_map_dict_list):
-                                msg = (
-                                    'Unexpected number of event maps found for ligand '
-                                    + ligand_residue
-                                    + ' in crystal '
-                                    + dtag
-                                    + '. One cause for this is the ligand residue number changing between versions;'
-                                    + ' if it\'s not that, the cause might be even more obscure.'
-                                    + ' Talk to a developer, and good luck.'
-                                    + ' If you can\'t correct this then you can add this crystal to the \`exclude\` list.'
+                        for version, version_output in altloc_output.items():
+                            aligned_version_output = aligned_altloc_output[version] = {}
+                            for site_id, aligned_structure_path in version_output.aligned_structures.items():
+                                # Is the event map file present?
+                                # We do this assuming the order is the same as the info in the crystallographic files section
+                                # But first do a check that event_map_dict_list contains the expected entry, as when the
+                                # ligand residue number changes between versions then you get an error, so we try to
+                                # handle this nicely. But there could be other things that cause this error.
+                                if i >= len(event_map_dict_list):
+                                    msg = (
+                                        'Unexpected number of event maps found for ligand '
+                                        + ligand_residue
+                                        + ' in crystal '
+                                        + dtag
+                                        + '. One cause for this is the ligand residue number changing between versions;'
+                                        + ' if it\'s not that, the cause might be even more obscure.'
+                                        + ' Talk to a developer, and good luck.'
+                                        + ' If you can\'t correct this then you can add this crystal to the \`exclude\` list.'
+                                    )
+                                    self._log_error(msg)
+                                    exit(1)
+                                event_map_present = True if Constants.META_FILE in event_map_dict_list[i] else False
+
+                                aligned_artefacts_path = version_output.aligned_artefacts[site_id]
+                                aligned_event_map_path = version_output.aligned_event_maps[site_id]
+                                aligned_xmap_path = version_output.aligned_xmaps[site_id]
+                                aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
+
+                                aligned_crystallographic_event_map_path = (
+                                    version_output.aligned_event_maps_crystallographic[site_id]
                                 )
-                                self._log_error(msg)
-                                exit(1)
-                            event_map_present = True if Constants.META_FILE in event_map_dict_list[i] else False
+                                aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[site_id]
+                                aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[
+                                    site_id
+                                ]
 
-                            aligned_artefacts_path = version_output.aligned_artefacts[site_id]
-                            aligned_event_map_path = version_output.aligned_event_maps[site_id]
-                            aligned_xmap_path = version_output.aligned_xmaps[site_id]
-                            aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
-
-                            aligned_crystallographic_event_map_path = (
-                                version_output.aligned_event_maps_crystallographic[site_id]
-                            )
-                            aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[site_id]
-                            aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[
-                                site_id
-                            ]
-
-                            aligned_version_output[site_id] = {
-                                Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
-                                Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
-                                Constants.META_AIGNED_X_MAP: aligned_xmap_path,
-                                Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
-                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_crystallographic_xmap_path,
-                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_crystallographic_diff_map_path,
-                            }
-                            # if the event map is present then include it in the output
-                            if event_map_present:
-                                aligned_version_output[site_id][
-                                    Constants.META_AIGNED_EVENT_MAP
-                                ] = aligned_event_map_path
-                                aligned_version_output[site_id][
-                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP
-                                ] = aligned_crystallographic_event_map_path
-                    i += 1
+                                aligned_version_output[site_id] = {
+                                    Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
+                                    Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
+                                    Constants.META_AIGNED_X_MAP: aligned_xmap_path,
+                                    Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
+                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_crystallographic_xmap_path,
+                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_crystallographic_diff_map_path,
+                                }
+                                # if the event map is present then include it in the output
+                                if event_map_present:
+                                    aligned_version_output[site_id][
+                                        Constants.META_AIGNED_EVENT_MAP
+                                    ] = aligned_event_map_path
+                                    aligned_version_output[site_id][
+                                        Constants.META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP
+                                    ] = aligned_crystallographic_event_map_path
+                        i += 1
 
         ## Add the reference alignments
         new_meta[Constants.META_REFERENCE_ALIGNMENTS] = {}
