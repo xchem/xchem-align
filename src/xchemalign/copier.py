@@ -188,7 +188,7 @@ class Copier:
             self.logger.info("processing {} {}".format(count, xtal_name))
             expected_path = self.base_path / self.input_path / Constants.DEFAULT_MODEL_BUILDING_DIR
 
-            file = row[Constants.SOAKDB_COL_PDB]
+            pdb_file = row[Constants.SOAKDB_COL_PDB]
             result = self.copy_file_and_log(
                 xtal_name, Constants.SOAKDB_COL_PDB, row[Constants.SOAKDB_COL_PDB], xtal_dir_path
             )
@@ -255,6 +255,12 @@ class Copier:
                 else:
                     self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 
+            # copy dimple.log files
+            dimple_log_p = self.gen_dimple_log_path(pdb_file, xtal_name)
+            if dimple_log_p is not None:
+                self.logger.info('copying', str(dimple_log_p))
+                num_files += self.copy_file_and_log(xtal_name, 'dimple.log', str(dimple_log_p), xtal_dir_path)
+
         # copy the specified csv files with the panddas info
         self.logger.info("Copying", len(self.panddas_file_paths), "panddas csv files")
         copied_csv = []
@@ -271,6 +277,23 @@ class Copier:
         num_ccp4 = self.copy_panddas(datasets, copied_csv)
 
         self.logger.info("Copied {} structure, {} csv, {} ccp4 files".format(num_files, num_csv, num_ccp4))
+
+    def gen_xtal_dir(self, pdb_file, xtal_name):
+        # not clear what is the best approach for this
+        d = Path(pdb_file)
+        while d is not None:
+            d = d.parent
+            if d.name == xtal_name:
+                return d
+        return None
+
+    def gen_dimple_log_path(self, pdb_path, xtal_name):
+        xtal_dir = self.gen_xtal_dir(pdb_path, xtal_name)
+        if xtal_dir is not None:
+            return xtal_dir / 'dimple/dimple/dimple.log'
+        else:
+            self._log_warning('Dimple log file not found')
+            return None
 
     def copy_file_and_log(self, xtal_name, col_name, col_value, xtal_dir_path):
         if col_value:
