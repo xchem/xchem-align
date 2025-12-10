@@ -513,11 +513,11 @@ def main():
     # Latest .mtz              RefinementMTZ_latest column from soakDB
     # Free .mtz                RefinementMTZfree column from soakDB, but full path usually not specified
     # Ligand CIF file          RefinementCIF column from soakDB
-    # Ligand PDB               Ligand CIF but with .pdb extension
+    # Ligand PDB               Same as ligand CIF but with .pdb extension
     # Event maps               Relevant ones identified from .csv files listed in panddas_event_files from config.yaml
     # dimple.log               <xtal_dir>/dimple/dimple/dimple.log
     # collection_info.cif      <xtal_dir>/autoprocessing/<xtal_name>_collection_info.cif
-    # Data processing logfile  DataProcessingPathToLogfile column from soakDB
+    # Data processing logfile  DataProcessingPathToLogfile column from soakDB (though symlink sometimes broken)
     # xia2.mmcif.bz2           In directory containing Data processing logfile
     # soakDBDataFile.sqlite    From config.yaml or <visit_dir>/processing/database/soakDBDataFile.sqlite
 
