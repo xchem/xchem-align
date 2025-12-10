@@ -509,7 +509,8 @@ def main():
     #
     # File                     Source
     # ----                     ------
-    # PDB file                 RefinementBoundConformation column from soakDB
+    # PDB structure            RefinementBoundConformation column from soakDB
+    # MMCIF structure          RefinementMMCIFmodel_latest column from soakDB (not always defined .e.g using Refmac)
     # Latest .mtz              RefinementMTZ_latest column from soakDB
     # Free .mtz                RefinementMTZfree column from soakDB, but full path usually not specified
     # Ligand CIF file          RefinementCIF column from soakDB
