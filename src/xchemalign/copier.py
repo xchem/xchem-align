@@ -184,23 +184,22 @@ class Copier:
                 self.logger.info("ignoring {} as status is 7".format(xtal_name))
                 continue
 
-            xtal_dir_path = collator.generate_xtal_dir(self.input_path, xtal_name)
-            self.logger.info("processing {} {}".format(count, xtal_name))
-            expected_path = self.base_path / self.input_path / Constants.DEFAULT_MODEL_BUILDING_DIR
+            xtal_dir_input_path = collator.generate_xtal_dir(self.input_path, xtal_name)
+            self.logger.info("processing {} {} {}".format(count, xtal_name, str(xtal_dir_input_path)))
 
             pdb_file = row[Constants.SOAKDB_COL_PDB]
             result = self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_PDB, row[Constants.SOAKDB_COL_PDB], xtal_dir_path
+                xtal_name, Constants.SOAKDB_COL_PDB, row[Constants.SOAKDB_COL_PDB], xtal_dir_input_path
             )
             num_files += result
             if result:
                 datasets[xtal_name] = row[Constants.SOAKDB_COL_PDB]
 
             num_files += self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_MTZ_LATEST, row[Constants.SOAKDB_COL_MTZ_LATEST], xtal_dir_path
+                xtal_name, Constants.SOAKDB_COL_MTZ_LATEST, row[Constants.SOAKDB_COL_MTZ_LATEST], xtal_dir_input_path
             )
             num_files += self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_MTZ_FREE, row[Constants.SOAKDB_COL_MTZ_FREE], xtal_dir_path
+                xtal_name, Constants.SOAKDB_COL_MTZ_FREE, row[Constants.SOAKDB_COL_MTZ_FREE], xtal_dir_input_path
             )
             mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
             if mmcif and mmcif != 'None':
@@ -208,19 +207,19 @@ class Copier:
                     xtal_name,
                     Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST,
                     mmcif,
-                    xtal_dir_path,
+                    xtal_dir_input_path,
                 )
             else:
                 self._log_warning(
                     Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST + " not defined for crystal " + xtal_name
                 )
             result = self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_CIF, row[Constants.SOAKDB_COL_CIF], xtal_dir_path
+                xtal_name, Constants.SOAKDB_COL_CIF, row[Constants.SOAKDB_COL_CIF], xtal_dir_input_path
             )
             if result:
                 # for the ligand CIF file also copy the corresponding PDB file
                 filename = row[Constants.SOAKDB_COL_CIF]
-                ok = self.copy_file(Path(filename).with_suffix(".pdb"), xtal_dir_path)
+                ok = self.copy_file(Path(filename).with_suffix(".pdb"), xtal_dir_input_path)
                 if ok:
                     num_files += 1
                 else:
@@ -236,7 +235,10 @@ class Copier:
                     if dp_log_p.is_file():
                         self.logger.info('copying', str(dp_log))
                         num_files += self.copy_file_and_log(
-                            xtal_name, Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE, dp_log, xtal_dir_path
+                            xtal_name,
+                            Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE,
+                            dp_log,
+                            xtal_dir_input_path,
                         )
 
                     if dp_prog and dp_prog.lower() == 'autoproc' and dp_log_p.name.endswith('.log'):
@@ -244,22 +246,32 @@ class Copier:
                         self.logger.info('copying aimless.log')
                         aimless = dp_log_p.parent / 'aimless.log'
                         if aimless.is_file():
-                            num_files += self.copy_file_and_log(xtal_name, 'aimless.log', str(aimless), xtal_dir_path)
+                            num_files += self.copy_file_and_log(
+                                xtal_name, 'aimless.log', str(aimless), xtal_dir_input_path
+                            )
 
                     stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
                     if stats_cif_p.is_file():
                         self.logger.info('copying', str(stats_cif_p))
                         num_files += self.copy_file_and_log(
-                            xtal_name, 'xia2.mmcif.bz2', str(stats_cif_p), xtal_dir_path
+                            xtal_name, 'xia2.mmcif.bz2', str(stats_cif_p), xtal_dir_input_path
                         )
                 else:
                     self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 
+            # copy the <CrystalName>_collection_info.cif file
+            collection_info_p = self.gen_collection_info_path(xtal_dir_input_path, xtal_name)
+            if collection_info_p is not None:
+                self.logger.info('copying', str(collection_info_p))
+                num_files += self.copy_file_and_log(
+                    xtal_name, xtal_name + '_collection_info.cif', str(collection_info_p), xtal_dir_input_path
+                )
+
             # copy dimple.log files
-            dimple_log_p = self.gen_dimple_log_path(pdb_file, xtal_name)
+            dimple_log_p = self.gen_dimple_log_path(xtal_dir_input_path)
             if dimple_log_p is not None:
                 self.logger.info('copying', str(dimple_log_p))
-                num_files += self.copy_file_and_log(xtal_name, 'dimple.log', str(dimple_log_p), xtal_dir_path)
+                num_files += self.copy_file_and_log(xtal_name, 'dimple.log', str(dimple_log_p), xtal_dir_input_path)
 
         # copy the specified csv files with the panddas info
         self.logger.info("Copying", len(self.panddas_file_paths), "panddas csv files")
@@ -278,21 +290,29 @@ class Copier:
 
         self.logger.info("Copied {} structure, {} csv, {} ccp4 files".format(num_files, num_csv, num_ccp4))
 
-    def gen_xtal_dir(self, pdb_file, xtal_name):
-        # not clear what is the best approach for this
-        d = Path(pdb_file)
-        while d is not None:
-            d = d.parent
-            if d.name == xtal_name:
-                return d
-        return None
+    # def gen_xtal_dir(self, pdb_file, xtal_name):
+    #     # not clear what is the best approach for this
+    #     d = Path(pdb_file)
+    #     while d is not None:
+    #         d = d.parent
+    #         if d.name == xtal_name:
+    #             return d
+    #     return None
 
-    def gen_dimple_log_path(self, pdb_path, xtal_name):
-        xtal_dir = self.gen_xtal_dir(pdb_path, xtal_name)
-        if xtal_dir is not None:
-            return xtal_dir / 'dimple/dimple/dimple.log'
+    def gen_dimple_log_path(self, xtal_dir_input_path):
+        dimple_log_path = xtal_dir_input_path / 'dimple/dimple/dimple.log'
+        if dimple_log_path.is_file():
+            return dimple_log_path
         else:
-            self._log_warning('Dimple log file not found')
+            self._log_warning('Dimple log file not found: ' + str(dimple_log_path))
+            return None
+
+    def gen_collection_info_path(self, xtal_dir_input_path, xtal_name):
+        collection_info_path = xtal_dir_input_path / 'autoprocessing/' / (xtal_name + '_collection_info.cif')
+        if collection_info_path.is_file():
+            return collection_info_path
+        else:
+            self._log_warning('Collection info CIF file not found: ' + str(collection_info_path))
             return None
 
     def copy_file_and_log(self, xtal_name, col_name, col_value, xtal_dir_path):
