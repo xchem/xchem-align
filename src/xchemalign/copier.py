@@ -300,7 +300,7 @@ class Copier:
     #     return None
 
     def gen_dimple_log_path(self, xtal_dir_input_path):
-        dimple_log_path = xtal_dir_input_path / 'dimple/dimple/dimple.log'
+        dimple_log_path = self.base_path / xtal_dir_input_path / 'dimple/dimple/dimple.log'
         if dimple_log_path.is_file():
             return dimple_log_path
         else:
@@ -308,7 +308,9 @@ class Copier:
             return None
 
     def gen_collection_info_path(self, xtal_dir_input_path, xtal_name):
-        collection_info_path = xtal_dir_input_path / 'autoprocessing/' / (xtal_name + '_collection_info.cif')
+        collection_info_path = (
+            self.base_path / xtal_dir_input_path / 'autoprocessing/' / (xtal_name + '_collection_info.cif')
+        )
         if collection_info_path.is_file():
             return collection_info_path
         else:
