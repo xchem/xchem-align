@@ -18,6 +18,7 @@ from pathlib import Path
 import pandas as pd
 
 from xchemalign import dbreader, collator, utils
+from pdbdepo import pdb_deposition
 from .utils import Constants
 
 
@@ -184,16 +185,15 @@ class Copier:
                 self.logger.info("ignoring {} as status is 7".format(xtal_name))
                 continue
 
+            # this path is relative. Needs base_dir prepending to it  to get the full path
             xtal_dir_input_path = collator.generate_xtal_dir(self.input_path, xtal_name)
             self.logger.info("processing {} {} {}".format(count, xtal_name, str(xtal_dir_input_path)))
 
             pdb_file = row[Constants.SOAKDB_COL_PDB]
-            result = self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_PDB, row[Constants.SOAKDB_COL_PDB], xtal_dir_input_path
-            )
+            result = self.copy_file_and_log(xtal_name, Constants.SOAKDB_COL_PDB, pdb_file, xtal_dir_input_path)
             num_files += result
             if result:
-                datasets[xtal_name] = row[Constants.SOAKDB_COL_PDB]
+                datasets[xtal_name] = pdb_file
 
             num_files += self.copy_file_and_log(
                 xtal_name, Constants.SOAKDB_COL_MTZ_LATEST, row[Constants.SOAKDB_COL_MTZ_LATEST], xtal_dir_input_path
@@ -210,7 +210,7 @@ class Copier:
                     xtal_dir_input_path,
                 )
             else:
-                self._log_warning(
+                self.logger.info(
                     Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST + " not defined for crystal " + xtal_name
                 )
             result = self.copy_file_and_log(
@@ -233,7 +233,6 @@ class Copier:
                 if dp_log and dp_log != 'None':
                     dp_log_p = Path(dp_log)
                     if dp_log_p.is_file():
-                        self.logger.info('copying', str(dp_log))
                         num_files += self.copy_file_and_log(
                             xtal_name,
                             Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE,
@@ -243,7 +242,6 @@ class Copier:
 
                     if dp_prog and dp_prog.lower() == 'autoproc' and dp_log_p.name.endswith('.log'):
                         # probably a broken symlink which should be to the aimless.log file
-                        self.logger.info('copying aimless.log')
                         aimless = dp_log_p.parent / 'aimless.log'
                         if aimless.is_file():
                             num_files += self.copy_file_and_log(
@@ -252,7 +250,6 @@ class Copier:
 
                     stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
                     if stats_cif_p.is_file():
-                        self.logger.info('copying', str(stats_cif_p))
                         num_files += self.copy_file_and_log(
                             xtal_name, 'xia2.mmcif.bz2', str(stats_cif_p), xtal_dir_input_path
                         )
@@ -260,18 +257,18 @@ class Copier:
                     self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 
             # copy the <CrystalName>_collection_info.cif file
-            collection_info_p = self.gen_collection_info_path(xtal_dir_input_path, xtal_name)
+            collection_info_p = pdb_deposition.generate_collection_info_path(xtal_dir_input_path, xtal_name)
             if collection_info_p is not None:
-                self.logger.info('copying', str(collection_info_p))
+                p = str(self.base_path / collection_info_p)
                 num_files += self.copy_file_and_log(
-                    xtal_name, xtal_name + '_collection_info.cif', str(collection_info_p), xtal_dir_input_path
+                    xtal_name, xtal_name + '_collection_info.cif', f, xtal_dir_input_path
                 )
 
             # copy dimple.log files
-            dimple_log_p = self.gen_dimple_log_path(xtal_dir_input_path)
+            dimple_log_p = pdb_deposition.generate_dimple_log_path(xtal_dir_input_path)
             if dimple_log_p is not None:
-                self.logger.info('copying', str(dimple_log_p))
-                num_files += self.copy_file_and_log(xtal_name, 'dimple.log', str(dimple_log_p), xtal_dir_input_path)
+                f = str(self.base_path / dimple_log_p)
+                num_files += self.copy_file_and_log(xtal_name, 'dimple.log', f, xtal_dir_input_path)
 
         # copy the specified csv files with the panddas info
         self.logger.info("Copying", len(self.panddas_file_paths), "panddas csv files")
@@ -290,38 +287,12 @@ class Copier:
 
         self.logger.info("Copied {} structure, {} csv, {} ccp4 files".format(num_files, num_csv, num_ccp4))
 
-    # def gen_xtal_dir(self, pdb_file, xtal_name):
-    #     # not clear what is the best approach for this
-    #     d = Path(pdb_file)
-    #     while d is not None:
-    #         d = d.parent
-    #         if d.name == xtal_name:
-    #             return d
-    #     return None
-
-    def gen_dimple_log_path(self, xtal_dir_input_path):
-        dimple_log_path = self.base_path / xtal_dir_input_path / 'dimple/dimple/dimple.log'
-        if dimple_log_path.is_file():
-            return dimple_log_path
-        else:
-            self._log_warning('Dimple log file not found: ' + str(dimple_log_path))
-            return None
-
-    def gen_collection_info_path(self, xtal_dir_input_path, xtal_name):
-        collection_info_path = (
-            self.base_path / xtal_dir_input_path / 'autoprocessing/' / (xtal_name + '_collection_info.cif')
-        )
-        if collection_info_path.is_file():
-            return collection_info_path
-        else:
-            self._log_warning('Collection info CIF file not found: ' + str(collection_info_path))
-            return None
-
     def copy_file_and_log(self, xtal_name, col_name, col_value, xtal_dir_path):
         if col_value:
             path = Path(col_value)
             ok = self.copy_file(path, xtal_dir_path)
             if ok:
+                self.logger.info('copied', str(path))
                 return 1
             else:
                 self._log_warning(
@@ -533,6 +504,22 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
 def main():
     # Example:
     #   python -m xchemalign.copier -c config.yaml -o inputs -l copier.log
+
+    # Files copied to be used in the collator and/or pdb_deposition processes are:
+    #
+    # File                     Source
+    # ----                     ------
+    # PDB file                 RefinementBoundConformation column from soakDB
+    # Latest .mtz              RefinementMTZ_latest column from soakDB
+    # Free .mtz                RefinementMTZfree column from soakDB, but full path usually not specified
+    # Ligand CIF file          RefinementCIF column from soakDB
+    # Ligand PDB               Ligand CIF but with .pdb extension
+    # Event maps               Relevant ones identified from .csv files listed in panddas_event_files from config.yaml
+    # dimple.log               <xtal_dir>/dimple/dimple/dimple.log
+    # collection_info.cif      <xtal_dir>/autoprocessing/<xtal_name>_collection_info.cif
+    # Data processing logfile  DataProcessingPathToLogfile column from soakDB
+    # xia2.mmcif.bz2           In directory containing Data processing logfile
+    # soakDBDataFile.sqlite    From config.yaml or <visit_dir>/processing/database/soakDBDataFile.sqlite
 
     parser = argparse.ArgumentParser(description="copier")
 
