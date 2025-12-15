@@ -102,7 +102,7 @@ def _update_conformer_sites(
                     print([lid[0], atom_id[0], atom_id[1]])
                     print(ress)
                     print(sorted([f'{res.seqid.num}{res.seqid.icode}' for res in chain]))
-                    print(chain[f'{res.seqid.num}{res.seqid.icode}'])
+                    print(chain[f'{atom_id[1]}E'])
 
                     raise e
 
