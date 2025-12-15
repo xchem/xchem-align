@@ -100,7 +100,7 @@ def _update_conformer_sites(
                 try:
                     res = ress[0].name
                 except Exception as e:
-                    print([atom_id[0], atom_id[1]])
+                    print([lid[0], atom_id[0], atom_id[1]])
                     print(ress)
                     print(sorted([res.seqid.num for res in chain]))
                     raise e
