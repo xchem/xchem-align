@@ -92,8 +92,7 @@ def _update_conformer_sites(
                 biochain = alignment_heirarchy._chain_to_biochain(
                     atom_id[0], xtalforms[xtalform_assignments[lid[0]]], assemblies
                 )
-                atom_id[0]
-                atom_id[1]
+                
                 model = st[0]
                 chain = model[atom_id[0]]
                 ress = chain[atom_id[1]]
@@ -102,7 +101,7 @@ def _update_conformer_sites(
                 except Exception as e:
                     print([lid[0], atom_id[0], atom_id[1]])
                     print(ress)
-                    print(sorted([res.seqid.num for res in chain]))
+                    print(sorted([f'{res.seqid.num}{res.seqid.icode}' for res in chain]))
                     raise e
 
                 residues.append((atom_id[0], atom_id[1], st[0][atom_id[0]][atom_id[1]][0].name))
