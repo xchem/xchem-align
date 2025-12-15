@@ -98,7 +98,11 @@ def _update_conformer_sites(
                 model = st[0]
                 chain = model[atom_id[0]]
                 ress = chain[atom_id[1]]
-                res = ress[0].name
+                try:
+                    res = ress[0].name
+                except Exception as e:
+                    print(ress)
+                    raise e
 
                 residues.append((atom_id[0], atom_id[1], st[0][atom_id[0]][atom_id[1]][0].name))
                 residues_aligned.append((biochain, atom_id[1], st[0][atom_id[0]][atom_id[1]][0].name))
