@@ -101,8 +101,9 @@ def _update_conformer_sites(
                 except Exception as e:
                     print([lid[0], atom_id[0], atom_id[1]])
                     print(ress)
-                    print(chain[f'{res.seqid.num}{res.seqid.icode}'])
                     print(sorted([f'{res.seqid.num}{res.seqid.icode}' for res in chain]))
+                    print(chain[f'{res.seqid.num}{res.seqid.icode}'])
+
                     raise e
 
                 residues.append((atom_id[0], atom_id[1], st[0][atom_id[0]][atom_id[1]][0].name))
