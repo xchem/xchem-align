@@ -25,6 +25,7 @@ from rich.traceback import install
 # Local alignment imports
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import alignment_heirarchy as ah
+from ligand_neighbourhood_alignment.alignment_landmarks import dict_to_assembly_landmarks
 from ligand_neighbourhood_alignment.update import update
 from ligand_neighbourhood_alignment.io import (
     _load_assemblies,
@@ -38,6 +39,7 @@ from ligand_neighbourhood_alignment.io import (
     _load_canonical_sites,
     _load_xtalform_sites,
     _load_reference_stucture_transforms,
+    load_yaml
 )
 
 from xchemalign import utils
@@ -517,13 +519,14 @@ class Aligner:
             working_fs_model = fs_model
 
         if working_fs_model.assembly_landmarks.exists():
-            assembly_landmarks = ah.load_yaml(
+            assembly_landmarks = load_yaml(
                 # CONOR_CHECK_THIS - self.base_dir was removed as a prefix to the first arg to be consistent
                 # with other similar places, but no evidence that this is ever executed so not certain
                 # that this is correct
                 working_fs_model.assembly_landmarks,
-                ah.dict_to_assembly_landmarks,
+                dict_to_assembly_landmarks,
             )
+
         else:
             assembly_landmarks = {}
 
@@ -532,7 +535,7 @@ class Aligner:
             # CONOR_CHECK_THIS - self.base_dir was removed as a prefix to the first arg to be consistent
             # with other similar places, but no evidence that this is ever executed so not certain
             # that this is correct
-            assembly_transforms = ah.load_yaml(working_fs_model.assembly_transforms, lambda x: x)
+            assembly_transforms = load_yaml(working_fs_model.assembly_transforms, lambda x: x)
         else:
             assembly_transforms = {}
 
