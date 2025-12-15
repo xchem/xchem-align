@@ -92,6 +92,14 @@ def _update_conformer_sites(
                 biochain = alignment_heirarchy._chain_to_biochain(
                     atom_id[0], xtalforms[xtalform_assignments[lid[0]]], assemblies
                 )
+                print([atom_id[0], atom_id[1]])
+                atom_id[0]
+                atom_id[1]
+                model = st[0]
+                chain = model[atom_id[0]]
+                ress = chain[atom_id[1]]
+                res = ress[0].name
+
                 residues.append((atom_id[0], atom_id[1], st[0][atom_id[0]][atom_id[1]][0].name))
                 residues_aligned.append((biochain, atom_id[1], st[0][atom_id[0]][atom_id[1]][0].name))
         conformer_site = dt.ConformerSite(
