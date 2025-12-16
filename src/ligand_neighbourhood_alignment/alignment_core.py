@@ -196,21 +196,38 @@ def calculate_insertion_matching_from_landmarks(
     # Generate the residue mapping
     count = 0
     residue_mapping = {}
-    for j, ref_index in enumerate(ref_seq):
-        # Get the alignment space index
-        alignment_index = ref_to_aligned[j]
 
-        # Get the corresponding mov res at that alignment index
-        mov_seq_res = mov_seq_expanded[alignment_index]
-        
-        # Only consider matched residues
-        if mov_seq_res != '-':
-            # Get the mov seq index
-            mov_index = aligned_to_mov[j]
+    try:
+        for j, ref_index in enumerate(ref_seq):
+            # Get the alignment space index
+            alignment_index = ref_to_aligned[j]
 
-            # Update the residue mapping
-            residue_mapping[ref_index] = mov_index
+            # Get the corresponding mov res at that alignment index
+            mov_seq_res = mov_seq_expanded[alignment_index]
             
+            # Only consider matched residues
+            if mov_seq_res != '-':
+                # Get the mov seq index
+                mov_index = aligned_to_mov[j]
+
+                # Update the residue mapping
+                residue_mapping[ref_index] = mov_index
+
+    except Exception as e:
+        print('# j, ref index')
+        print([j, ref_index])
+    
+        print('# ref seq')
+        print(ref_seq)
+
+        print('# ref to aligned')
+        print(ref_to_aligned)
+
+        print('# mov seq expanded')
+        print(mov_seq_expanded)
+
+
+        raise e    
 
     return residue_mapping
 
