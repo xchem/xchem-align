@@ -24,6 +24,7 @@ from ligand_neighbourhood_alignment.dt import (
     transform_to_gemmi,
 )
 from ligand_neighbourhood_alignment import alignment_heirarchy
+from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
 
 
 def superpose_structure(transform, structure):
@@ -139,7 +140,7 @@ def _drop_non_binding_chains_and_symmetrize_waters(
 
             base_atom_id = (
                 cra.chain.name,
-                str(cra.residue.seqid.num),
+                str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
                 cra.atom.name,
             )
 
@@ -216,7 +217,7 @@ def _drop_non_binding_chains_and_symmetrize_waters(
             # Record local water chain and seqid
             if chain.name not in local_water_chains:
                 local_water_chains[chain.name] = []
-            local_water_chains[chain.name].append(residue.seqid.num)
+            local_water_chains[chain.name].append(str(residue.seqid.num)+icode_to_string(residue.seqid.icode))
 
             # Update water position from mark
             pos = atom.pos
@@ -232,11 +233,11 @@ def _drop_non_binding_chains_and_symmetrize_waters(
             new_chain = gemmi.Chain(_chain.name)
             # Iterate residues in the old chain, adding the local waters
             for _residue in _chain:
-                if (_chain.name, str(_residue.seqid.num)) in other_ligand_ids:
+                if (_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode)) in other_ligand_ids:
                     continue
                 if _residue.name == 'HOH':
                     if _chain.name in local_water_chains:
-                        if _residue.seqid.num in local_water_chains[_chain.name]:
+                        if str(_residue.seqid.num)+icode_to_string(residue.seqid.icode) in local_water_chains[_chain.name]:
                             new_chain.add_residue(_residue.clone())
                 else:
                     if (_chain.name in lig_assembly.chains) or (_chain.name in neighbourhood_chains):
@@ -300,7 +301,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
 
             base_atom_id = (
                 cra.chain.name,
-                str(cra.residue.seqid.num),
+                str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
                 cra.atom.name,
             )
 
@@ -377,7 +378,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
             # Record local water chain and seqid
             if chain.name not in local_water_chains:
                 local_water_chains[chain.name] = []
-            local_water_chains[chain.name].append(residue.seqid.num)
+            local_water_chains[chain.name].append(str(residue.seqid.num)+icode_to_string(residue.seqid.icode))
 
             # Update water position from mark
             pos = atom.pos
@@ -393,18 +394,18 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
             new_chain = gemmi.Chain(_chain.name)
             # Iterate residues in the old chain, adding the local waters
             for _residue in _chain:
-                if (_chain.name, str(_residue.seqid.num)) in other_ligand_ids:
+                if (_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode)) in other_ligand_ids:
                     continue
                 if _residue.name == 'HOH':
                     if _chain.name in local_water_chains:
-                        if _residue.seqid.num in local_water_chains[_chain.name]:
+                        if str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode) in local_water_chains[_chain.name]:
                             new_chain.add_residue(_residue.clone())
                 else:
                     # Only add the chains that are part of the biological assemly the ligand
                     # is modelled as part of
                     if (_chain.name in lig_assembly.chains):
                         # If ligand drop other altlocs
-                        if (_chain.name, str(_residue.seqid.num)) == (moving_ligand_id[1], moving_ligand_id[2]):
+                        if (_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode)) == (moving_ligand_id[1], moving_ligand_id[2]):
                             new_residue = _residue.clone()
                             atoms_to_delete = set(
                                 [

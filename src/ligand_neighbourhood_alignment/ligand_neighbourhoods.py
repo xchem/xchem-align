@@ -5,7 +5,7 @@ import numpy as np
 
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment.alignment_core import _match_cas
-
+from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
 
 def _get_centroid_res(
     residues: list[tuple[str, str]],
@@ -109,7 +109,7 @@ def _get_structure_fragments(dataset: dt.Dataset, structure, version):
             for residue in chain:  # .get_ligands():
                 for lbe in dataset.ligand_binding_events:
                     if (
-                        (str(lbe[2]) == str(residue.seqid.num))
+                        (str(lbe[2]) == str(residue.seqid.num)+icode_to_string(residue.seqid.icode))
                         & (str(lbe[1]) == str(source_chain))
                         & (transform == "x,y,z")
                     ):
@@ -183,7 +183,7 @@ def _get_ligand_neighbourhood(
             cra = neighbour.to_cra(structure[0])
             atom_id: tuple[str, str, str] = (
                 str(cra.chain.name),
-                str(cra.residue.seqid.num),
+                str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
                 str(cra.atom.name),
             )
 
@@ -222,13 +222,13 @@ def _get_ligand_neighbourhood(
         # cra = atom.to_cra(structure[0])
         model_atom_id: tuple[str, str, str] = (
             str(cra.chain.name),
-            str(cra.residue.seqid.num),
+            str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
             str(cra.atom.name),
         )
         image_transform = atom_images[model_atom_id]
         model_atom_id: tuple[str, str, str] = (
             str(cra.chain.name).split("~", maxsplit=1)[0],
-            str(cra.residue.seqid.num),
+            str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
             str(cra.atom.name),
         )
         transform = dt.Transform(
@@ -248,13 +248,13 @@ def _get_ligand_neighbourhood(
     for pos, cra in _artefact_atoms:
         artefact_atom_id: tuple[str, str, str] = (
             str(cra.chain.name),
-            str(cra.residue.seqid.num),
+            str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
             str(cra.atom.name),
         )
         image_transform = atom_images[artefact_atom_id]
         artefact_atom_id: tuple[str, str, str] = (
             str(cra.chain.name).split("~", maxsplit=1)[0],
-            str(cra.residue.seqid.num),
+            str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
             str(cra.atom.name),
         )
         transform = dt.Transform(

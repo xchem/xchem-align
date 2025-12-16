@@ -2,7 +2,7 @@ import networkx as nx
 
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import alignment_heirarchy
-
+from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
 
 def _get_connected_components(alignability_graph, clusters, max_path_length=2):
     """
@@ -101,7 +101,7 @@ def _update_conformer_sites(
                 except Exception as e:
                     print([lid[0], atom_id[0], atom_id[1]])
                     print(ress)
-                    print(sorted([f'{res.seqid.num}{res.seqid.icode}' for res in chain]))
+                    print(sorted([f'{res.seqid.num+icode_to_string(res.seqid.icode)}' for res in chain]))
                     print(chain[f'{atom_id[1]}E'])
 
                     raise e

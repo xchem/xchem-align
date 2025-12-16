@@ -101,15 +101,15 @@ def _get_assembly_st(as1, as1_ref):
     return new_st
 
 
-def _get_atoms(st):
-    atoms = {}
-    for model in st:
-        for chain in model:
-            for res in chain:
-                for atom in res:
-                    atoms[(chain, res.name, res.seqid.num, atom.name)] = atom
+# def _get_atoms(st):
+#     atoms = {}
+#     for model in st:
+#         for chain in model:
+#             for res in chain:
+#                 for atom in res:
+#                     atoms[(chain, res.name, res.seqid.num, atom.name)] = atom
 
-    return atoms
+#     return atoms
 
 
 def _calculate_assembly_transform(ref=None, mov=None, chain=None, debug=False):

@@ -38,6 +38,7 @@ from xchemalign.utils import Constants
 from xchemalign.decoder import decoder
 
 from ligand_neighbourhood_alignment import dt
+from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
 
 
 def generate_xtal_dir(input_path: Path, xtal_name: str):
@@ -1438,7 +1439,7 @@ class Collator:
 
                             arr = np.array(poss)
                             mean = np.mean(arr, axis=0)
-                            ligand_coords[(str(model.num), chain.name, residue.seqid.num, altloc, residue.name)] = mean
+                            ligand_coords[(str(model.num), chain.name, str(residue.seqid.num)+icode_to_string(residue.seqid.icode), altloc, residue.name)] = mean
 
         return ligand_coords
 

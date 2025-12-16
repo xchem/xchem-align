@@ -385,6 +385,8 @@ def update(
     # Get neighbourhoods
     logger.info(f"Updating neighbourhoods")
     for dtag, dataset in new_datasets.items():
+        if debug:
+            print(f'\tGetting neighbourhood: {dtag}')
         xtalform = xtalforms[dataset_assignments[dtag]]
         neighborhoods = _get_neighbourhoods(dataset, xtalform, assemblies, version)
         logger.info(f"Dataset {dtag} has {len(neighborhoods)} ligand neighbourhoods")

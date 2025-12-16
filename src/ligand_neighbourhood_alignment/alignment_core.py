@@ -3,7 +3,9 @@ from loguru import logger
 
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import structure
-from ligand_neighbourhood_alignment import alignment_landmarks
+from ligand_neighbourhood_alignment import alignment_landmarks 
+from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
+
 
 def match_atom(
     canonical_site_atom: dt.Atom,

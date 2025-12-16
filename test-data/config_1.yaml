@@ -9,6 +9,7 @@ panddas_missing_ok:
   - Mpro-x0107_fake_P1_conf_change
   - Mpro-IBM0058_offset
   - Mpro-IBM0045_offset_res_change
+  - Mpro-IBM0045_icode
 inputs:
   - dir: dls/labxchem/data/2020/lb27995-1
     type: model_building
