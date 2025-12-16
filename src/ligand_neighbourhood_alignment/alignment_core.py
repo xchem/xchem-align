@@ -216,8 +216,7 @@ def calculate_insertion_matching_from_landmarks(
 
                 # Update the residue mapping
                 residue_mapping[ref_seqid] = mov_seqid
-            else:
-                raise Exception
+
 
     except Exception as e:
         print('# j, ref index')
