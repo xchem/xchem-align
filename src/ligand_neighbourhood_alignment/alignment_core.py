@@ -225,12 +225,18 @@ def calculate_insertion_matching_from_landmarks(
         print('# ref to aligned')
         print(ref_to_aligned)
 
+        print('# mov seq sorted')
+        print(ref_seq_sorted)
+
+        print('# mov seq sorted')
+        print(mov_seq_sorted)
+
         print('# ref seq expanded')
         print(ref_seq_expanded)
 
         print('# mov seq expanded')
         print(mov_seq_expanded)
-
+        
 
         raise e    
 
