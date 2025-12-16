@@ -236,9 +236,12 @@ def calculate_insertion_matching_from_landmarks(
 
         print('# ref seq expanded')
         print(ref_seq_expanded)
+        print(type(ref_seq_expanded))
+
 
         print('# mov seq expanded')
         print(mov_seq_expanded)
+        print(type(mov_seq_expanded))
         
         print('Formatted match')
         print(result.formatted(''.join(ref_seq_sorted), ''.join(mov_seq_sorted), ))
