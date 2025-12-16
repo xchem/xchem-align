@@ -174,21 +174,26 @@ def calculate_insertion_matching_from_landmarks(
         blosum62,
     )
 
+    # Get the gap strings
+    formatted_match = result.formatted(''.join(ref_seq_sorted), ''.join(mov_seq_sorted), )
+    aligned_ref, match_string, aligned_mov = formatted_match.splitlines()
+
+
     # Get native index to aligned index for the ref seq
-    ref_seq_expanded = result.add_gaps(str(ref_seq_sorted), 1)
+    # ref_seq_expanded = result.add_gaps(str(ref_seq_sorted), 1)
     count = 0
     ref_to_aligned = {}
-    for j, item in enumerate(ref_seq_expanded):
+    for j, item in enumerate(aligned_ref):
         if item != '-':
             ref_to_aligned[count] = j
             count += 1
     
     # Get the aligned index to native index for the mov seq
-    mov_seq_expanded = result.add_gaps(str(mov_seq_sorted), 2)
+    # mov_seq_expanded = result.add_gaps(str(mov_seq_sorted), 2)
     mov_seq_index_to_key = {_j: _key for _j, _key in enumerate(mov_seq)}
     aligned_to_mov = {}
     count = 0
-    for j, item in enumerate(mov_seq_expanded):
+    for j, item in enumerate(aligned_mov):
         if item != '-':
             aligned_to_mov[j] = mov_seq_index_to_key[count]
             count += 1
@@ -202,7 +207,7 @@ def calculate_insertion_matching_from_landmarks(
             alignment_index = ref_to_aligned[j]
 
             # Get the corresponding mov res at that alignment index
-            mov_seq_res = mov_seq_expanded[alignment_index]
+            mov_seq_res = aligned_mov[alignment_index]
             
             # Only consider matched residues
             if mov_seq_res != '-':
