@@ -241,7 +241,7 @@ def calculate_insertion_matching_from_landmarks(
         print(mov_seq_expanded)
         
         print('Formatted match')
-        print(result.formatted(sum(ref_seq_sorted), sum(mov_seq_sorted), end=''))
+        print(result.formatted(str(ref_seq_sorted), str(mov_seq_sorted), end=''))
 
         raise e    
 
