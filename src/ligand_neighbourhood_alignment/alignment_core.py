@@ -194,7 +194,6 @@ def calculate_insertion_matching_from_landmarks(
             count += 1
     
     # Generate the residue mapping
-    count = 0
     residue_mapping = {}
 
     try:
@@ -220,8 +219,14 @@ def calculate_insertion_matching_from_landmarks(
         print('# ref seq')
         print(ref_seq)
 
+        print('# mov seq')
+        print(mov_seq)
+
         print('# ref to aligned')
         print(ref_to_aligned)
+
+        print('# ref seq expanded')
+        print(ref_seq_expanded)
 
         print('# mov seq expanded')
         print(mov_seq_expanded)
