@@ -239,14 +239,14 @@ def calculate_insertion_matching_from_landmarks(
         print('# mov seq sorted')
         print(mov_seq_sorted)
 
-        print('# ref seq expanded')
-        print(ref_seq_expanded)
-        print(type(ref_seq_expanded))
+        # print('# ref seq expanded')
+        # print(ref_seq_expanded)
+        # print(type(ref_seq_expanded))
 
 
-        print('# mov seq expanded')
-        print(mov_seq_expanded)
-        print(type(mov_seq_expanded))
+        # print('# mov seq expanded')
+        # print(mov_seq_expanded)
+        # print(type(mov_seq_expanded))
         
         print('Formatted match')
         formatted_match = result.formatted(''.join(ref_seq_sorted), ''.join(mov_seq_sorted), )
