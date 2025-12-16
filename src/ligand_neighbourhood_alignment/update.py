@@ -422,6 +422,9 @@ def update(
                 else:
                     _debug = False
 
+                print('dtag')
+                print(dtag)
+
                 chain_to_assembly_transforms[
                     (
                         dtag,
