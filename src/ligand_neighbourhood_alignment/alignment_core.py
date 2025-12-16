@@ -194,7 +194,7 @@ def calculate_insertion_matching_from_landmarks(
     aligned_to_mov = {}
     count = 0
     for j, item in enumerate(aligned_mov):
-        if item != '-':
+        if item not in ['-', ' ']:
             aligned_to_mov[j] = mov_seq_index_to_key[count]
             count += 1
     
@@ -202,7 +202,7 @@ def calculate_insertion_matching_from_landmarks(
     residue_mapping = {}
 
     try:
-        for j, ref_index in enumerate(ref_seq):
+        for j, ref_seqid in enumerate(ref_seq):
             # Get the alignment space index
             alignment_index = ref_to_aligned[j]
 
@@ -212,14 +212,14 @@ def calculate_insertion_matching_from_landmarks(
             # Only consider matched residues
             if mov_seq_res != '-':
                 # Get the mov seq index
-                mov_index = aligned_to_mov[j]
+                mov_seqid = aligned_to_mov[j]
 
                 # Update the residue mapping
-                residue_mapping[ref_index] = mov_index
+                residue_mapping[ref_seqid] = mov_seqid
 
     except Exception as e:
         print('# j, ref index')
-        print([j, ref_index])
+        print([j, ref_seqid])
 
         print('# Match string')
         print(result.match_string)
@@ -232,6 +232,10 @@ def calculate_insertion_matching_from_landmarks(
 
         print('# ref to aligned')
         print(ref_to_aligned)
+
+        print('# aligned to move')
+        print(aligned_to_mov)
+
 
         print('# mov seq sorted')
         print(ref_seq_sorted)
