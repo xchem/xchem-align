@@ -240,6 +240,8 @@ def calculate_insertion_matching_from_landmarks(
         print('# mov seq expanded')
         print(mov_seq_expanded)
         
+        print('Formatted match')
+        print(result.formatted(sum(ref_seq_sorted), sum(mov_seq_sorted), end=''))
 
         raise e    
 
