@@ -215,6 +215,9 @@ def calculate_insertion_matching_from_landmarks(
     except Exception as e:
         print('# j, ref index')
         print([j, ref_index])
+
+        print('# Match string')
+        print(result.match_string)
     
         print('# ref seq')
         print(ref_seq)
