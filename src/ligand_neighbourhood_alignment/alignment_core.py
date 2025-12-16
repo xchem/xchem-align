@@ -184,7 +184,7 @@ def calculate_insertion_matching_from_landmarks(
     count = 0
     ref_to_aligned = {}
     for j, item in enumerate(aligned_ref):
-        if item != '-':
+        if item not in ['-', ' ']:
             ref_to_aligned[count] = j
             count += 1
     
@@ -249,8 +249,8 @@ def calculate_insertion_matching_from_landmarks(
         # print(type(mov_seq_expanded))
         
         print('Formatted match')
-        formatted_match = result.formatted(''.join(ref_seq_sorted), ''.join(mov_seq_sorted), )
-        print(formatted_match.splitlines())
+        print(aligned_ref)
+        print(aligned_mov)
 
         raise e    
 
