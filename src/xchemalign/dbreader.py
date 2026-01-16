@@ -72,7 +72,7 @@ def read_pdb_depo(dbfile):
     # Create your connection.
     with sqlite3.connect(dbfile) as cnx:
         df = pd.read_sql_query(
-            """SELECT ID, CrystalName,
+            """SELECT ID, CrystalName, CompoundCode,
                                 RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
                                 RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated,
                                 DataProcessingProgram, DataProcessingPathToLogfile
