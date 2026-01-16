@@ -39,7 +39,7 @@ from ligand_neighbourhood_alignment.io import (
     _load_canonical_sites,
     _load_xtalform_sites,
     _load_reference_stucture_transforms,
-    load_yaml
+    load_yaml,
 )
 
 from xchemalign import utils
@@ -653,7 +653,8 @@ class Aligner:
                                         + ligand_residue
                                         + ' in crystal '
                                         + dtag
-                                        + '. One cause for this is the ligand residue number changing between versions;'
+                                        + '. Possible causes are the ligand residue number'
+                                        + ' or the number of ligands present changing between versions;'
                                         + ' if it\'s not that, the cause might be even more obscure.'
                                         + ' Talk to a developer, and good luck.'
                                         + ' If you can\'t correct this then you can add this crystal to the \`exclude\` list.'
@@ -670,10 +671,12 @@ class Aligner:
                                 aligned_crystallographic_event_map_path = (
                                     version_output.aligned_event_maps_crystallographic[site_id]
                                 )
-                                aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[site_id]
-                                aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[
+                                aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[
                                     site_id
                                 ]
+                                aligned_crystallographic_diff_map_path = (
+                                    version_output.aligned_diff_maps_crystallographic[site_id]
+                                )
 
                                 aligned_version_output[site_id] = {
                                     Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
