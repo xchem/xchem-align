@@ -162,8 +162,9 @@ class Aligner:
         # to log an error with a logger that's going to be initialised
         # 2 lines below. needs a better solution
         self._find_version_dir(dir)  # sets self.working_dir and self.version_dir
+        output_path = self.working_dir / "upload-current"
         if not log_file:
-            log_file = self.working_dir / 'upload-current' / 'aligner.log'
+            log_file = output_path / 'aligner.log'
         self.logger = utils.Logger(logfile=log_file, level=log_level)
         self.logger.info("Using", self.version_dir, "as current version dir")
         self.base_dir = self.version_dir.parent  # e.g. path/to
@@ -179,6 +180,12 @@ class Aligner:
         self.assemblies_file = (
             self.base_dir / Constants.ASSEMBLIES_FILENAME
         )  # e.g. upload-current/upload_1/assemblies.yaml
+
+        config_file = output_path / "config.yaml"
+        if not config_file.is_file():
+            self.logger.error(config_file, "not found")
+            exit(1)
+        self.config = utils.read_config_file(config_file)
 
     def _find_version_dir(self, dir):
         if dir:
@@ -296,8 +303,8 @@ class Aligner:
         to_delete = []
         for crystal_name, crystal_data in aligner_dict[Constants.META_XTALS].items():
             if Constants.META_ALIGNED_FILES in crystal_data:
-                print(crystal_name)
-                print(crystal_data)
+                # print(crystal_name)
+                # print(crystal_data)
                 for chain_name, chain_data in crystal_data[Constants.META_ALIGNED_FILES].items():
                     for residue_number, residue_data in chain_data.items():
                         for altloc, altloc_data in residue_data.items():
@@ -758,6 +765,9 @@ class Aligner:
 
         self.logger.info('extracting components')
 
+        is_covalent = self.config.get(Constants.CONFIG_COVALENT, False)
+        self.logger.info("Covalent =", is_covalent)
+
         num_errors = 0
         num_pdbs = 0
         for k1, v1 in aligner_meta.get(Constants.META_XTALS, {}).items():  # k = xtal
@@ -804,7 +814,9 @@ class Aligner:
                                             )
                                             if cif_file:
                                                 try:
-                                                    pdbxtal.create_ligands(k2, k3, str(self.base_dir / cif_file))
+                                                    pdbxtal.create_ligands(
+                                                        k2, k3, str(self.base_dir / cif_file), covalent=is_covalent
+                                                    )
                                                     v6[Constants.META_LIGAND_MOL] = (
                                                         str(pdbxtal.ligand_base_file.relative_to(self.base_dir))
                                                         + '.mol'

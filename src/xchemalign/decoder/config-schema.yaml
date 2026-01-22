@@ -32,6 +32,8 @@ properties:
     items:
       type: string
     minItems: 0
+  covalent:
+    type: string
   inputs:
     type: array
     items:

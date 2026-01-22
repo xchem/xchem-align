@@ -242,7 +242,7 @@ class PDBXtal:
                 d[atom_id] = (x, y, z)
         return result, name
 
-    def create_ligands(self, chain: str, res_id, cif_file: str):
+    def create_ligands(self, chain: str, res_id, cif_file: str, covalent=False):
         """
         Generate a Molfile for the specified ligand
         :param chain: e.g. A
@@ -301,9 +301,10 @@ class PDBXtal:
             m.AddConformer(conf)
             Chem.AssignStereochemistryFrom3D(m)
 
-            modified_mol = self.handle_covalent_ligands(chain, res_id, m)
-            if modified_mol:
-                m = modified_mol
+            if covalent:
+                modified_mol = self.handle_covalent_ligands(chain, res_id, m)
+                if modified_mol:
+                    m = modified_mol
             generated_mols.append(m)
 
         with Chem.SDWriter(str(self.ligand_base_file) + '.sdf') as writer:

@@ -346,6 +346,11 @@ XCA looks for all `LINK` records, selects only those involving the relevant liga
 example) and grafts the protein atom onto the ligand for each record (of course, usually there will only be a single
 one for each ligand).
 
+IMPORTANT: to enable this covalent ligand functionality you need to add this to your `config.yaml` file:
+```
+covalent: true
+```
+
 #### Overriding status
 
 There was previously a mechanism to manually override the status of any crystal. This feature has now been removed.

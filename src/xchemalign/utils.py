@@ -63,6 +63,7 @@ class Constants:
     CONFIG_CODE_PREFIX_TOOLTIP = 'code_prefix_tooltip'
     CONFIG_PANDDAS_EVENT_FILES = "panddas_event_files"
     CONFIG_OVERRIDES = "overrides"
+    CONFIG_COVALENT = "covalent"
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
     META_VERSION_NUM = "version_number"
