@@ -396,7 +396,23 @@ def read_buster_structure(mmcif):
 
 
 def read_refmac_structure(pdb):
-    struc = gemmi.read_pdb(str(pdb))
+    # this next big adds a missing TER line that is needed for correct conversion to MMCIF
+    lines = []
+    with open(pdb, 'r') as infile:
+        previous_line_was_atom = False
+        for line in infile:
+            is_atom = line.startswith('ATOM')
+            is_hetatm = line.startswith('HETATM')
+
+            if is_hetatm and previous_line_was_atom:
+                lines.append('TER\n')
+
+            lines.append(line)
+
+            previous_line_was_atom = is_atom
+
+    # now convert to MMCIF
+    struc = gemmi.read_pdb_string(''.join(lines))
     doc = struc.make_mmcif_document()
     scrape_pdb_stats.run(str(pdb), doc)
     return doc
