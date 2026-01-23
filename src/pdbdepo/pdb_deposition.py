@@ -222,6 +222,7 @@ def process_input(
                     else:
                         info('processing stats from xia2.mmcif.bz2')
                         item_software = None
+                        item_diffrn = None
                         item_reflns_shell = None
                         pair_reflns = OrderedDict()
                         with bz2.open(stats_cif) as stats:
@@ -235,6 +236,8 @@ def process_input(
                                     for tag in item.loop.tags:
                                         if tag.startswith('_software'):
                                             item_software = item
+                                        if tag.startswith('_diffrn'):
+                                            item_diffrn = item
 
                             # grab the reflns data from second block
                             for item in doc[1]:
@@ -248,12 +251,20 @@ def process_input(
                                             item_reflns_shell = item
 
                         existing_software_loop_item = find_loop_item(cif_block0, '_software')
+                        existing_diffrn_loop_item = find_loop_item(cif_block0, '_diffrn')
                         if existing_software_loop_item is None:
                             warn('existing software loop not found')
                         elif item_software is None:
                             warn('item software loop not found')
                         else:
                             merge_loops(existing_software_loop_item.loop, item_software.loop, cif_block0)
+
+                        if existing_diffrn_loop_item is None:
+                            warn('existing diffrn loop not found')
+                        elif item_diffrn is None:
+                            warn('item diffrn loop not found')
+                        else:
+                            combine_loops(existing_diffrn_loop_item.loop, item_diffrn.loop, cif_block0)
 
                         if pair_reflns:
                             for k, v in pair_reflns.items():
@@ -337,6 +348,17 @@ def append_loop_items(block_to_add_to: cif.Block, item: cif.Item, tags, values):
     loop.add_row(old_values)
 
 
+def combine_loops(loop1: cif.Loop, loop2: cif.Loop, into: cif.Block):
+    tags = []
+    tags.extend(loop1.tags)
+    tags.extend(loop2.tags)
+    values = []
+    values.extend(loop1.values)
+    values.extend(loop2.values)
+    new_loop = into.init_loop('', tags)
+    new_loop.add_row(values)
+
+
 def merge_loops(loop1: cif.Loop, loop2: cif.Loop, into: cif.Block):
     d = OrderedDict()
     for tag in loop1.tags:
@@ -399,17 +421,18 @@ def read_refmac_structure(pdb):
     # this next big adds a missing TER line that is needed for correct conversion to MMCIF
     lines = []
     with open(pdb, 'r') as infile:
-        previous_line_was_atom = False
+        previous_line_was_atom_or_anisou = False
         for line in infile:
-            is_atom = line.startswith('ATOM')
+            is_atom_or_anisou = line.startswith('ATOM') or line.startswith('ANISOU')
             is_hetatm = line.startswith('HETATM')
 
-            if is_hetatm and previous_line_was_atom:
+            if is_hetatm and previous_line_was_atom_or_anisou:
                 lines.append('TER\n')
 
-            lines.append(line)
+            if not line.startswith('TER'):
+                lines.append(line)
 
-            previous_line_was_atom = is_atom
+            previous_line_was_atom_or_anisou = is_atom_or_anisou
 
     # now convert to MMCIF
     struc = gemmi.read_pdb_string(''.join(lines))
