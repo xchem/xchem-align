@@ -220,7 +220,7 @@ statuses:
 Also, this status is considered so that crystals in previous upload versions can be deprecated:
 
 * 7 - Analysed & Rejected
-*
+
 Note that status 7 is always fetched so that deprecated entries can be identified. You do not need to specify it if
 you are using a `statuses` section as described above.
 
