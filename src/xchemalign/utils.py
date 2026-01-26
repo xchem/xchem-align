@@ -64,6 +64,7 @@ class Constants:
     CONFIG_PANDDAS_EVENT_FILES = "panddas_event_files"
     CONFIG_OVERRIDES = "overrides"
     CONFIG_COVALENT = "covalent"
+    CONFIG_STATUSES = "statuses"
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
     META_VERSION_NUM = "version_number"

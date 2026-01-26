@@ -315,7 +315,6 @@ class Collator:
         if not v_dir:
             self.logger.error("Error with version dir. Please fix and try again.")
             return None, None, None
-        self.logger.info("using version dir {}".format(v_dir))
 
         self.logger.info("validating paths")
         self.validate_paths()
@@ -502,7 +501,10 @@ class Collator:
         ref_datasets = set(self.config.get(Constants.CONFIG_REF_DATASETS, []))
         dbfile = input.get_soakdb_file_path()
         self.logger.info("opening DB file:", dbfile)
-        df = dbreader.filter_dbmeta(dbfile, ref_datasets)
+        statuses = self.config.get(Constants.CONFIG_STATUSES)
+        if statuses:
+            self.logger.info("using user defined statuses:", statuses)
+        df = dbreader.filter_dbmeta(dbfile, ref_datasets, statuses)
         count = 0
         processed = 0
         num_pdb_files = 0
@@ -800,7 +802,7 @@ class Collator:
                 self.meta_history.append(meta)
                 self.previous_version_dirs.append(dir_name)
 
-        self.logger.info("setting version dir to {}".format(v_dir))
+        self.logger.info("setting version dir to {}".format(self.output_path / v_dir))
         self.version_dir = Path(v_dir)
         self.version_number = version
 
@@ -1439,7 +1441,15 @@ class Collator:
 
                             arr = np.array(poss)
                             mean = np.mean(arr, axis=0)
-                            ligand_coords[(str(model.num), chain.name, str(residue.seqid.num)+icode_to_string(residue.seqid.icode), altloc, residue.name)] = mean
+                            ligand_coords[
+                                (
+                                    str(model.num),
+                                    chain.name,
+                                    str(residue.seqid.num) + icode_to_string(residue.seqid.icode),
+                                    altloc,
+                                    residue.name,
+                                )
+                            ] = mean
 
         return ligand_coords
 

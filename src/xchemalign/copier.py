@@ -110,6 +110,7 @@ class Copier:
         soakdb_file_path: Path,
         panddas_file_paths: list[Path],
         ref_datasets: list[str],
+        statuses: list,
         logger=None,
     ):
         if logger:
@@ -123,6 +124,7 @@ class Copier:
         self.soakdb_file_path = soakdb_file_path
         self.panddas_file_paths = panddas_file_paths
         self.ref_datasets = ref_datasets
+        self.statuses = statuses
         self.errors = []
         self.warnings = []
         self.copier = FileCopier(self.logger)
@@ -170,7 +172,9 @@ class Copier:
             sys.exit(1)
 
         self.logger.info("reading soakdb file", dbfile_out)
-        df = dbreader.filter_dbmeta(dbfile_out, self.ref_datasets)
+        if self.statuses:
+            self.logger.info("using user defined statuses:", self.statuses)
+        df = dbreader.filter_dbmeta(dbfile_out, set(self.ref_datasets), self.statuses)
         self.logger.info("soakdb shape is", df.shape)
         count = 0
         num_files = 0
@@ -373,7 +377,7 @@ class Copier:
         return inputpath, outputpath
 
 
-def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
+def handle_inputs(base_dir, config, output_dir, logger):
     """
     Works through the inputs and copies their data
 
@@ -389,6 +393,14 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
     input_dirs_model_building = []
     input_dirs_manual = []
     excludes_manual = []
+
+    inputs = config.get(Constants.CONFIG_INPUTS)
+    if not inputs:
+        logger.error("No inputs defined in config file")
+        sys.exit(1)
+
+    ref_datasets = config.get(Constants.CONFIG_REF_DATASETS, [])
+    statuses = config.get(Constants.CONFIG_STATUSES)
 
     for input in inputs:
         logger.info("Looking at input", input.get(Constants.CONFIG_DIR))
@@ -421,6 +433,7 @@ def handle_inputs(base_dir, inputs, ref_datasets, output_dir, logger):
             Path(soakdb_files[i]),
             [Path(p) for p in panddas_files[i]],
             ref_datasets,
+            statuses,
             logger=logger,
         )
         errors, warnings = c.validate()
@@ -470,19 +483,13 @@ def main():
     utils.LOG = logger
 
     config = utils.read_config_file(args.config_file)
-    ref_datasets = config.get(Constants.CONFIG_REF_DATASETS, [])
 
     if args.base_dir:
         base_dir = args.base_dir
     else:
         base_dir = config.get(Constants.CONFIG_BASE_DIR)
 
-    inputs = config.get(Constants.CONFIG_INPUTS)
-    if not inputs:
-        logger.error("No inputs defined in config file")
-        sys.exit(1)
-
-    handle_inputs(base_dir, inputs, ref_datasets, args.output_dir, logger)
+    handle_inputs(base_dir, config, args.output_dir, logger)
 
     logger.report()
     logger.close()

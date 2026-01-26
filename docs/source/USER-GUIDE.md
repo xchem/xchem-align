@@ -204,15 +204,25 @@ Any datasets you specify in the `config.yaml`, including as references in `ref_d
 #### Diamond Datasets
 
 For the inputs that are of type `model_building` (e.g. come from Diamond) the corresponding soakdb file is inspected
-and crystals of the following status are considered:
+and, by default, crystals of the following status are considered:
 
 * 4 - CompChem ready
 * 5 - Deposition ready
 * 6 - Deposited
 
-Also, this status is considered so that crystals in previous upload versions can be deperecated:
+If you want to use a different set of statuses then add something like this to your `config.yaml`:
+```
+statuses:
+  - 5
+  - 6
+```
+
+Also, this status is considered so that crystals in previous upload versions can be deprecated:
 
 * 7 - Analysed & Rejected
+*
+Note that status 7 is always fetched so that deprecated entries can be identified. You do not need to specify it if
+you are using a `statuses` section as described above.
 
 #### Non-Diamond datasets
 

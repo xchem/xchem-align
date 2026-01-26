@@ -80,14 +80,17 @@ def read_pdb_depo(dbfile):
         return df
 
 
-def filter_dbmeta(dbfile, reference_datasets):
+def filter_dbmeta(dbfile: str, reference_datasets: set, statuses: list = None):
+    if statuses:
+        tup = tuple([str(i) for i in statuses])
+    else:
+        tup = ('4', '5', '6')
+
     df1 = read_dbmeta(dbfile)
     df2 = df1[
         (
             df1.CrystalName.isin(reference_datasets)
-            | df1.RefinementOutcome.str.startswith("4")
-            | df1.RefinementOutcome.str.startswith("5")
-            | df1.RefinementOutcome.str.startswith("6")
+            | df1.RefinementOutcome.str.startswith(tup)
             | df1.RefinementOutcome.str.startswith("7")
         )
     ]
