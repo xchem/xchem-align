@@ -255,24 +255,39 @@ def _drop_non_binding_chains_and_symmetrize_waters(
 
 
 def _drop_non_assembly_chains_and_symmetrize_waters(
-    _structure, neighbourhood, moving_ligand_id, dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
+    _structure, 
+    neighbourhood, 
+    moving_ligand_id, 
+    dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
 ):
+    DEBUG = False
+    if (moving_ligand_id[0] in ['6w7h', '6w8q']) :
+        print(f'Processing error dataset!')
+        DEBUG = True
+
     # Other Ligand IDs
     other_ligand_ids = [
         (lid[1], lid[2])
         for lid in dataset_ligand_neighbourhood_ids
         if not ((lid[1] == moving_ligand_id[1]) & (lid[2] == moving_ligand_id[2]) )
     ]
+    if DEBUG:
+        print(f'OTHER LIGAND IDS: {moving_ligand_id} : {other_ligand_ids}')
     # Get a copy of structure to edit
     new_structure = _structure.clone()
 
     # Determine which chains have binding residues
     neighbourhood_chains = set([_atom_id[0] for _atom_id in neighbourhood.atoms])
+    if DEBUG:
+        print(f'NEIGHBOURHOOD CHAINS: {moving_ligand_id} : {neighbourhood_chains}')
 
     # Determine the assembly each chain is part of
     chain_assemblies = {
         _chain: _assembly for _assembly_name, _assembly in xtalform.assemblies.items() for _chain in _assembly.chains
     }
+    if DEBUG:
+        print(f'CHAIN ASSEMBLY: {moving_ligand_id} : {chain_assemblies}')
+                    
 
     # Get the assembly the ligand is modelled as part of
     for xsid, _xtalform_site in xtalform_sites.items():
@@ -281,6 +296,9 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
             xtalform_site = _xtalform_site
     site_chain = xtalform_site.crystallographic_chain
     lig_assembly = chain_assemblies[site_chain]
+    if DEBUG:
+        print(f'SITE CHAIN: {moving_ligand_id} : {site_chain}')
+        print(f'LIGAND ASSEMBLY: {moving_ligand_id} : {lig_assembly}')
 
     # Determine which waters are bound near the ligand, and at what positions
     ns = gemmi.NeighborSearch(new_structure[0], new_structure.cell, 10).populate(include_h=False)
@@ -395,6 +413,8 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
             # Iterate residues in the old chain, adding the local waters
             for _residue in _chain:
                 if (_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode)) in other_ligand_ids:
+                    if DEBUG:
+                        print(f'RESIDUE SKIP: {moving_ligand_id} : skipping {(_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode))}')
                     continue
                 if _residue.name == 'HOH':
                     if _chain.name in local_water_chains:
