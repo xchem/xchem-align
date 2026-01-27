@@ -196,6 +196,9 @@ def perform_all_alignments(
             print(f'Structure path is: {st_path}')
             print(f'canonical site id is: {canonical_site_id}')
             print(f'ligand binding events are: {[x for x in datasets[dtag].ligand_binding_events.keys()]}')
+            print(f'Error occured for: {dtag} {chain} {residue} {altloc}')
+            print(f'Structure chains are: {[_chain.name for _chain in aligned_structure[0]]}')
+            print(f'Chain residues are: {[_res.seqid.num for _res in aligned_structure[0][chain]]}')
             # print(f'Cha[])
             raise e
 
