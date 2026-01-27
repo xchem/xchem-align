@@ -359,6 +359,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
     # Update water positions if they are near ligand but modelled elsewhere
     local_water_chains = {}
     chain_name_to_chain = {_chain.name: _chain for _chain in new_structure[0]}
+
     for atom_id, (point, mark, mark_pos) in all_marks.items():
         # Get the corresponding atom
         cra = mark.to_cra(new_structure[0])
@@ -403,7 +404,10 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
             pos.x = mark_pos[0]
             pos.y = mark_pos[1]
             pos.z = mark_pos[2]
-
+    if DEBUG:
+        print(f'LOCAL WATER CHAINS: {moving_ligand_id} : {local_water_chains}')
+        print(f'CHAIN NAME TO NAME: {moving_ligand_id} : {chain_name_to_chain}')
+        
     # Drop residues and non-local waters from non-binding chains containing site waters
     new_chains = []
     for _model in new_structure:
@@ -451,6 +455,11 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
     for new_chain in new_chains:
         del new_structure[0][new_chain.name]
         new_structure[0].add_chain(new_chain)
+
+    if DEBUG:
+        chain_ress = {_chain.name: len([x for x in _chain] for _chain in new_structure[0])}
+        print(f'CHAIN RESIUDES: {moving_ligand_id} : {chain_ress}')
+
 
     return new_structure
 
