@@ -407,7 +407,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
     if DEBUG:
         print(f'LOCAL WATER CHAINS: {moving_ligand_id} : {local_water_chains}')
         print(f'CHAIN NAME TO NAME: {moving_ligand_id} : {chain_name_to_chain}')
-        
+
     # Drop residues and non-local waters from non-binding chains containing site waters
     new_chains = []
     for _model in new_structure:
@@ -457,7 +457,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
         new_structure[0].add_chain(new_chain)
 
     if DEBUG:
-        chain_ress = {_chain.name: len([x for x in _chain] for _chain in new_structure[0])}
+        chain_ress = {_chain.name: len([x for x in _chain]) for _chain in new_structure[0]}
         print(f'CHAIN RESIUDES: {moving_ligand_id} : {chain_ress}')
 
 
