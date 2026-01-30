@@ -1322,16 +1322,18 @@ def string_to_altloc(altloc):
 
 
 class Transform:
-    def __init__(self, vec, mat):
+    def __init__(self, vec, mat, alignable_ids):
         self.vec: list[float] = vec
         self.mat: list[list[float]] = mat
+        self.alignable_ids = alignable_ids
+
 
     @staticmethod
     def from_dict(dic):
-        return Transform(dic["vec"], dic["mat"])
+        return Transform(dic["vec"], dic["mat"], dic['alignable_ids'])
 
     def to_dict(self):
-        return {"vec": self.vec, "mat": self.mat}
+        return {"vec": self.vec, "mat": self.mat, "alignable_ids": self.alignable_ids}
 
 
 def transform_to_string(transform):

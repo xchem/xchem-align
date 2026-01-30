@@ -97,6 +97,7 @@ def _match_cas(
     max_alignable_rmsd: float = 1.0,
 ):
     alignable_cas = []
+    alignable_ids = []
     for ligand_1_atom_id, ligand_1_atom in ligand_1_neighbourhood.atoms.items():
         for ligand_2_atom_id, ligand_2_atom in ligand_2_neighbourhood.atoms.items():
             if ligand_1_atom_id[2] == "CA":
@@ -115,6 +116,7 @@ def _match_cas(
                             ),
                         )
                     )
+                    alignable_ids.append((ligand_1_atom_id,ligand_2_atom_id ))
 
     if len(alignable_cas) >= min(
         [min_alignable_atoms, len(ligand_1_neighbourhood.atoms), len(ligand_2_neighbourhood.atoms)]
@@ -130,8 +132,8 @@ def _match_cas(
         if rmsd < max_alignable_rmsd:
             return (
                 True,
-                dt.Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist()),
-                dt.Transform(vec=inverse_transform.vec.tolist(), mat=inverse_transform.mat.tolist()),
+                dt.Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist(), alignable_ids),
+                dt.Transform(vec=inverse_transform.vec.tolist(), mat=inverse_transform.mat.tolist(), alignable_ids),
             )
         else:
             return False, None, None
