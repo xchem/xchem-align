@@ -283,7 +283,10 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
 
     # Determine the assembly each chain is part of
     chain_assemblies = {
-        _chain: _assembly for _assembly_name, _assembly in xtalform.assemblies.items() for _chain in _assembly.chains
+        _chain: _assembly 
+        for _assembly_name, _assembly 
+        in xtalform.assemblies.items() 
+        for _chain in _assembly.chains
     }
     if DEBUG:
         print(f'CHAIN ASSEMBLY: {moving_ligand_id} : {chain_assemblies}')
