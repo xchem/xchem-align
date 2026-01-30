@@ -503,7 +503,7 @@ def transform_to_gemmi(transform: Transform):
 
 
 def gemmi_to_transform(transform):
-    return Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist())
+    return Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist(), alignable_ids=[])
 
 
 def get_box(neighbourhood: LigandNeighbourhood, xmap, transform):

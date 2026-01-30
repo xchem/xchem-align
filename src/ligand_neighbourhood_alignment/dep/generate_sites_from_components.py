@@ -253,7 +253,7 @@ def _update_conformer_site_transforms(
                 structures[ref_conformer_site.reference_ligand_id[0]],
             )
 
-            conformer_site_transforms[key] = dt.Transform(transform.vec.tolist(), transform.mat.tolist())
+            conformer_site_transforms[key] = dt.Transform(transform.vec.tolist(), transform.mat.tolist(), alignable_ids=[])
 
 
 def get_site_transforms(sites: CanonicalSites, structures):
@@ -271,7 +271,7 @@ def get_site_transforms(sites: CanonicalSites, structures):
         site_structure = structures[srs]
 
         transform = get_transform_from_residues(ref_site_all_ress, rss, site_structure)
-        transforms[(rsid, site_id)] = Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist())
+        transforms[(rsid, site_id)] = Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist(), alignable_ids = [])
 
     return transforms
 

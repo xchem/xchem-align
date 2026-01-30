@@ -132,8 +132,8 @@ def _match_cas(
         if rmsd < max_alignable_rmsd:
             return (
                 True,
-                dt.Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist(), alignable_ids),
-                dt.Transform(vec=inverse_transform.vec.tolist(), mat=inverse_transform.mat.tolist(), alignable_ids),
+                dt.Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist(), alignable_ids=alignable_ids),
+                dt.Transform(vec=inverse_transform.vec.tolist(), mat=inverse_transform.mat.tolist(), alignable_ids=alignable_ids),
             )
         else:
             return False, None, None
@@ -332,6 +332,7 @@ def align_on_residues(
     return dt.Transform(
         transform.vec.tolist(),
         transform.mat.tolist(),
+        alignable_ids=[]
     )
 
 
