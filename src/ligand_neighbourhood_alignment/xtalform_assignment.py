@@ -104,11 +104,15 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         chain_mapping, min_distances = get_xtalform_chain_mapping(ref_structure, structure, xtalform_protein_chains)
 
         if not all([x == chain_mapping[x] for x in chain_mapping]):
+            print('Chain Mapping is degenerate!')
+            print(chain_mapping)
             continue
 
         if not np.mean([x for x in min_distances.values()]) < 5:
+            print('Min distances is large!')
+            print(min_distances)
             continue
-        
+
         # Get the deltas
         deltas = np.array(
             [
