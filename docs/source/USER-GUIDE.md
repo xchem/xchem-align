@@ -440,6 +440,97 @@ Again, skip the `-d <your working directory>` bit if you are already in that dir
 
 Warning: aligner can take an even longer time, please be patient.
 
+### 4.1 Using the Slurm cluster
+
+When aligning a very large number of datasets (500+) at Diamond, the aligner job can fail with a `MemoryError`. To overcome this, `xchemalign.aligner` can be run on the Diamond Slurm cluster *Wilson* using a simple bash script.
+
+---
+
+#### Creating the submission script
+
+Using a text editor, create `aligner.sh` in your working directory (`upload-current`). For example, using Vim:
+
+```bash
+vim aligner.sh
+```
+
+This will open a blank window. Press `i` to enter insert mode and paste the following script (replace the working directory path as appropriate):
+
+```bash
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=40
+#SBATCH --time=20:00:00
+#SBATCH --partition=cs05r
+#SBATCH --job-name=xchemalign_aligner
+#SBATCH --output=xchemalign_aligner.out
+#SBATCH --error=xchemalign_aligner.err
+
+source /dls/science/groups/i04-1/software/xchem-align/act
+conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
+python -m xchemalign.aligner -d /path/to/your/working/directory
+```
+
+Alternatively, if you are uploading to **staging**, use:
+
+```bash
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=40
+#SBATCH --time=20:00:00
+#SBATCH --partition=cs05r
+#SBATCH --job-name=xchemalign_aligner
+#SBATCH --output=xchemalign_aligner.out
+#SBATCH --error=xchemalign_aligner.err
+
+source /dls/science/groups/i04-1/software/xchem-align-staging/act
+conda activate /dls/science/groups/i04-1/software/xchem-align-staging/env_xchem_align
+python -m xchemalign.aligner -d /path/to/your/working/directory
+```
+
+To save and quit Vim, press `:` then type `wq`. To quit without saving, use `:q!`.
+
+#### Submitting the job
+
+Open a new terminal and log into the cluster:
+
+```bash
+ssh wilson
+```
+
+You will be prompted for your password. This connects you to the head node—**do not process data here**, as jobs may be stopped to ensure fair usage.
+
+Navigate to your working directory and submit the job:
+
+```bash
+sbatch aligner.sh
+```
+
+#### Monitoring jobs
+
+To check the status of your jobs:
+
+```bash
+watch -n 2 squeue -u <your_fedid>
+```
+
+This updates every 2 seconds and shows all jobs running under your Fed ID. Press `Ctrl+C` to exit.
+
+Once the job is running, you can safely log out using `exit`. The job will continue running in the background, and output files will appear in your working directory.
+
+#### Useful commands
+
+| Command                      | Description                                      |
+|-----------------------------|--------------------------------------------------|
+| `squeue -u <fedid>`         | List running jobs for a user                     |
+| `watch -n 2 squeue -u <fedid>` | Continuously monitor jobs (updates every 2 s) |
+| `scancel <jobID>`           | Cancel a job                                     |
+
+More information:  
+[Processing Data on the Cluster](https://www.diamond.ac.uk/Instruments/Mx/Common/Common-Manual/Data-Analysis/Processing-on-the-Cluster.html)
+
+**Note:** running jobs on the cluster may still take a long time—please be patient.
+
 ## 5. Upload to Fragalysis
 
 **Staging vs production: there are two live versions of Fragalysis. "Staging" is used for testing and is in constant development, therefore it may be buggier and/or have new features with respect to "production" which is the stable and public deployment. You should test if your upload works in staging, and verify that the data has been uploaded correctly before uploading to production. Data in staging is "at risk" as we may have to wipe the data occassionally for development reasons.**
