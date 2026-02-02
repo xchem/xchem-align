@@ -234,6 +234,7 @@ def _get_ligand_neighbourhood(
         transform = dt.Transform(
             vec=image_transform.vec.tolist(),
             mat=image_transform.mat.tolist(),
+            alignable_ids=[]
         )
         model_atoms[model_atom_id] = dt.Atom(
             element=cra.atom.element.name,
