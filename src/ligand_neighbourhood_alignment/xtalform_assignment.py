@@ -40,12 +40,12 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
     # Get the ref chain centroids
     ref_centroids = {}
     for chain in xtalform_protein_chains:
-        get_chain_centroid(ref[0][chain])
+        ref_centroids[chain] = get_chain_centroid(ref[0][chain])
 
     # Get the mov chain centroids
     mov_centroids = {}
     for chain in xtalform_protein_chains:
-        get_chain_centroid(mov[0][chain])
+        mov_centroids[chain] = get_chain_centroid(mov[0][chain])
 
     # Get the distances under symmetry and PBC
     distances = {}
