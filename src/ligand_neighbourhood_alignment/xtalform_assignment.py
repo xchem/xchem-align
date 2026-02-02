@@ -1,8 +1,80 @@
 import numpy as np
 from loguru import logger
+import gemmi
 
 from ligand_neighbourhood_alignment import dt 
 from ligand_neighbourhood_alignment.structure import _get_dataset_protein_chains
+
+def chain_to_array(chain):
+    poss = []
+    for res in chain:
+        for atom in res:
+            if atom.name != "CA":
+                continue
+            pos = atom.pos
+            poss.append(
+                [
+                    pos.x,
+                    pos.y,
+                    pos.z
+                ]
+            )
+
+    return np.array(poss)
+    ...
+
+def get_chain_centroid(chain):
+    return np.mean(chain_to_array(chain), axis=0)
+    ...
+
+def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
+    """
+    For ref each chain, get the centroid
+    For each moving chain, get the centroid
+    Get the symmetric distance from each moving chain to each reference chain
+    Get the asignment with the minimum rmsd
+    """
+
+    # Get the ref chain centroids
+    ref_centroids = {}
+    for chain in xtalform_protein_chains:
+        get_chain_centroid(ref[0][chain])
+
+    # Get the mov chain centroids
+    mov_centroids = {}
+    for chain in xtalform_protein_chains:
+        get_chain_centroid(mov[0][chain])
+
+    # Get the distances under symmetry and PBC
+    distances = {}
+    for ref_chain, ref_centroid in ref_centroids.items():
+        distances[ref_chain] = {}
+        for mov_chain, mov_centroid in mov_centroids.items():
+            nearest_image = ref.cell.find_nearest_image(
+                gemmi.Position(ref_centroid[0], ref_centroid[1], ref_centroid[2]), 
+                gemmi.Position(mov_centroid[0], mov_centroid[1], mov_centroid[2]), 
+                gemmi.Asu.Any,
+                )
+            dist = nearest_image.dist()
+            distances[ref_chain][mov_chain] = dist
+            
+    # Assign each movin chain its closest ref chain
+    assignments = {}
+    min_distances = {}
+    for ref_chain in assignments:
+        closest_chain = min(assignments[ref_chain], key=lambda x: assignments[ref_chain][x])
+        min_distances[ref_chain] = distances[ref_chain][closest_chain]
+        assignments[ref_chain] = closest_chain
+
+    if len(set(assignments.values())) != len(set(assignments.keys())):
+        print(f'ERROR! Chain assignment is {assignments}. No two chains should be modelled in the same symmetry position in the unit cell!')
+        raise Exception()
+    
+    return assignments, min_distances
+
+
+
+    ...
 
 def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structures):
     structure_spacegroup = structure.spacegroup_hm
@@ -28,6 +100,16 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         if set(dataset_protein_chains) != set(xtalform_protein_chains):
             continue
 
+        # Check if the chains align reasonably
+        chain_mapping, min_distances = get_xtalform_chain_mapping(ref_structure, structure, xtalform_protein_chains)
+
+        if not all([x == chain_mapping[x] for x in chain_mapping]):
+            continue
+
+        if not np.mean([x for x in min_distances.values()]) < 5:
+            continue
+        
+        # Get the deltas
         deltas = np.array(
             [
                 structure_cell.a / ref_structure_cell.a,
