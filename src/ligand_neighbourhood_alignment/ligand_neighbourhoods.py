@@ -343,7 +343,7 @@ def _update_ligand_neighbourhood_transforms(
         ligand_2_neighbourhood,
     ) in ligand_neighbourhoods.items():
         # See if atoms match - transform is frame 2 to frame 1
-        ca_match, transform, inverse_transform, aligned_atom_ids = _match_cas(ligand_1_neighbourhood, ligand_2_neighbourhood)
+        ca_match, transform, inverse_transform = _match_cas(ligand_1_neighbourhood, ligand_2_neighbourhood)
 
         if ca_match:
             ligand_neighbourhood_transforms[(ligand_1_id, ligand_2_id)] = transform
