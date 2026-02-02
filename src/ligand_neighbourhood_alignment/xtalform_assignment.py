@@ -9,7 +9,7 @@ def chain_to_array(chain):
     poss = []
     for res in chain:
         for atom in res:
-            if atom.name != "CA":
+            if "CA" not in atom.name:
                 continue
             pos = atom.pos
             poss.append(
@@ -24,7 +24,9 @@ def chain_to_array(chain):
     ...
 
 def get_chain_centroid(chain):
-    return np.mean(chain_to_array(chain), axis=0)
+    chain_array = chain_to_array(chain)
+    print(chain_array.shape)
+    return np.mean(chain_array, axis=0)
     ...
 
 def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
