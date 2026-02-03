@@ -677,6 +677,35 @@ def _run_upload(
         return 1
 
 
+class Uploader:
+    def __init__(
+        self,
+        *,
+        url: str,
+        proposal: str,
+        use_default: bool = False,
+        use_custom: str | None = None,
+        no_copy: bool = False,
+        retries: int = 3,
+        auth_token: str | None = None,
+    ) -> None:
+        self.url = url
+        self.proposal = proposal
+        self.auth_token = auth_token
+        self.use_default = use_default
+        self.use_custom = use_custom
+        self.no_copy = no_copy
+        self.no_copy = False  # no copying atm
+        self.retries = retries
+
+        # figure out necessary urls
+        splits = urlsplit(self.url)
+        self.base_url = f'{splits.scheme}://{splits.netloc}'
+        self.validate_url = urljoin(self.base_url, VALIDATE_URL)
+        self.upload_url = urljoin(self.base_url, UPLOAD_URL)
+        self.landing_page_url = urljoin(url, LANDING_PAGE_URL)
+
+
 def main():
     # grab the predefined urls from the environment
     fragalysis_urls = {
