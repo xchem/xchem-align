@@ -699,7 +699,8 @@ def _align_artefacts(
     # Get the artefact chains in the neighbourhood
     identity_transform = dt.Transform(
         [0.0,0.0,0.0],
-        [[1.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]]
+        [[1.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]],
+        []
     )
     identity_transform_string = dt.transform_to_string(identity_transform)
     artefact_chains = {
