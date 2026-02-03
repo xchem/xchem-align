@@ -385,6 +385,8 @@ def update(
     _save_assignments(fs_model, dataset_assignments)
     logger.info(f"Assigned {len(dataset_assignments)} xtalform assignments to datasets!")
 
+    exit()
+
     # Get neighbourhoods
     logger.info(f"Updating neighbourhoods")
     for dtag, dataset in new_datasets.items():

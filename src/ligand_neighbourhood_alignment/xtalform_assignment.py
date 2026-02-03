@@ -104,8 +104,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
 
         # Check if the chains align reasonably
         chain_mapping, min_distances = get_xtalform_chain_mapping(ref_structure, structure, xtalform_protein_chains)
-        print(chain_mapping)
-        print(min_distances)
+        print(f'Chanin mapping: {chain_mapping}')
+        print(f'Min distances: {min_distances}')
 
         if not all([x == chain_mapping[x] for x in chain_mapping]):
             print('Chain Mapping is degenerate!')
