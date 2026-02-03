@@ -14,6 +14,7 @@ import os
 import re
 import argparse
 import tarfile
+import hashlib
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 import time
@@ -74,6 +75,15 @@ AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", '')
 
 
 logger = utils.Logger()
+
+
+def calculate_sha256(filepath) -> str:
+    sha256_hash = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        # Read the file in chunks of 4096 bytes
+        for chunk in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(chunk)
+    return sha256_hash.hexdigest()
 
 
 def read_yaml(yfile):
@@ -389,6 +399,7 @@ def upload_target(
     use_default=False,
     use_custom=None,
     no_copy=False,
+    retries=3,
 ):
     # figure out necessary urls
     splits = urlsplit(url)
@@ -455,7 +466,10 @@ def upload_target(
             logger.error("You are not logged in to Fragalysis")
             return
 
+        print('val result:', validation_result.ok)
+        print(validation_result)
         result_json = validation_result.json()
+
         if validation_result.ok:
             # data validation errors
             if "success" in result_json.keys():
@@ -489,134 +503,178 @@ def upload_target(
         if upload_path and upload_path.exists():
             compress_directory(upload_path, input_file)
 
-        encoder = MultipartEncoder(
-            fields={
-                "target_access_string": proposal,
-                "file": (
-                    str(input_file),
-                    open(input_file, "rb"),
-                    "application/octet-stream",
-                ),
-            }
-        )
+        checksum = calculate_sha256(input_file)
+        # checksum = '4'
 
-        with open(input_file, "rb") as f:
-            file_size = int(f.seek(0, 2))
-            f.seek(0)
+        retry_counter = 0
+        while retry_counter < retries:
+            result = _run_upload(
+                session=session,
+                input_file=input_file,
+                filename=filename,
+                proposal=proposal,
+                checksum=checksum,
+                base_url=base_url,
+                upload_url=upload_url,
+                validation_data=validation_data,
+                inputs_path=inputs_path,
+                retries=retries,
+                no_copy=no_copy,
+            )
+            retry_counter = retry_counter + result
 
-            def callback(monitor):
-                pbar.update(monitor.bytes_read - pbar.n)
 
-            monitor = MultipartEncoderMonitor(encoder, callback)
+# TODO, use a class, enough is enough
+def _run_upload(
+    *,
+    session,
+    input_file,
+    filename,
+    proposal,
+    checksum,
+    base_url,
+    upload_url,
+    validation_data,
+    inputs_path,
+    retries,
+    no_copy,
+) -> int:
+    encoder = MultipartEncoder(
+        fields={
+            "target_access_string": proposal,
+            "sha256checksum": checksum,
+            "file": (
+                str(input_file),
+                open(input_file, "rb"),
+                "application/octet-stream",
+            ),
+        }
+    )
 
-            session.headers.update({"Content-Type": monitor.content_type})
+    with open(input_file, "rb") as f:
+        file_size = int(f.seek(0, 2))
+        f.seek(0)
 
-            with tqdm(total=file_size, unit="B", unit_scale=True, desc='Uploading') as pbar:
-                try:
-                    response = session.post(
-                        upload_url,
-                        data=monitor,
-                    )
-                except ConnectionError as exc:
-                    logger.info('Connection closed by server')
-                    return
+        def callback(monitor):
+            pbar.update(monitor.bytes_read - pbar.n)
 
-        if response.ok:
-            # not quite there yet
+        monitor = MultipartEncoderMonitor(encoder, callback)
+
+        session.headers.update({"Content-Type": monitor.content_type})
+
+        with tqdm(total=file_size, unit="B", unit_scale=True, desc='Uploading') as pbar:
             try:
-                jresp = response.json()
-                # and once more
-                try:
-                    task_status_url = jresp["task_status_url"]
-                    logger.info(f"task_status_url={urljoin(base_url, task_status_url)}")
-                except KeyError:
-                    logger.error('Server response does not contain task url')
-                    return
-            except JSONDecodeError:
-                # I have occasionally observed it, but don't know how
-                # to force it for debugging
-                logger.error('Server response does not contain json payload')
+                response = session.post(
+                    upload_url,
+                    data=monitor,
+                )
+            except ConnectionError as exc:
+                logger.info('Connection closed by server')
                 return
 
-            # should get back "task_status_url" in response. keep polling for updates
-            task_status = {}
-            count = 0
-            status_url = urljoin(base_url, task_status_url)
-            finished = False
-            errors = []
+    if response.ok:
+        # not quite there yet
+        try:
+            jresp = response.json()
+            # and once more
+            try:
+                task_status_url = jresp["task_status_url"]
+                logger.info(f"task_status_url={urljoin(base_url, task_status_url)}")
+            except KeyError:
+                logger.error('Server response does not contain task url')
+                return
+        except JSONDecodeError:
+            # I have occasionally observed it, but don't know how
+            # to force it for debugging
+            logger.error('Server response does not contain json payload')
+            return
 
-            logger.info(f'{filename} uploaded, processing:')
-            # messages are appended to task as list, keep track on
-            # what's already been displayied
-            last_msg = ''
-            while True:
-                # ping the task url endpoint for a while and print the messages
-                status = session.get(status_url)
-                # print('ping', status.json())
+        # should get back "task_status_url" in response. keep polling for updates
+        task_status = {}
+        count = 0
+        status_url = urljoin(base_url, task_status_url)
+        finished = False
+        errors = []
 
-                count = count + 1
-                try:
-                    statjson = status.json()
-                except JSONDecodeError:
-                    continue
+        logger.info(f'{filename} uploaded, processing:')
+        # messages are appended to task as list, keep track on
+        # what's already been displayied
+        last_msg = ''
+        while True:
+            # ping the task url endpoint for a while and print the messages
+            status = session.get(status_url)
+            # print('ping', status.json())
 
-                if task_status != statjson:
-                    # reset the counter when status changes
-                    count = 0
-                    task_status = statjson
-                    msg = task_status.get("messages", None)
-                    if isinstance(msg, list):
-                        # only print messages that have not been printed yet
-                        last_idx = -1
-                        for i, val in enumerate(reversed(msg)):
-                            if val == last_msg:
-                                last_idx = len(msg) - 1 - i
-                                break
+            count = count + 1
+            try:
+                statjson = status.json()
+            except JSONDecodeError:
+                continue
 
-                        for m in msg[last_idx + 1 :]:
-                            logger.log(m, level=-1)
-                            if m.startswith('ERROR'):
-                                errors.append(m)
-                        last_msg = m
-                    else:
-                        logger.info(f'{task_status.get("status", "")}: {msg}')
-                    if task_status in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
-                        finished = True
-                        break
+            if task_status != statjson:
+                # reset the counter when status changes
+                count = 0
+                task_status = statjson
+                msg = task_status.get("messages", None)
+                if isinstance(msg, list):
+                    # only print messages that have not been printed yet
+                    last_idx = -1
+                    for i, val in enumerate(reversed(msg)):
+                        if val == last_msg:
+                            last_idx = len(msg) - 1 - i
+                            break
 
-                if statjson.get("ready", False) is True:
-                    # if task complete, quit
-                    finished = True
-                    break
-                if statjson.get("status", "") in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
-                    # if task complete, quit
-                    finished = True
-                    break
-                if count > 100:
-                    # if no changes for {randomly selected number of pings}, quit
-                    logger.info('No changes in 100 pings, quitting')
-                    break
-
-                time.sleep(1)
-
-            if finished:
-                if errors:
-                    logger.log(f'The following errors were encountered when processing {filename}:', level=-1)
-                    for e in errors:
-                        logger.log(e, level=-1)
+                    for m in msg[last_idx + 1 :]:
+                        logger.log(m, level=-1)
+                        if m.startswith('ERROR'):
+                            errors.append(m)
+                    last_msg = m
                 else:
-                    # successful upload
-                    if not no_copy:
-                        # because default is to copy
-                        copy_inputs(
-                            base_dir, inputs, ref_datasets, inputs_path  # pylint: disable=used-before-assignment
-                        )
-                        object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
-                        upload_to_s3(inputs_path, object_key=object_key)
+                    logger.info(f'{task_status.get("status", "")}: {msg}')
+                if task_status in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
+                    finished = True
+                    break
 
-        else:
-            # upload response else, failure
-            logger.error("Upload failed: error {}, {}".format(response.status_code, response.reason))
+            if statjson.get("ready", False) is True:
+                # if task complete, quit
+                finished = True
+                break
+            if statjson.get("status", "") in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
+                # if task complete, quit
+                finished = True
+                break
+            if count > 100:
+                # if no changes for {randomly selected number of pings}, quit
+                logger.info('No changes in 100 pings, quitting')
+                break
+
+            time.sleep(1)
+
+        if finished:
+            if errors:
+                logger.log(f'The following errors were encountered when processing {filename}:', level=-1)
+                for e in errors:
+                    logger.log(e, level=-1)
+            else:
+                # successful upload
+                if not no_copy:
+                    # because default is to copy
+                    copy_inputs(
+                        base_dir, inputs, ref_datasets, inputs_path  # pylint: disable=undefined-variable
+                    )  # pylint: disable=used-before-assignment
+                    object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
+                    upload_to_s3(inputs_path, object_key=object_key)
+
+        return retries
+
+    else:
+        # upload response else, failure
+        print(response)
+        print(response.text)
+        print(response.reason)
+        logger.error("Upload failed: error {}, {}".format(response.status_code, response.reason))
+        # TODO: different error codes for situations, broken upload is the only one worth retrying
+        return 1
 
 
 def main():
@@ -683,7 +741,14 @@ def main():
         action="store_true",
         help="Skip the target upload and only upload XCA input data",
     )
-
+    parser.add_argument(
+        "--max-retries",
+        default=3,
+        type=int,
+        required=False,
+        metavar="N",
+        help="Retry broken download N times",
+    )
     args = parser.parse_args()
 
     if args.upload_inputs:
@@ -702,6 +767,7 @@ def main():
             use_default=args.use_default,
             use_custom=args.use_custom,
             no_copy=args.no_copy,
+            retries=args.max_retries,
         )
 
 
