@@ -139,7 +139,7 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         xtalform_deltas[xtalform_id] = deltas
 
     if len(xtalform_deltas) == 0:
-        return None, None, None, None
+        return None, None, all_mappings, all_distances
 
     closest_xtalform = min(
         xtalform_deltas,
