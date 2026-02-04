@@ -87,6 +87,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
 
     xtalform_deltas = {}
 
+    all_distances = {}
+    all_mappings = {}
     for xtalform_id, xtalform in xtalforms.items():
         ref_structure = structures[xtalform.reference]
         ref_spacegroup = ref_structure.spacegroup_hm
@@ -110,6 +112,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         chain_mapping, min_distances = get_xtalform_chain_mapping(ref_structure, structure, xtalform_protein_chains)
         print(f'Chanin mapping: {chain_mapping}')
         print(f'Min distances: {min_distances}')
+        all_mappings[xtalform_id] = chain_mapping
+        all_distances[xtalform_id] = min_distances
 
         if not all([x == chain_mapping[x] for x in chain_mapping]):
             print('Chain Mapping is degenerate!')
@@ -142,13 +146,13 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         key=lambda _xtalform_id: np.sum(np.abs(xtalform_deltas[_xtalform_id] - 1)),
     )
 
-    return closest_xtalform, xtalform_deltas[closest_xtalform]
+    return closest_xtalform, xtalform_deltas[closest_xtalform], all_mappings, all_distances
 
 
 
 
 def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
-    closest_xtalform_id, deltas = _get_closest_xtalform(
+    closest_xtalform_id, deltas, all_mappings, all_distances = _get_closest_xtalform(
         xtalforms,
         structure,
         structures,
@@ -157,6 +161,8 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
     if (closest_xtalform_id is None) & (deltas is None):
         logger.info(f"No reference in same spacegroup as: {dataset.dtag}")
         logger.info(f"Structure path is: {dataset.pdb}")
+        print(all_mappings)
+        print(all_distances)
         raise Exception(f"No reference in same spacegroup as: {dataset.dtag}\nStructure path is: {dataset.pdb}")
 
     if np.any(deltas > 1.1) | np.any(deltas < 0.9):
