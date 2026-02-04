@@ -2,6 +2,7 @@ import numpy as np
 from loguru import logger
 import gemmi
 from rich import print as print
+import itertools
 
 from ligand_neighbourhood_alignment import dt 
 from ligand_neighbourhood_alignment.structure import _get_dataset_protein_chains
@@ -42,14 +43,25 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
     ref_centroids = {}
     for chain in xtalform_protein_chains:
         ref_centroids[chain] = get_chain_centroid(ref[0][chain])
+        assert ref_centroids[chain].size == 3
 
     # Get the mov chain centroids
     mov_centroids = {}
+    # Get an alignment based on the first chain
+    ref_poly = ref[0][xtalform_protein_chains[0]].get_polymer()
+    mov_poly = mov[0][xtalform_protein_chains[0]].get_polymer()
+    sup = gemmi.calculate_superposition(ref_poly, mov_poly, )
+    
     for chain in xtalform_protein_chains:
-        mov_centroids[chain] = get_chain_centroid(mov[0][chain])
+        transformed_chain = mov[0][chain].get_polymer().transform_pos_and_adp(sup.transform)
+
+        mov_centroids[chain] = get_chain_centroid(transformed_chain)
+        assert mov_centroids[chain].size == 3
 
     # Get the distances under symmetry and PBC
     distances = {}
+    # for indexing in itertools.product([-1, 1], [-1, 1], [-1])
+
     for ref_chain, ref_centroid in ref_centroids.items():
         distances[ref_chain] = {}
         for mov_chain, mov_centroid in mov_centroids.items():
@@ -114,7 +126,11 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             continue
 
         # Check if the chains align reasonably
-        chain_mapping, min_distances, ref_centroids, mov_centroids = get_xtalform_chain_mapping(ref_structure, structure, xtalform_protein_chains)
+        chain_mapping, min_distances, ref_centroids, mov_centroids = get_xtalform_chain_mapping(
+            ref_structure, 
+            structure, 
+            xtalform_protein_chains,
+            )
         print(f'Chanin mapping: {chain_mapping}')
         print(f'Min distances: {min_distances}')
         all_mappings[xtalform_id] = chain_mapping
