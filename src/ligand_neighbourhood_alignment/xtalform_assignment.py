@@ -1,6 +1,7 @@
 import numpy as np
 from loguru import logger
 import gemmi
+from rich import print as print
 
 from ligand_neighbourhood_alignment import dt 
 from ligand_neighbourhood_alignment.structure import _get_dataset_protein_chains
@@ -116,6 +117,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         print(f'Min distances: {min_distances}')
         all_mappings[xtalform_id] = chain_mapping
         all_distances[xtalform_id] = min_distances
+        all_ref_centroids[xtalform_id] = ref_centroids
+        all_mov_centroids[xtalform_id] = mov_centroids
 
         if not all([x == chain_mapping[x] for x in chain_mapping]):
             print('Chain Mapping is degenerate!')
@@ -141,7 +144,7 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         xtalform_deltas[xtalform_id] = deltas
 
     if len(xtalform_deltas) == 0:
-        return None, None, all_mappings, all_distances, ref_centroids, mov_centroids
+        return None, None, all_mappings, all_distances, all_ref_centroids, all_mov_centroids
 
     closest_xtalform = min(
         xtalform_deltas,
@@ -163,11 +166,16 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
     if (closest_xtalform_id is None) & (deltas is None):
         logger.info(f"No reference in same spacegroup as: {dataset.dtag}")
         logger.info(f"Structure path is: {dataset.pdb}")
+        print('# All chain mappings')
         print(all_mappings)
+        print('# All Distances')
         print(all_distances)
+        print('# All ref centroids')
         print(all_ref_centroids)
+        print('# All mov centroids')
         print(all_mov_centroids)
-        print(structure.spacegroup_hm)
+        print(f'# Dataset spacegroup: {structure.spacegroup_hm}')
+        print('# Xtalform spacegroups')
         print(
             {
             xtalform_id: structures[xtalform.reference].spacegroup_hm
