@@ -75,7 +75,7 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
         print(f'ERROR! Chain assignment is {assignments}. No two chains should be modelled in the same symmetry position in the unit cell!')
         raise Exception()
     
-    return assignments, min_distances
+    return assignments, min_distances, ref_centroids, mov_centroids
 
 
 
@@ -89,6 +89,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
 
     all_distances = {}
     all_mappings = {}
+    all_ref_centroids = {}
+    all_mov_centroids = {}
     for xtalform_id, xtalform in xtalforms.items():
         ref_structure = structures[xtalform.reference]
         ref_spacegroup = ref_structure.spacegroup_hm
@@ -109,7 +111,7 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             continue
 
         # Check if the chains align reasonably
-        chain_mapping, min_distances = get_xtalform_chain_mapping(ref_structure, structure, xtalform_protein_chains)
+        chain_mapping, min_distances, ref_centroids, mov_centroids = get_xtalform_chain_mapping(ref_structure, structure, xtalform_protein_chains)
         print(f'Chanin mapping: {chain_mapping}')
         print(f'Min distances: {min_distances}')
         all_mappings[xtalform_id] = chain_mapping
@@ -139,20 +141,20 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         xtalform_deltas[xtalform_id] = deltas
 
     if len(xtalform_deltas) == 0:
-        return None, None, all_mappings, all_distances
+        return None, None, all_mappings, all_distances, ref_centroids, mov_centroids
 
     closest_xtalform = min(
         xtalform_deltas,
         key=lambda _xtalform_id: np.sum(np.abs(xtalform_deltas[_xtalform_id] - 1)),
     )
 
-    return closest_xtalform, xtalform_deltas[closest_xtalform], all_mappings, all_distances
+    return closest_xtalform, xtalform_deltas[closest_xtalform], all_mappings, all_ref_centroids, all_mov_centroids
 
 
 
 
 def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
-    closest_xtalform_id, deltas, all_mappings, all_distances = _get_closest_xtalform(
+    closest_xtalform_id, deltas, all_mappings, all_distances, all_ref_centroids, all_mov_centroids = _get_closest_xtalform(
         xtalforms,
         structure,
         structures,
@@ -163,6 +165,15 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
         logger.info(f"Structure path is: {dataset.pdb}")
         print(all_mappings)
         print(all_distances)
+        print(all_ref_centroids)
+        print(all_mov_centroids)
+        print(structure.spacegroup_hm)
+        print(
+            {
+            xtalform_id: structures[xtalform.reference].spacegroup_hm
+            for xtalform_id, xtalform in xtalforms.items()
+        }
+        )
         raise Exception(f"No reference in same spacegroup as: {dataset.dtag}\nStructure path is: {dataset.pdb}")
 
     if np.any(deltas > 1.1) | np.any(deltas < 0.9):
