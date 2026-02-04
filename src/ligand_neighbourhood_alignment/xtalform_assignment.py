@@ -148,7 +148,7 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         key=lambda _xtalform_id: np.sum(np.abs(xtalform_deltas[_xtalform_id] - 1)),
     )
 
-    return closest_xtalform, xtalform_deltas[closest_xtalform], all_mappings, all_ref_centroids, all_mov_centroids
+    return closest_xtalform, xtalform_deltas[closest_xtalform], all_mappings, all_distances, all_ref_centroids, all_mov_centroids
 
 
 
