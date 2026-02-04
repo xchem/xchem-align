@@ -64,7 +64,10 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
     assignments = {}
     min_distances = {}
     for ref_chain in xtalform_protein_chains:
-        closest_chain = min(assignments[ref_chain], key=lambda x: assignments[ref_chain][x])
+        closest_chain = min(
+            distances[ref_chain], 
+            key=lambda x: distances[ref_chain][x],
+            )
         min_distances[ref_chain] = distances[ref_chain][closest_chain]
         assignments[ref_chain] = closest_chain
 
