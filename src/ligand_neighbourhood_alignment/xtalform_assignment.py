@@ -188,10 +188,13 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
     )
 
     if (closest_xtalform_id is None) & (deltas is None):
-        logger.info(f"No reference for: {dataset.dtag}")
-        logger.info(f"Structure path is: {dataset.pdb}")
-        
-        logger.info(
+        xtalform_info = {
+            xtalform_id: structures[xtalform.reference].spacegroup_hm
+            for xtalform_id, xtalform in xtalforms.items()
+        }
+        message = (
+            f"No reference for: {dataset.dtag}\n"
+            f"Structure path is: {dataset.pdb}\n"
             'Usually the best solution is to create a new crystalform with this dataset as a reference.\n'
             'However there -are- several possible problems:\n'
             '1. There is a genuine missing crystalform - for example none with the same spacegroup\n'
@@ -202,26 +205,21 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
             '   In particular if after alignment on one chain -other- chains are not in approximately\n' \
             '   the same place as their counterparts in a reference. This can be diagnosed by comparing\n' \
             '   seeing if all chains map to themselves in the "# All chain mappings" entry below. This can\n' \
-            '   be fixed by renaming chains in this dataset or removing this dataset.'
-            )
-        logger.info('# Diagnostic Information for someone who knows what they are doing:')
-        logger.info('# All chain mappings')
-        logger.info(all_mappings)
-        logger.info('# All Distances')
-        logger.info(all_distances)
-        logger.info('# All ref centroids')
-        logger.info(all_ref_centroids)
-        logger.info('# All mov centroids')
-        logger.info(all_mov_centroids)
-        logger.info(f'# Dataset spacegroup: {structure.spacegroup_hm}')
-        logger.info('# Xtalform spacegroups')
-        logger.info(
-            {
-            xtalform_id: structures[xtalform.reference].spacegroup_hm
-            for xtalform_id, xtalform in xtalforms.items()
-        }
+            '   be fixed by renaming chains in this dataset or removing this dataset.\n'
+            '# Diagnostic Information for someone who knows what they are doing:\n'
+            '# All chain mappings\n'
+            f'{all_mappings}\n'
+            '# All Distances\n'
+            f'{all_distances}\n'
+            '# All ref centroids\n'
+            f'{all_ref_centroids}\n'
+            '# All mov centroids\n'
+            f'{all_mov_centroids}\n'
+            f'# Dataset spacegroup: {structure.spacegroup_hm}\n'
+            '# Xtalform spacegroups\n'
+            f'{xtalform_info}\n'
         )
-        raise Exception(f"No reference in same spacegroup as: {dataset.dtag}\nStructure path is: {dataset.pdb}")
+        raise Exception(message)
 
     if np.any(deltas > 1.1) | np.any(deltas < 0.9):
         logger.info(f"No reference for dataset: {dataset.dtag}")
