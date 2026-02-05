@@ -193,6 +193,7 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
             for xtalform_id, xtalform in xtalforms.items()
         }
         message = (
+            f'####### ERROR IN ASSIGNING DATASET TO XTALFORM ########'
             f"No reference for: {dataset.dtag}\n"
             f"Structure path is: {dataset.pdb}\n"
             'Usually the best solution is to create a new crystalform with this dataset as a reference.\n'
