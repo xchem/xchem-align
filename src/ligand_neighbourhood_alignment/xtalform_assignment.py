@@ -58,7 +58,8 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
         )
     
     for chain in xtalform_protein_chains:
-        transformed_chain = mov[0][chain].get_polymer().transform_pos_and_adp(sup.transform)
+        transformed_chain = mov[0][chain].get_polymer().clone()
+        transformed_chain.transform_pos_and_adp(sup.transform)
 
         mov_centroids[chain] = get_chain_centroid(transformed_chain)
         assert mov_centroids[chain].size == 3
