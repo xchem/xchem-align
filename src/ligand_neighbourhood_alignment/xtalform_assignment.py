@@ -47,10 +47,15 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
 
     # Get the mov chain centroids
     mov_centroids = {}
-    # Get an alignment based on the first chain
+    # Get an alignment based on the first chain (should get around indexing choice!)
     ref_poly = ref[0][xtalform_protein_chains[0]].get_polymer()
     mov_poly = mov[0][xtalform_protein_chains[0]].get_polymer()
-    sup = gemmi.calculate_superposition(ref_poly, mov_poly, )
+    sup = gemmi.calculate_superposition(
+        ref_poly, 
+        mov_poly, 
+        ref_poly.check_polymer_type(), 
+        gemmi.SupSelect.CaP,
+        )
     
     for chain in xtalform_protein_chains:
         transformed_chain = mov[0][chain].get_polymer().transform_pos_and_adp(sup.transform)
