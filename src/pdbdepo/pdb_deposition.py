@@ -9,6 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
 
 import argparse
 import bz2
@@ -258,13 +259,19 @@ def process_input(
                                             stats_item_reflns_shell = item
 
                         existing_software_loop_item = find_loop_item(structure_cif_block0, '_software')
+
+                        dimple_ver = read_phasing_software(xtal_in_path)
+
                         if existing_software_loop_item is None:
                             info('structure software loop not found')
                         elif stats_item_software is None:
                             info('stats software loop not found')
                         else:
-                            merge_loops(
-                                existing_software_loop_item.loop, stats_item_software.loop, structure_cif_block0
+                            merge_software_loops(
+                                existing_software_loop_item.loop,
+                                stats_item_software.loop,
+                                dimple_ver,
+                                structure_cif_block0,
                             )
 
                         if stats_pair_reflns:
@@ -374,13 +381,19 @@ def combine_diffrn_loops(collection_info_item: cif.Item, tags_list: list, values
         new_loop.add_row(values)
 
 
-def merge_loops(loop1: cif.Loop, loop2: cif.Loop, into: cif.Block):
+def merge_software_loops(loop1: cif.Loop, loop2: cif.Loop, dimple_ver, into: cif.Block):
     d = OrderedDict()
     for tag in loop1.tags:
         d[tag] = []
     for tag in loop2.tags:
         if tag not in d:
             d[tag] = []
+
+    d['_software.pdbx_ordinal'].append('1')
+    d['_software.classification'].append('phasing')
+    d['_software.name'].append('DIMPLE')
+    d['_software.version'].append(dimple_ver)
+
     num_rows1 = int(len(loop1.values) / len(loop1.tags))
     num_values = num_rows1
     expanded_tags1 = []
@@ -412,6 +425,8 @@ def merge_loops(loop1: cif.Loop, loop2: cif.Loop, into: cif.Block):
             for i, k in enumerate(values):
                 values[i] = str(i + 1)
 
+    print(d)
+
     new_loop = into.init_loop('', list(d.keys()))
     for i in range(num_values):
         values = []
@@ -432,28 +447,62 @@ def read_buster_structure(mmcif):
     return doc
 
 
+def read_phasing_software(xtal_dir):
+    dimple_log_file_path = Path(xtal_dir) / 'dimple/dimple/dimple.log'
+    dimple_ver = None
+    if dimple_log_file_path.is_file():
+        with open(dimple_log_file_path, 'rt') as dimple:
+            looking = False
+            for line in dimple:
+                line = line.strip()
+                if looking:
+                    match = re.search(r'^version:\s+([\d\.]+)$', line)
+                    if match:
+                        print('found dimple version', match.group(1))
+                        dimple_ver = match.group(1)
+                        break
+                    match = re.search(r'^\[\w+\]$', line)
+                    if match:
+                        LOG.info('dimple version not found')
+                        break
+                else:
+                    if line == '[workflow]':
+                        looking = True
+
+    else:
+        LOG.warn('dimple log file not found:', str(dimple_log_file_path))
+
+    return dimple_ver
+
+
 def read_refmac_structure(pdb):
-    # this next big adds a missing TER line that is needed for correct conversion to MMCIF
-    lines = []
-    with open(pdb, 'r') as infile:
-        previous_line_was_atom_or_anisou = False
-        for line in infile:
-            is_atom_or_anisou = line.startswith('ATOM') or line.startswith('ANISOU')
-            is_hetatm = line.startswith('HETATM')
+    struc = gemmi.read_pdb(str(pdb), ignore_ter=True)
+    struc.setup_entities()
+    return struc.make_mmcif_document()
 
-            if is_hetatm and previous_line_was_atom_or_anisou:
-                lines.append('TER\n')
 
-            if not line.startswith('TER'):
-                lines.append(line)
-
-            previous_line_was_atom_or_anisou = is_atom_or_anisou
-
-    # now convert to MMCIF
-    struc = gemmi.read_pdb_string(''.join(lines))
-    doc = struc.make_mmcif_document()
-    scrape_pdb_stats.run(str(pdb), doc)
-    return doc
+# def read_refmac_structure(pdb):
+#     # this next big adds a missing TER line that is needed for correct conversion to MMCIF
+#     lines = []
+#     with open(pdb, 'r') as infile:
+#         previous_line_was_atom_or_anisou = False
+#         for line in infile:
+#             is_atom_or_anisou = line.startswith('ATOM') or line.startswith('ANISOU')
+#             is_hetatm = line.startswith('HETATM')
+#
+#             if is_hetatm and previous_line_was_atom_or_anisou:
+#                 lines.append('TER\n')
+#
+#             if not line.startswith('TER'):
+#                 lines.append(line)
+#
+#             previous_line_was_atom_or_anisou = is_atom_or_anisou
+#
+#     # now convert to MMCIF
+#     struc = gemmi.read_pdb_string(''.join(lines))
+#     doc = struc.make_mmcif_document()
+#     scrape_pdb_stats.run(str(pdb), doc)
+#     return doc
 
 
 def create_pairs(data: dict, prefix: str, block: cif.Block):
@@ -508,6 +557,7 @@ def main():
 
     args = parser.parse_args()
     LOG = utils.Logger(logfile=args.log_file, level=args.log_level)
+
     utils.LOG = LOG
     scrape_processing_stats.LOG = LOG
     merge_sf.LOG = LOG
