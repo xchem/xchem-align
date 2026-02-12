@@ -23,6 +23,8 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import subprocess
 from tempfile import TemporaryDirectory
+from typing import Any
+from abc import ABC, abstractmethod
 
 from tqdm import tqdm
 import boto3
@@ -48,33 +50,19 @@ from .copier import handle_inputs
 
 # for compression
 NUM_PROCESSES = max(1, os.cpu_count() - 1)
-
-LOGIN_URL = "/accounts/login/"
-VALIDATE_URL = "/api/validate_target_experiments/"
-UPLOAD_URL = "/api/upload_target_experiments/"
-LANDING_PAGE_URL = '/viewer/react/landing/'
-
-# used to find the url from env variables
-FRAGALYSIS_URL_PREFIX = "XCHEMALIGN_FRAGALYSIS_URL_"
-
-DEFAULT_TARBALL_TEMPLATE = "{target}_v{version}_{upload_no}_{date}.tgz"
-DEFAULT_INPUTS_TEMPLATE = "{target}_v{version}_{upload_no}_{date}_inputs.tgz"
-
-
-DATA_DIR = "upload-current"
+AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", '')
 
 
 # this needs to be kept more or less up to date
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-# USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0"
-
-META_ALIGNER = 'meta_aligner.yaml'
-CONFIG_FILE = "config.yaml"
-
-AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", '')
 
 
-logger = utils.Logger()
+logger = utils.LOG
+
+
+def compile_stack_urls(url_prefix: str) -> dict[str, str]:
+    """Extract available stack urls from env variables"""
+    return {key[len(url_prefix) :].lower(): value for key, value in os.environ.items() if key.startswith(url_prefix)}
 
 
 def calculate_sha256(filepath) -> str:
@@ -91,71 +79,6 @@ def read_yaml(yfile):
         return yaml.safe_load(yfile.read())
     except ParserError as exc:
         raise ParserError(f"{yfile.name} is not a valid YAML file") from exc
-
-
-def get_validation_files_from_tarball(input_file):
-    with tarfile.open(input_file, 'r') as tar:
-        try:
-            metafile = next(filter(re.compile(f'upload_\d+/{META_ALIGNER}').match, tar.getnames()))
-        except StopIteration:
-            raise FileNotFoundError(f"'{META_ALIGNER}' not found in the tarball")
-
-        extracted_meta = tar.extractfile(metafile)
-        if not extracted_meta:
-            raise ValueError(f"Failed to extract '{META_ALIGNER}' from the tarball")
-
-        try:
-            configfile = next(filter(re.compile(f'upload_\d+/{CONFIG_FILE}').match, tar.getnames()))
-        except StopIteration:
-            raise FileNotFoundError(f"'{CONFIG_FILE}' not found in the tarball")
-
-        extracted_config = tar.extractfile(configfile)
-        if not extracted_config:
-            raise ValueError(f"Failed to extract '{CONFIG_FILE}' from the tarball")
-
-        meta = read_yaml(extracted_meta)
-        config = read_yaml(extracted_config)
-
-    return meta, config
-
-
-def get_validation_files_from_fs(upload_path):
-    meta_path = upload_path.joinpath(META_ALIGNER)
-    if not meta_path.exists():
-        raise FileNotFoundError(f"'{META_ALIGNER}' not found")
-
-    config_path = upload_path.joinpath(CONFIG_FILE)
-    if not config_path.exists():
-        raise FileNotFoundError(f"'{CONFIG_FILE}' not found")
-
-    with open(str(meta_path), "r") as meta_file, open(str(config_path), "r") as config_file:
-        meta = read_yaml(meta_file)
-        config = read_yaml(config_file)
-
-    return meta, config
-
-
-def get_validation_data(meta, config):
-    try:
-        data_version = meta["data_format_version"]
-    except KeyError as exc:
-        raise KeyError(f"Key 'data_format_version' missing from {META_ALIGNER}") from exc
-
-    try:
-        target_name = config["target_name"]
-    except KeyError as exc:
-        raise KeyError(f"Key 'target_name' missing from {CONFIG_FILE}") from exc
-
-    try:
-        upload_version = meta["version_number"]
-    except KeyError as exc:
-        raise KeyError(f"Key 'version_number' missing from {META_ALIGNER}") from exc
-
-    return {
-        'data_version': data_version,
-        'target_name': target_name,
-        'upload_version': upload_version,
-    }
 
 
 def count_files(directory):
@@ -250,94 +173,6 @@ def compress_directory(upload_path, tarball_path):
     logger.info(f"Tarball saved at: {tarball_path}")
 
 
-def get_upload_file(use_default=False, use_custom=None):
-    # figure out data to upload. 3 options, create on the fly, use
-    # existing or use custom
-    upload_path = None
-    inputs_path = None
-    if use_custom:
-        tarball_path = use_custom
-        meta, config = get_validation_files_from_tarball(tarball_path)
-        validation_data = get_validation_data(meta, config)
-    else:
-        # no custom filename means I need to figure it out and that
-        # means looking at the files in the fs
-
-        # uploader can be run from 3 places
-        root_path = Path(DATA_DIR).absolute()
-        if not root_path.exists():
-            if root_path.parent.name == DATA_DIR:
-                root_path = root_path.parent
-            elif root_path.parent.parent.name == DATA_DIR:
-                root_path = root_path.parent.parent
-
-        if not root_path.exists():
-            raise FileNotFoundError("xca.uploader ran from unexpected location")
-
-        try:
-            # get the last 'upload_x' folder
-            *_, upload_path = root_path.glob("upload_*")
-        except ValueError:
-            raise FileNotFoundError("Upload directory not found")
-
-        meta, config = get_validation_files_from_fs(upload_path)
-        validation_data = get_validation_data(meta, config)
-        upload_dir = upload_path.parts[-1]
-
-        try:
-            target_name = config["target_name"]
-        except KeyError as exc:
-            raise KeyError(f"'target_name' attribute missing from {CONFIG_FILE}") from exc
-
-        tarball_path = root_path.joinpath(
-            DEFAULT_TARBALL_TEMPLATE.format(
-                target=target_name,
-                version=validation_data["data_version"],
-                upload_no=upload_dir,
-                date=datetime.datetime.today().strftime('%Y-%m-%d'),
-            )
-        )
-        inputs_path = root_path.joinpath(
-            DEFAULT_INPUTS_TEMPLATE.format(
-                target=target_name,
-                version=validation_data["data_version"],
-                upload_no=upload_dir,
-                date=datetime.datetime.today().strftime('%Y-%m-%d'),
-            )
-        )
-
-        if use_default:
-            if not tarball_path.exists():
-                raise FileNotFoundError(f"Tarball {str(tarball_path)} not found")
-
-        # at this point, the decision is that a new tarball needs to
-        # be created. but don't do it just yet, first run a validation
-
-    return upload_path, tarball_path, validation_data, config, inputs_path
-
-
-def get_copy_inputs(config):
-    try:
-        base_dir = config["base_dir"]
-    except KeyError as exc:
-        raise KeyError(f"Key 'base_dir' missing from {CONFIG_FILE}") from exc
-
-    ref_datasets = config.get(utils.Constants.CONFIG_REF_DATASETS, [])
-    inputs = config.get(utils.Constants.CONFIG_INPUTS)
-
-    return base_dir, inputs, ref_datasets
-
-
-def copy_inputs(base_dir, inputs, ref_datasets, inputs_path):
-    with TemporaryDirectory() as tempdir:
-        compressible_tempdir = Path(tempdir).joinpath("inputs")
-        try:
-            handle_inputs(base_dir, inputs, ref_datasets, str(compressible_tempdir), logger)
-        except Exception as exc:
-            logger.error(f"Error copying inputs: {exc.args}")
-        compress_directory(compressible_tempdir, inputs_path)
-
-
 def upload_to_s3(tarball_path, object_key=""):
     logger.info("Uploading to s3")
 
@@ -367,119 +202,220 @@ def upload_to_s3(tarball_path, object_key=""):
     progress.close()
 
 
-def upload_inputs():
-    print("Uploading inputs")
-    try:
-        _, _, validation_data, config_file, inputs_path = get_upload_file()
-    except (FileNotFoundError, ValueError, KeyError) as exc:
-        # TODO: error formatting
-        logger.error(exc.args)
-        return
-
-    # TODO: a possibility to check with the fragalysis whether the
-    # target upload was successful. This will require target name and
-    # upload version from validation_data (returned by
-    # get_upload_file()). what I dont't have here atm, is the stack
-    # url, if going to check this, this parameter must be made
-    # available from cli
-
-    object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
-
-    if not inputs_path.is_file():
-        base_dir, inputs, ref_datasets = get_copy_inputs(config_file)
-        copy_inputs(base_dir, inputs, ref_datasets, inputs_path)
-
-    upload_to_s3(inputs_path, object_key=object_key)
+class AuthenticationError(Exception):
+    pass
 
 
-def upload_target(
-    url,
-    proposal,
-    auth_token=None,
-    use_default=False,
-    use_custom=None,
-    no_copy=False,
-    retries=3,
-):
-    # figure out necessary urls
-    splits = urlsplit(url)
-    base_url = f'{splits.scheme}://{splits.netloc}'
-    validate_url = urljoin(base_url, VALIDATE_URL)
-    upload_url = urljoin(base_url, UPLOAD_URL)
-    landing_page_url = urljoin(url, LANDING_PAGE_URL)
+class ValidationError(Exception):
+    pass
 
-    # NB! disabling upload for now:
-    no_copy = True
 
-    try:
-        upload_path, input_file, validation_data, config_file, inputs_path = get_upload_file(
-            use_default=use_default,
-            use_custom=use_custom,
-        )
-    except (FileNotFoundError, ValueError, KeyError) as exc:
-        # TODO: error formatting
-        logger.error(exc.args)
-        # logger.error(exc.args[0])
-        return
+class FileTransferError(Exception):
+    pass
 
-    if not no_copy:
-        base_dir, inputs, ref_datasets = get_copy_inputs(config_file)
 
-    filename = Path(input_file).name
+class RetryLimitReachedError(Exception):
+    pass
 
-    with requests.Session() as session:
-        session.headers.update(
+
+class StatusError(Exception):
+    pass
+
+
+class DataSource(ABC):
+    META_ALIGNER_FILE = 'meta_aligner.yaml'
+    CONFIG_FILE = "config.yaml"
+
+    DEFAULT_TARBALL_TEMPLATE = "{target}_v{version}_{upload_no}_{date}.tgz"
+    DEFAULT_INPUTS_TEMPLATE = "{target}_v{version}_{upload_no}_{date}_inputs.tgz"
+
+    def __init__(self) -> None:
+        self._config = None
+        self._meta = None
+        self._data_version = None
+        self._upload_version = None
+        self._target_name = None
+        self._tarball_path = None
+        self._data_source = None
+
+    @property
+    @abstractmethod
+    def data_source(self) -> Path:
+        pass
+
+    @property
+    def config(self) -> dict[str, Any]:
+        if self._config is None:
+            self._config = self._load_yaml_data(self.CONFIG_FILE)
+        return self._config
+
+    @property
+    def meta(self) -> dict[str, Any]:
+        if self._meta is None:
+            self._meta = self._load_yaml_data(self.META_ALIGNER_FILE)
+        return self._meta
+
+    @property
+    def data_version(self) -> str:
+        if self._data_version is None:
+            try:
+                self._data_version = self.meta["data_format_version"]
+            except KeyError as exc:
+                raise KeyError(
+                    f"Key 'data_format_version' missing from {self.META_ALIGNER_FILE}",
+                ) from exc
+        return self._data_version
+
+    @property
+    def upload_version(self) -> str:
+        if self._upload_version is None:
+            try:
+                self._upload_version = self.meta["version_number"]
+            except KeyError as exc:
+                raise KeyError(
+                    f"Key 'version_number' missing from {self.META_ALIGNER_FILE}",
+                ) from exc
+        return self._upload_version
+
+    @property
+    def target_name(self) -> str:
+        if self._target_name is None:
+            try:
+                self._target_name = self.config["target_name"]
+            except KeyError as exc:
+                raise KeyError(
+                    f"Key 'target_name' missing from {self.CONFIG_FILE}",
+                ) from exc
+        return self._target_name
+
+    @property
+    def tarball_path(self) -> Path:
+        if self._tarball_path is None:
+            self._tarball_path = self._get_tarball_path()
+        return self._tarball_path
+
+    @abstractmethod
+    def _load_yaml_data(self, filename):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _get_tarball_path(self) -> Path:
+        raise NotImplementedError
+
+    def get_validation_payload(self) -> dict[str, str]:
+        return {
+            'data_version': self.data_version,
+            'target_name': self.target_name,
+            'upload_version': self.upload_version,
+        }
+
+    def checksum(self):
+        return calculate_sha256(self.tarball_path)
+
+
+class XCADataUpload:
+    """Handle validation, upload, and status check of data tarball."""
+
+    LOGIN_URL = "/accounts/login/"
+    VALIDATE_URL = "/api/validate_target_experiments/"
+    UPLOAD_URL = "/api/upload_target_experiments/"
+    LANDING_PAGE_URL = '/viewer/react/landing/'
+
+    def __init__(
+        self,
+        url: str,
+        data_source: DataSource,
+        proposal: str,
+        auth_token: str | None = None,
+        retries: int = 3,
+    ) -> None:
+        self._data_source = data_source
+        self._proposal = proposal
+        self._auth_token = auth_token
+        self._retries = retries
+
+        splits = urlsplit(url)
+        self._base_url = f'{splits.scheme}://{splits.netloc}'
+        self._validate_url = urljoin(self._base_url, self.VALIDATE_URL)
+        self._upload_url = urljoin(self._base_url, self.UPLOAD_URL)
+        self._landing_page_url = urljoin(url, self.LANDING_PAGE_URL)
+
+        self._session = requests.Session()
+
+        # the way fragalysis task works, all messages are retained and
+        # retrieved by task status checker. potential for
+        # improvement. for now, keep track of how many messages have
+        # been printed and don't show the old ones
+        self._progress_message_count = 0
+        self._progress_errors = []
+
+        self._futile_ping_count = 100
+
+    def _init_session(self):
+        """Start session and populate necessary params"""
+        self._session.headers.update(
             {
                 "User-Agent": USER_AGENT,
-                "Referer": landing_page_url,
+                "Referer": self._landing_page_url,
                 "Referrer-policy": "same-origin",
             }
         )
 
         # session = check_deployment(session, auth_token)
-        session.get(landing_page_url)  # sets csrftoken
+        self._session.get(self._landing_page_url)  # sets csrftoken
 
-        csrftoken = session.cookies.get('csrftoken', None)
+        csrftoken = self._session.cookies.get('csrftoken', None)
         if csrftoken:
-            session.headers.update(
+            self._session.headers.update(
                 {
                     "X-CSRFToken": csrftoken,
                     "User-Agent": USER_AGENT,
                 }
             )
 
-        if auth_token:
-            session.cookies.update(
+        if self._auth_token:
+            self._session.cookies.update(
                 {
-                    "sessionid": auth_token,
+                    "sessionid": self._auth_token,
                 }
             )
 
-        validation_data["target_access_string"] = proposal
+    def _validate(self):
+        """Validate upload data.
 
-        logger.info("Checking data version...")
-        validation_result = session.post(
-            validate_url,
+        Checks data version, proposal membership, authentication (if given).
+        """
+        logger.info('Validating upload')
+        validation_data = self._data_source.get_validation_payload()
+        logger.info(f'Local data version: {validation_data["data_version"]}')
+        logger.info(f'Local upload version: {validation_data["upload_version"]}')
+
+        validation_data["target_access_string"] = self._proposal
+
+        validation_result = self._session.post(
+            self._validate_url,
             data=validation_data,
         )
         if validation_result.url.find("keycloak") > 0:
-            logger.error("You are not logged in to Fragalysis")
-            return
+            raise AuthenticationError("You are not logged in to Fragalysis")
 
-        print('val result:', validation_result.ok)
-        print(validation_result)
         result_json = validation_result.json()
 
         if validation_result.ok:
             # data validation errors
             if "success" in result_json.keys():
                 if not result_json["success"]:
+                    errors = False
                     for msg in result_json["message"]:
+                        errors = True
                         logger.error(msg)
-                    return
+                    if errors:
+                        # need to raise error.. but message superfluous?
+                        raise ValidationError('Data validation errors, quitting')
+
             elif "detail" in result_json.keys():
-                logger.error(result_json["detail"])
-                return
+                raise ValidationError(result_json["detail"])
+
             else:
                 if result_json["message"]:
                     for msg in result_json["message"]:
@@ -490,194 +426,422 @@ def upload_target(
             # target_access_string
             tas_error = result_json.pop("target_access_string")
             if tas_error:
-                logger.error(f"Proposal number error: {tas_error[0]}")
+                raise ValidationError(f"Proposal number error: {tas_error[0]}")
 
             # but just in case, if there's anything else, print them
             for field, errors in result_json.items():
                 # because comes as a list
-                for e in errors:
-                    logger.error(f"{field}: {e}")
-            return
+                if errors:
+                    for e in errors:
+                        logger.error(f"{field}: {e}")
 
-        # validation passed, attempt file upload. create if necessary
-        if upload_path and upload_path.exists():
-            compress_directory(upload_path, input_file)
+                    raise ValidationError('Server validation errors')
 
-        checksum = calculate_sha256(input_file)
-        # checksum = '4'
+    def _upload(self) -> str:
+        """File upload attempt"""
+        checksum = self._data_source.checksum()
+        encoder = MultipartEncoder(
+            fields={
+                "target_access_string": self._proposal,
+                "sha256checksum": checksum,
+                "file": (
+                    str(self._data_source.tarball_path),
+                    open(self._data_source.tarball_path, "rb"),
+                    "application/octet-stream",
+                ),
+            }
+        )
+        with open(self._data_source.tarball_path, "rb") as f:
+            file_size = int(f.seek(0, 2))
+            f.seek(0)
 
-        retry_counter = 0
-        while retry_counter < retries:
-            result = _run_upload(
-                session=session,
-                input_file=input_file,
-                filename=filename,
-                proposal=proposal,
-                checksum=checksum,
-                base_url=base_url,
-                upload_url=upload_url,
-                validation_data=validation_data,
-                inputs_path=inputs_path,
-                retries=retries,
-                no_copy=no_copy,
-            )
-            retry_counter = retry_counter + result
+            def callback(monitor):
+                pbar.update(monitor.bytes_read - pbar.n)
 
+            monitor = MultipartEncoderMonitor(encoder, callback)
 
-# TODO, use a class, enough is enough
-def _run_upload(
-    *,
-    session,
-    input_file,
-    filename,
-    proposal,
-    checksum,
-    base_url,
-    upload_url,
-    validation_data,
-    inputs_path,
-    retries,
-    no_copy,
-) -> int:
-    encoder = MultipartEncoder(
-        fields={
-            "target_access_string": proposal,
-            "sha256checksum": checksum,
-            "file": (
-                str(input_file),
-                open(input_file, "rb"),
-                "application/octet-stream",
-            ),
-        }
-    )
+            self._session.headers.update({"Content-Type": monitor.content_type})
 
-    with open(input_file, "rb") as f:
-        file_size = int(f.seek(0, 2))
-        f.seek(0)
+            with tqdm(total=file_size, unit="B", unit_scale=True, desc='Uploading') as pbar:
+                try:
+                    response = self._session.post(
+                        self._upload_url,
+                        data=monitor,
+                    )
+                except ConnectionError as exc:
+                    raise ConnectionError('Connection closed by server') from exc
 
-        def callback(monitor):
-            pbar.update(monitor.bytes_read - pbar.n)
-
-        monitor = MultipartEncoderMonitor(encoder, callback)
-
-        session.headers.update({"Content-Type": monitor.content_type})
-
-        with tqdm(total=file_size, unit="B", unit_scale=True, desc='Uploading') as pbar:
+        if response.ok:
             try:
-                response = session.post(
-                    upload_url,
-                    data=monitor,
-                )
-            except ConnectionError as exc:
-                logger.info('Connection closed by server')
-                return
+                response_json = response.json()
+                # and once more
+            except JSONDecodeError as exc:
+                # I have occasionally observed it, but don't know how
+                # to force it for debugging
+                logger.error('Server response does not contain json payload')
+                raise JSONDecodeError from exc
 
-    if response.ok:
-        # not quite there yet
-        try:
-            jresp = response.json()
-            # and once more
             try:
-                task_status_url = jresp["task_status_url"]
-                logger.info(f"task_status_url={urljoin(base_url, task_status_url)}")
+                response_status_url = response_json["task_status_url"]
+                task_status_url = urljoin(self._base_url, response_status_url)
+                self._task_status_url = task_status_url
+                logger.info(f"task_status_url={task_status_url}")
             except KeyError:
                 logger.error('Server response does not contain task url')
-                return
-        except JSONDecodeError:
-            # I have occasionally observed it, but don't know how
-            # to force it for debugging
-            logger.error('Server response does not contain json payload')
-            return
+                raise Exception
 
-        # should get back "task_status_url" in response. keep polling for updates
-        task_status = {}
-        count = 0
-        status_url = urljoin(base_url, task_status_url)
-        finished = False
-        errors = []
+            return task_status_url
 
-        logger.info(f'{filename} uploaded, processing:')
-        # messages are appended to task as list, keep track on
-        # what's already been displayied
-        last_msg = ''
-        while True:
-            # ping the task url endpoint for a while and print the messages
-            status = session.get(status_url)
-            # print('ping', status.json())
-
-            count = count + 1
+        else:
             try:
-                statjson = status.json()
-            except JSONDecodeError:
-                continue
+                response_json = response.json()
+            except JSONDecodeError as exc:
+                # try something else?
+                msg = 'Response body does not contain JSON payload'
+                logger.error(msg)
+                logger.error(response.text)
+                raise JSONDecodeError(msg) from exc
+            except Exception as exc:
+                # other errors, no idea what they might be
+                msg = "Upload failed: error {}, {}".format(response.status_code, response.reason)
+                logger.error(msg)
+                logger.error(response.text)
+                raise Exception(msg) from exc
 
-            if task_status != statjson:
-                # reset the counter when status changes
-                count = 0
-                task_status = statjson
-                msg = task_status.get("messages", None)
-                if isinstance(msg, list):
-                    # only print messages that have not been printed yet
-                    last_idx = -1
-                    for i, val in enumerate(reversed(msg)):
-                        if val == last_msg:
-                            last_idx = len(msg) - 1 - i
-                            break
+            # no network errors, response resoved correctly, but there might
+            # see if the server raises any issues
+            if fname_errors := response_json.get('filename', ''):
+                # comes as a list, have to go through everything
+                for e in fname_errors:
+                    if e.find('checksum'):
+                        raise FileTransferError
+                    else:
+                        raise Exception(f'Upload file error: {e}')
+            else:
+                raise Exception
 
-                    for m in msg[last_idx + 1 :]:
-                        logger.log(m, level=-1)
-                        if m.startswith('ERROR'):
-                            errors.append(m)
-                    last_msg = m
+    def _check_status(self, url: str):
+        """Check task status in Fragalysis.
+
+        Return new messaages about processing progress.
+        """
+        status = self._session.get(url)
+        finished = False
+
+        status_json = status.json()
+
+        if status_json.get('status', None) in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
+            finished = True
+
+        if status_json.get("ready", False) is True:
+            finished = True
+
+        if error := status_json.get("error", None):
+            raise StatusError(error)
+
+        msg = status_json.get("messages", None)
+
+        if isinstance(msg, list):
+            messages = msg
+        else:
+            messages = [msg]
+
+        return finished, messages
+
+    def _close(self):
+        self._session.close()
+
+    # def _upload_to_s3(self):
+    #     copy_inputs(
+    #         base_dir, inputs, ref_datasets, inputs_path  # pylint: disable=undefined-variable
+    #     )  # pylint: disable=used-before-assignment
+    #     object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
+    #     upload_to_s3(inputs_path, object_key=object_key)
+
+    def upload(self):
+        logger.info(f'Uploading {self._data_source.data_source}')
+
+        try:
+            self._init_session()
+            self._validate()
+            logger.info('Validation successful, starting file upload')
+
+            for i in range(self._retries):
+                try:
+                    task_status_url = self._upload()
+                    break
+                except FileTransferError:
+                    logger.info(
+                        'Uploaded file checksum does not match the calculated checksum, '
+                        + f'file was likely corrupt during the transfer. Retrying {i + 1}',
+                    )
+            else:
+                raise RetryLimitReachedError(f'Upload retry limit ({self._retries}) reached, quitting')
+
+            logger.info('File uploaded, checking progress...')
+            count = 0
+            missing_proj_msg_already_shown = False
+            while True:
+                time.sleep(1)
+                try:
+                    finished, messages = self._check_status(url=task_status_url)
+                except JSONDecodeError:
+                    # this is fine, task is in such an early state
+                    # that the message body has not been initiated yet
+                    continue
+                except StatusError as exc:
+                    # this is an error raised by server, see what it says
+                    if exc.args[0] == f'Proposal {self._proposal} not found':
+                        # common in staging which gets wiped often and
+                        # users upload to projects that don't exist
+                        # yet, but is being created by this very
+                        # upload. safe to ignore right now, remove
+                        # later when project creation method is
+                        # changed
+                        if not missing_proj_msg_already_shown:
+                            # printing this once is enough
+                            missing_proj_msg_already_shown = True
+                            logger.info(f'Proposal {self._proposal} not found!')
+                            logger.info(
+                                'This indicates that the proposal does not yet exist and '
+                                + 'will now be created. It is not possible to display live '
+                                + 'updates of the target loading process; all collected '
+                                + 'messages will be presented once the process has completed. '
+                                + 'Depending on the size of the tarball, this may take some time.'
+                            )
+
+                        # reset counter. Not ideal if gets stuck but nothing to do here
+                        count = 0
+                        continue
+                    else:
+                        raise StatusError from exc
+
+                if self._progress_message_count == 0 or self._progress_message_count != len(messages):
+                    # no old messages, everything or at least
+                    # some incoming messages are new. reset counter,
+                    # don't restart loop, go to printing
+                    count = 0
                 else:
-                    logger.info(f'{task_status.get("status", "")}: {msg}')
-                if task_status in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
-                    finished = True
+                    # no new messages, nothing to print, start new
+                    # cycle and continue checking
+                    count = count + 1
+                    continue
+
+                if count > self._futile_ping_count:
+                    # if no changes for {randomly selected number of pings}, quit
+                    logger.info(f'No changes in {self._futile_ping_count} pings, quitting')
                     break
 
-            if statjson.get("ready", False) is True:
-                # if task complete, quit
-                finished = True
-                break
-            if statjson.get("status", "") in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
-                # if task complete, quit
-                finished = True
-                break
-            if count > 100:
-                # if no changes for {randomly selected number of pings}, quit
-                logger.info('No changes in 100 pings, quitting')
-                break
+                # db message buffer contains all messages that have
+                # been written from the beginning of the process. only
+                # print the ones that have not been printed yet. if
+                # error, store for showing later
+                for m in messages[self._progress_message_count :]:
+                    logger.log(m, level=-1)
+                    if m.startswith('ERROR'):
+                        self._progress_errors.append(m)
 
-            time.sleep(1)
+                self._progress_message_count = len(messages)
 
-        if finished:
-            if errors:
-                logger.log(f'The following errors were encountered when processing {filename}:', level=-1)
-                for e in errors:
+                if finished:
+                    break
+
+        finally:
+            # at the end, print all the errors once more
+            if self._progress_errors:
+                logger.log(
+                    'The following errors were encountered when processing ' + 'f{self._data_source.tarball_path}:',
+                    level=-1,
+                )
+                for e in self._progress_errors:
                     logger.log(e, level=-1)
-            else:
-                # successful upload
-                if not no_copy:
-                    # because default is to copy
-                    copy_inputs(
-                        base_dir, inputs, ref_datasets, inputs_path  # pylint: disable=undefined-variable
-                    )  # pylint: disable=used-before-assignment
-                    object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
-                    upload_to_s3(inputs_path, object_key=object_key)
-
-        return retries
-
-    else:
-        # upload response else, failure
-        print(response)
-        print(response.text)
-        print(response.reason)
-        logger.error("Upload failed: error {}, {}".format(response.status_code, response.reason))
-        # TODO: different error codes for situations, broken upload is the only one worth retrying
-        return 1
+            self._close()
 
 
-class Uploader:
+class TarballSource(DataSource):
+    def __init__(self, tarball_path: str) -> None:
+        super().__init__()
+        self._tarball_path: Path = Path(tarball_path)
+
+    @property
+    def data_source(self) -> Path:
+        return self._tarball_path
+
+    def _get_tarball_path(self) -> Path:
+        """Override: validate exist"""
+        if not self._tarball_path.exists():
+            raise FileNotFoundError(f"Tarball {str(self._tarball_path)} not found")
+        return self._tarball_path
+
+    def _load_yaml_data(self, filename):
+        """Override: extract yaml files from the tarball"""
+        logger.info(f'Extracting {filename} from tarball')
+        with tarfile.open(self.tarball_path, 'r') as tar:
+            try:
+                yaml_file = next(
+                    filter(
+                        re.compile(f'upload_\d+/{filename}').match,
+                        tar.getnames(),
+                    ),
+                )
+            except StopIteration:
+                raise FileNotFoundError(f"'{filename}' not found in the tarball")
+
+            extracted = tar.extractfile(yaml_file)
+            if not extracted:
+                raise ValueError(f"Failed to extract '{self.META_ALIGNER_FILE}' from the tarball")
+
+            parsed = read_yaml(extracted)
+        return parsed
+
+
+class FilesystemSource(DataSource):
+    DATA_DIR = "upload-current"
+
+    def __init__(self, use_default: bool = False) -> None:
+        super().__init__()
+        self.use_default: bool = use_default
+        self._upload_path: Path | None = None
+        self._root_path: Path | None = None
+
+    @property
+    def data_source(self) -> Path:
+        if self.use_default:
+            return self._tarball_path
+        else:
+            return self.upload_path
+
+    @property
+    def tarball_path(self) -> Path:
+        """Override: compress directory to tarball if not yet done"""
+        if self._tarball_path is None:
+            self._tarball_path = self._get_tarball_path()
+
+        if not self._tarball_path.exists():
+            compress_directory(self.upload_path, self._tarball_path)
+        return self._tarball_path
+
+    @property
+    def upload_path(self) -> Path:
+        """Data directory, uncompressed"""
+        if self._upload_path is None:
+            # uploader can be run from 3 places
+            root_path = Path(self.DATA_DIR).absolute()
+            if not root_path.exists():
+                if root_path.parent.name == self.DATA_DIR:
+                    root_path = root_path.parent
+                elif root_path.parent.parent.name == self.DATA_DIR:
+                    root_path = root_path.parent.parent
+
+            if not root_path.exists():
+                raise FileNotFoundError("xchemalign.uploader run from unexpected location")
+
+            self._root_path = root_path
+
+            try:
+                # get the last 'upload_x' folder
+                *_, upload_path = root_path.glob("upload_*")
+            except ValueError:
+                raise FileNotFoundError("Upload directory not found")
+
+            self._upload_path = upload_path
+
+        return self._upload_path
+
+    def upload_inputs(self):
+        # NB! method not tested
+        validation_data = self.get_validation_payload()
+
+        # TODO: a possibility to check with the fragalysis whether the
+        # target upload was successful. This will require target name and
+        # upload version from validation_data (returned by
+        # get_upload_file()). what I dont't have here atm, is the stack
+        # url, if going to check this, this parameter must be made
+        # available from cli
+
+        date = datetime.datetime.today().strftime('%Y-%m-%d')
+        upload_dir = self.upload_path.parts[-1]
+
+        inputs_path = self._root_path.joinpath(
+            self.DEFAULT_INPUTS_TEMPLATE.format(
+                target=self.target_name,
+                version=self.data_version,
+                upload_no=upload_dir,
+                date=date,
+            )
+        )
+
+        object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
+
+        if not inputs_path.is_file():
+            base_dir, inputs, ref_datasets = self._get_copy_inputs(self.config)
+            self._copy_inputs(base_dir, inputs, ref_datasets, inputs_path)
+
+        upload_to_s3(inputs_path, object_key=object_key)
+
+    def _get_tarball_path(self) -> Path:
+        """Override: compile tarball path"""
+        date = datetime.datetime.today().strftime('%Y-%m-%d')
+        upload_dir = self.upload_path.parts[-1]
+
+        tarball_path = self._root_path.joinpath(
+            self.DEFAULT_TARBALL_TEMPLATE.format(
+                target=self.target_name,
+                version=self.data_version,
+                upload_no=upload_dir,
+                date=date,
+            )
+        )
+
+        if self.use_default:
+            if not self.tarball_path.exists():
+                raise FileNotFoundError(f"Tarball {str(self.tarball_path)} not found")
+
+        return tarball_path
+
+    def _load_yaml_data(self, filename):
+        """Override: find yaml files from the filesystem"""
+        path = self.upload_path.joinpath(filename)
+        if not path.exists():
+            raise FileNotFoundError(f"'{filename}' not found")
+
+        with open(str(path), "r") as input_file:
+            contents = read_yaml(input_file)
+
+        return contents
+
+    @classmethod
+    def _get_copy_inputs(cls, config):
+        try:
+            base_dir = config["base_dir"]
+        except KeyError as exc:
+            raise KeyError(f"Key 'base_dir' missing from {cls.CONFIG_FILE}") from exc
+
+        ref_datasets = config.get(utils.Constants.CONFIG_REF_DATASETS, [])
+        inputs = config.get(utils.Constants.CONFIG_INPUTS)
+
+        return base_dir, inputs, ref_datasets
+
+    @classmethod
+    def _copy_inputs(cls, base_dir, inputs, ref_datasets, inputs_path):
+        with TemporaryDirectory() as tempdir:
+            compressible_tempdir = Path(tempdir).joinpath("inputs")
+            try:
+                handle_inputs(base_dir, inputs, ref_datasets, str(compressible_tempdir), logger)
+            except Exception as exc:
+                logger.error(f"Error copying inputs: {exc.args}")
+            compress_directory(compressible_tempdir, inputs_path)
+
+
+class XCAUploadManager:
+    # prefix used in fragalysis urls in env variables
+    _FRAGALYSIS_URL_PREFIX = "XCHEMALIGN_FRAGALYSIS_URL_"
+
+    # dict (short name: url) of available fragalysis stack URLs
+    # defined in user's environment (staging, production, local dev,
+    # etc)
+    _FRAGALYSIS_URLS = compile_stack_urls(_FRAGALYSIS_URL_PREFIX)
+
     def __init__(
         self,
         *,
@@ -689,40 +853,92 @@ class Uploader:
         retries: int = 3,
         auth_token: str | None = None,
     ) -> None:
-        self.url = url
-        self.proposal = proposal
-        self.auth_token = auth_token
-        self.use_default = use_default
-        self.use_custom = use_custom
-        self.no_copy = no_copy
-        self.no_copy = False  # no copying atm
-        self.retries = retries
+        self._url = self.get_stack_url(url)
+        self._proposal = proposal
+        self._auth_token = auth_token
+        self._no_copy = no_copy
+        self._no_copy = False  # no copying atm
+        self._retries = retries
 
-        # figure out necessary urls
-        splits = urlsplit(self.url)
-        self.base_url = f'{splits.scheme}://{splits.netloc}'
-        self.validate_url = urljoin(self.base_url, VALIDATE_URL)
-        self.upload_url = urljoin(self.base_url, UPLOAD_URL)
-        self.landing_page_url = urljoin(url, LANDING_PAGE_URL)
+        if use_custom:
+            # user gave the path to the tarball they want to upload
+            data_source = TarballSource(tarball_path=use_custom)
+        else:
+            # tarball not given, that means looking for the files in
+            # the fs. 2 possibilities:
+            # 1. compress the input directory and upload the tarball
+            # 2. this is a retry and the tarball was already created in 1.
+            data_source = FilesystemSource(use_default=use_default)
+
+        self.data_source: DataSource = data_source
+
+    def upload_target(self):
+        uploader = XCADataUpload(
+            url=self._url,
+            data_source=self.data_source,
+            proposal=self._proposal,
+            auth_token=self._auth_token,
+            retries=self._retries,
+        )
+
+        try:
+            uploader.upload()
+        except KeyboardInterrupt:
+            logger.info(
+                'Quitting. If the tarball was already uploaded, this will not ' + 'stop the processing in Fragalys.'
+            )
+        except (
+            AuthenticationError,
+            ValidationError,
+            ConnectionError,
+            RetryLimitReachedError,
+            FileNotFoundError,
+            StatusError,
+        ) as exc:
+            logger.error(exc)
+
+    @staticmethod
+    def upload_inputs():
+        data_source = FilesystemSource()
+
+        try:
+            data_source.upload_inputs()
+        except KeyboardInterrupt:
+            logger.info(
+                'Quitting. If the tarball was already uploaded, this will not ' + 'stop the processing in Fragalys.'
+            )
+        except (FileNotFoundError,) as exc:
+            logger.error(exc)
+
+    @classmethod
+    def get_stack_url(cls, url_name) -> str:
+        """Return a valid url based on user-supplied short name
+
+        If url_name not in precompiled urls, assume valid URL and
+        continue.
+        Possble TODO: add validation
+        """
+        return cls._FRAGALYSIS_URLS.get(url_name, url_name)
+
+    @classmethod
+    def get_url_help_text(cls) -> str:
+        """Compile url help text, listing, if found, the keyword urls"""
+        url_help = "Upload url."
+        if cls._FRAGALYSIS_URLS:
+            url_help = (
+                url_help
+                + " Use any of the following choice keywords or a custom url:"
+                + os.linesep
+                + os.linesep.join(
+                    [f"{key} ({value})" for key, value in cls._FRAGALYSIS_URLS.items()],
+                )
+            )
+
+        return url_help
 
 
 def main():
-    # grab the predefined urls from the environment
-    fragalysis_urls = {
-        key[len(FRAGALYSIS_URL_PREFIX) :].lower(): value
-        for key, value in os.environ.items()
-        if key.startswith(FRAGALYSIS_URL_PREFIX)
-    }
-
-    # compile url help text, listing, if found, the keyword urls
-    url_help = "Upload url."
-    if fragalysis_urls:
-        url_help = (
-            url_help
-            + " Use any of the following choice keywords or a custom url:"
-            + os.linesep
-            + os.linesep.join([f"{key} ({value})" for key, value in fragalysis_urls.items()])
-        )
+    url_help = XCAUploadManager.get_url_help_text()
 
     parser = argparse.ArgumentParser(
         description="Upload files to fragalysis",
@@ -784,20 +1000,18 @@ def main():
         logger.info(
             "'upload_inputs' argument given, ignoring any others " + "and proceeding to upload XCA input data",
         )
-        upload_inputs()
+        XCAUploadManager.upload_inputs()
     else:
-        if args.url in fragalysis_urls.keys():
-            args.url = fragalysis_urls[args.url]
-
-        upload_target(
-            args.url,
-            args.proposal,
+        uploader = XCAUploadManager(
+            url=args.url,
+            proposal=args.proposal,
             auth_token=args.token,
             use_default=args.use_default,
             use_custom=args.use_custom,
             no_copy=args.no_copy,
             retries=args.max_retries,
         )
+        uploader.upload_target()
 
 
 if __name__ == "__main__":
