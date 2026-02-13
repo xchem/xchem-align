@@ -550,9 +550,9 @@ def _save_assignments(fs_model: dt.FSModel, dataset_assignments: dict[str, str])
 def _generate_assembly(xtalform: dt.XtalForm, structure, assemblies: dict[str, dt.Assembly], pdb, dataset):
     full_st = structure.clone()
     chains_to_delete = []
-    for model in full_st:
+    for i, model in enumerate(full_st):
         for chain in model:
-            chains_to_delete.append((model.name, chain.name))
+            chains_to_delete.append((str(i), chain.name))
 
     for model_name, chain_name in chains_to_delete:
         del full_st[model_name][chain_name]

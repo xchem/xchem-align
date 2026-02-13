@@ -431,7 +431,7 @@ def merge_software_loops(loop1: cif.Loop, loop2: cif.Loop, dimple_ver, into: cif
     for i in range(num_values):
         values = []
         for k, v in d.items():
-            values.append(v[i])
+            values.append(str(v[i]))
         new_loop.add_row(values)
 
 
