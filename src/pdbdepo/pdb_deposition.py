@@ -79,6 +79,7 @@ def process_input(
     meta: dict,
     mmcifgen_block,
     output_dir: Path,
+    debug=False,
 ):
     mmcifgen_refine_tags = None
     mmcifgen_refine_values = None
@@ -163,7 +164,8 @@ def process_input(
                 structure_cif_doc = read_refmac_structure(base_dir / utils.make_path_relative(Path(pdb)))
 
             structure_cif_block0 = structure_cif_doc[0]
-            structure_cif_doc.write_file(str(xtal_out_path / 'original.cif'))
+            if debug:
+                structure_cif_doc.write_file(str(xtal_out_path / 'original.cif'))
 
             # do some cleaning
             delete_pair_item(structure_cif_doc, '_struct')
@@ -315,7 +317,7 @@ def process_input(
                 str(base_dir / utils.make_path_relative(mtz_free_path)),
                 ccp4_files,
                 str(xtal_out_path / (xtal_name + '_sf.cif')),
-                output_individual=True,
+                output_individual=debug,
             )
 
 
@@ -518,7 +520,7 @@ def create_loop(data: dict, prefix: str, block: cif.Block):
         loop.add_row(values)
 
 
-def run(collator_dir, metadata_cif, output_dir):
+def run(collator_dir, metadata_cif, output_dir, debug=False):
     meta_doc = cif.read(metadata_cif)
     meta_block = meta_doc[0]
 
@@ -535,7 +537,14 @@ def run(collator_dir, metadata_cif, output_dir):
             input_path = input[Constants.CONFIG_DIR]
             info("Running for " + input_path)
             process_input(
-                Path(base_dir), Path(input_path), collator_path, Path(soakdb_file), meta, meta_block, Path(output_dir)
+                Path(base_dir),
+                Path(input_path),
+                collator_path,
+                Path(soakdb_file),
+                meta,
+                meta_block,
+                Path(output_dir),
+                debug=debug,
             )
 
 
@@ -551,6 +560,7 @@ def main():
     parser.add_argument("-m", "--metadata-cif", required=True, help="CIF file with common metadata (mmcif-gen)")
 
     parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
+    parser.add_argument("-v", "--debug", action="store_true", help="Include source files in output")
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
@@ -562,7 +572,7 @@ def main():
     merge_sf.LOG = LOG
     LOG.info("pdb_deposition: ", args)
 
-    run(args.collator_dir, args.metadata_cif, args.output_dir)
+    run(args.collator_dir, args.metadata_cif, args.output_dir, debug=args.debug)
 
     LOG.report()
     LOG.close()
