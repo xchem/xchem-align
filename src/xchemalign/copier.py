@@ -257,15 +257,16 @@ class Copier:
                     self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 
                 # copy the <CrystalName>_collection_info.cif file
-                collection_info_p = pdb_deposition.generate_collection_info_path(xtal_dir_input_path, xtal_name)
+                collection_info_p = pdb_deposition.generate_collection_info_path(
+                    self.base_path / xtal_dir_input_path, xtal_name
+                )
                 if collection_info_p is not None:
-                    p = str(self.base_path / collection_info_p)
                     num_files += self.copy_file_and_log(
                         xtal_name, xtal_name + '_collection_info.cif', f, xtal_dir_input_path
                     )
 
                 # copy dimple.log files
-                dimple_log_p = pdb_deposition.generate_dimple_log_path(xtal_dir_input_path)
+                dimple_log_p = pdb_deposition.generate_dimple_log_path(self.base_path / xtal_dir_input_path)
                 if dimple_log_p is not None:
                     f = str(self.base_path / dimple_log_p)
                     num_files += self.copy_file_and_log(xtal_name, 'dimple.log', f, xtal_dir_input_path)
