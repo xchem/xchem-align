@@ -977,10 +977,6 @@ class Collator:
 
                     # Determine the ligands present and their coordinates
                     dataset_ligands = self.get_dataset_ligands(pdb_input, ligand_names)
-                    if xtal_name == "Mpro-i0130":
-                        print(f"pdb_input: {pdb_input}")
-                        print(f"Ligand names: {ligand_names}")
-                        print(f"Got ligands: {dataset_ligands}")
 
                     # Match ligand to panddas event maps if possible and determine if those maps are new
                     best_event_map_paths = self.get_dataset_event_maps(xtal_name, dataset_ligands, event_tables)
@@ -1386,7 +1382,7 @@ class Collator:
         structure = gemmi.read_structure(str(structure_path))
 
         ligand_coords = {}
-        for model in structure:
+        for i, model in enumerate(structure):
             for chain in model:
                 for residue in chain:
                     if residue.name in ligand_names:
@@ -1397,7 +1393,7 @@ class Collator:
 
                         arr = np.array(poss)
                         mean = np.mean(arr, axis=0)
-                        ligand_coords[(model.name, chain.name, residue.seqid.num, residue.name)] = mean
+                        ligand_coords[(str(i), chain.name, residue.seqid.num, residue.name)] = mean
 
         return ligand_coords
 
@@ -1455,6 +1451,7 @@ class Collator:
 
 
 def main():
+
     parser = argparse.ArgumentParser(description="collator")
 
     parser.add_argument("-d", "--dir", help="Working directory")
