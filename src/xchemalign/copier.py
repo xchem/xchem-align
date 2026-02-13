@@ -256,19 +256,19 @@ class Copier:
                 else:
                     self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 
-            # copy the <CrystalName>_collection_info.cif file
-            collection_info_p = pdb_deposition.generate_collection_info_path(xtal_dir_input_path, xtal_name)
-            if collection_info_p is not None:
-                p = str(self.base_path / collection_info_p)
-                num_files += self.copy_file_and_log(
-                    xtal_name, xtal_name + '_collection_info.cif', f, xtal_dir_input_path
-                )
+                # copy the <CrystalName>_collection_info.cif file
+                collection_info_p = pdb_deposition.generate_collection_info_path(xtal_dir_input_path, xtal_name)
+                if collection_info_p is not None:
+                    p = str(self.base_path / collection_info_p)
+                    num_files += self.copy_file_and_log(
+                        xtal_name, xtal_name + '_collection_info.cif', f, xtal_dir_input_path
+                    )
 
-            # copy dimple.log files
-            dimple_log_p = pdb_deposition.generate_dimple_log_path(xtal_dir_input_path)
-            if dimple_log_p is not None:
-                f = str(self.base_path / dimple_log_p)
-                num_files += self.copy_file_and_log(xtal_name, 'dimple.log', f, xtal_dir_input_path)
+                # copy dimple.log files
+                dimple_log_p = pdb_deposition.generate_dimple_log_path(xtal_dir_input_path)
+                if dimple_log_p is not None:
+                    f = str(self.base_path / dimple_log_p)
+                    num_files += self.copy_file_and_log(xtal_name, 'dimple.log', f, xtal_dir_input_path)
 
         # copy the specified csv files with the panddas info
         self.logger.info("Copying", len(self.panddas_file_paths), "panddas csv files")
@@ -536,6 +536,7 @@ def main():
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
     logger.info("copier: ", args)
     utils.LOG = logger
+    pdb_deposition.LOG = logger
 
     config = utils.read_config_file(args.config_file)
     ref_datasets = config.get(Constants.CONFIG_REF_DATASETS, [])

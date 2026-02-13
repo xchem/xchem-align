@@ -24,7 +24,6 @@ from xchemalign import dbreader, utils
 from xchemalign.utils import Constants
 from pdbdepo import merge_sf
 from pdbdepo import scrape_processing_stats
-from pdbdepo import scrape_pdb_stats
 
 LOG = utils.Logger()
 
