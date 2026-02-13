@@ -299,20 +299,22 @@ def process_input(
             # move coordinates to the end
             coordinates_item = find_loop_item(structure_cif_block0, '_atom_site')
             item_count = 0
+            coordinates_pos = None
             for item in structure_cif_block0:
                 if item == coordinates_item:
                     coordinates_pos = item_count
                 item_count += 1
-            structure_cif_block0.move_item(coordinates_pos, item_count - 1)
+            if coordinates_pos is not None:
+                structure_cif_block0.move_item(coordinates_pos, item_count - 1)
 
-            structure_cif_doc.write_file(str(xtal_out_path / 'structure.cif'))
+            structure_cif_doc.write_file(str(xtal_out_path / (xtal_name + '_struc.cif')))
 
             # handle the structure factors
             merge_sf.run(
                 str(base_dir / utils.make_path_relative(Path(mtz_latest))),
                 str(base_dir / utils.make_path_relative(mtz_free_path)),
                 ccp4_files,
-                str(xtal_out_path / 'structure_factors.cif'),
+                str(xtal_out_path / (xtal_name + '_sf.cif')),
                 output_individual=True,
             )
 
@@ -329,7 +331,7 @@ def delete_loop_item(doc, prefix):
     for block in doc:
         item = find_loop_item(block, prefix)
         if item:
-            print('erasing', item)
+            # print('erasing', item)
             item.erase()
 
 
@@ -424,8 +426,6 @@ def merge_software_loops(loop1: cif.Loop, loop2: cif.Loop, dimple_ver, into: cif
             for i, k in enumerate(values):
                 values[i] = str(i + 1)
 
-    print(d)
-
     new_loop = into.init_loop('', list(d.keys()))
     for i in range(num_values):
         values = []
@@ -457,7 +457,7 @@ def read_phasing_software(xtal_dir):
                 if looking:
                     match = re.search(r'^version:\s+([\d\.]+)$', line)
                     if match:
-                        print('found dimple version', match.group(1))
+                        LOG.info('found dimple version', match.group(1))
                         dimple_ver = match.group(1)
                         break
                     match = re.search(r'^\[\w+\]$', line)
