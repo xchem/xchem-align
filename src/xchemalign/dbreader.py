@@ -73,7 +73,7 @@ def read_pdb_depo(dbfile):
     with sqlite3.connect(dbfile) as cnx:
         df = pd.read_sql_query(
             """SELECT ID, CrystalName, CompoundCode,
-                                RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
+                                RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest, RefinementCIF,
                                 RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated,
                                 DataProcessingProgram, DataProcessingPathToLogfile
                                 FROM mainTable WHERE RefinementOutcome like '5%'""",

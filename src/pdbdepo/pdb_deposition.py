@@ -217,7 +217,7 @@ def process_input(
                             else:
                                 warn('no aimless.log file found')
                         else:
-                            warn('could not find log')
+                            warn('could not find logfile', logfile)
 
                         if p:
                             stats_doc = scrape_processing_stats.handle_file(p, prog, None, None)
@@ -310,6 +310,17 @@ def process_input(
                 structure_cif_block0.move_item(coordinates_pos, item_count - 1)
 
             structure_cif_doc.write_file(str(xtal_out_path / (xtal_name + '_struc.cif')))
+
+            # include the ligand CIF file
+            if debug:
+                cif_file = row[Constants.SOAKDB_COL_CIF]
+                if cif_file:
+                    p = base_dir / utils.make_path_relative(Path(cif_file))
+                    if p.is_file():
+                        p2 = shutil.copy2(p, xtal_out_path / (xtal_name + '_lig.cif'), follow_symlinks=True)
+                        info('copied ligand CIF', p)
+                    else:
+                        warn('ligand CIF file not found:', p)
 
             # handle the structure factors
             merge_sf.run(
@@ -528,6 +539,7 @@ def run(collator_dir, metadata_cif, output_dir, debug=False):
     config = utils.read_config_file(collator_path / 'config.yaml')
     meta = utils.read_config_file(collator_path / 'meta_collator.yaml')
     base_dir = config.get(Constants.CONFIG_BASE_DIR)
+    info('using base dir of ', base_dir)
 
     inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
     info("found {} inputs".format(len(inputs)))
