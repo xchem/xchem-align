@@ -13,12 +13,16 @@ import re
 
 import argparse
 import bz2
+import datetime
 import shutil
 from pathlib import Path
 from collections import OrderedDict
 
 import gemmi
 from gemmi import cif
+
+from rdkit import rdBase
+from rdkit import Chem
 
 from xchemalign import dbreader, utils
 from xchemalign.utils import Constants
@@ -76,12 +80,31 @@ def process_input(
     input_path: Path,
     collator_output_dir: Path,
     soakdb_file: Path,
-    input: dict,
-    meta: dict,
+    input_config: dict,
+    meta_collator: dict,
     mmcifgen_block,
     output_dir: Path,
     debug=False,
 ):
+    crystals = meta_collator[Constants.META_XTALS]
+
+    xtals_list = []
+    cmpd_moldata = {}
+    # grab the ligand smile sof the collator output
+    for crystal in crystals:
+        mol_data = []
+        cmpd_moldata[crystal] = mol_data
+        ligand_cif = crystals[crystal][Constants.META_XTAL_FILES].get(Constants.META_XTAL_CIF)
+        if ligand_cif:
+            ligands = ligand_cif[Constants.META_LIGANDS]
+            if ligands:
+                for lig_name in ligands:
+                    data = ligands[lig_name]
+                    cmpd_code = data.get(Constants.META_CMPD_CODE)
+                    cmpd_smiles = data.get(Constants.META_SMILES)
+                    mol_data.append((cmpd_code, cmpd_smiles))
+    info('read ligand data for', len(cmpd_moldata), 'ligands')
+
     mmcifgen_refine_tags = None
     mmcifgen_refine_values = None
     mmcifgen_diffrn_tags = None
@@ -98,18 +121,24 @@ def process_input(
         mmcifgen_diffrn_item.erase()
 
     path_to_soakdb_file = base_dir / input_path / soakdb_file
-    crystals = meta[Constants.META_XTALS]
+
     info("reading soakdb file:", path_to_soakdb_file)
     df = dbreader.read_pdb_depo(path_to_soakdb_file)
     info("read {} rows".format(len(df)))
     for index, row in df.iterrows():
+        xtal_name = row[Constants.SOAKDB_XTAL_NAME]
+        cmpd_codes = []
+        xtals_list.append(xtal_name)
         mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
         cmpd_code = row[Constants.SOAKDB_COL_COMPOUND_CODE]
+        tokens = cmpd_code.split(';')
+        for token in tokens:
+            cmpd_codes.append(token.strip())
         if mmcif is None or mmcif == 'None':
             refinement_type = Constants.SOAKDB_VALUE_REFMAC
         else:
             refinement_type = Constants.SOAKDB_VALUE_BUSTER
-        xtal_name = row[Constants.SOAKDB_XTAL_NAME]
+
         xtal_in_path = base_dir / input_path / utils.Constants.DEFAULT_MODEL_BUILDING_DIR / xtal_name
         xtal_out_path = output_dir / xtal_name
         if xtal_out_path.is_dir():
@@ -332,6 +361,25 @@ def process_input(
                 output_individual=debug,
             )
 
+    # write out the ligands to a file
+    with open(output_dir / 'ligands.tab', 'wt') as tsv:
+        for xtal in xtals_list:
+            data = cmpd_moldata.get(xtal)
+            if not data:
+                warn('compound data not found for', xtal)
+            else:
+                values = []
+                for t in data:
+                    values.append(xtal)
+                    values.append(t[0])
+                    values.append(t[1])
+                    mol = Chem.MolFromSmiles(t[1])
+                    inchis = Chem.MolToInchi(mol)
+                    inchik = Chem.InchiToInchiKey(inchis)
+                    values.append(inchis)
+                    values.append(inchik)
+                tsv.write('\t'.join(values) + '\n')
+
 
 def delete_pair_item(doc, prefix):
     for block in doc:
@@ -533,14 +581,18 @@ def create_loop(data: dict, prefix: str, block: cif.Block):
 
 
 def run(collator_dir, metadata_cif, output_dir, debug=False):
+    info('run on ' + str(datetime.datetime.now()))
+    info('using RDKit version ' + rdBase.rdkitVersion)
+    # info('using InCHI version ' + Chem.GetInchiVersion())
+
     meta_doc = cif.read(metadata_cif)
-    meta_block = meta_doc[0]
+    meta_mmcifgen = meta_doc[0]
 
     collator_path = Path(collator_dir)
     config = utils.read_config_file(collator_path / 'config.yaml')
-    meta = utils.read_config_file(collator_path / 'meta_collator.yaml')
+    meta_collator = utils.read_config_file(collator_path / 'meta_collator.yaml')
     base_dir = config.get(Constants.CONFIG_BASE_DIR)
-    info('using base dir of ', base_dir)
+    info('using base dir of', base_dir)
 
     inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
     info("found {} inputs".format(len(inputs)))
@@ -548,15 +600,15 @@ def run(collator_dir, metadata_cif, output_dir, debug=False):
         if input[Constants.CONFIG_TYPE] == Constants.CONFIG_TYPE_MODEL_BUILDING:
             soakdb_file = utils.find_soakdb_file(input)
             input_path = input[Constants.CONFIG_DIR]
-            info("Running for " + input_path)
+            info("running for input " + input_path)
             process_input(
                 Path(base_dir),
                 Path(input_path),
                 collator_path,
                 Path(soakdb_file),
                 input,
-                meta,
-                meta_block,
+                meta_collator,
+                meta_mmcifgen,
                 Path(output_dir),
                 debug=debug,
             )
