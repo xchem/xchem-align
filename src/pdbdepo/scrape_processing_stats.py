@@ -45,6 +45,7 @@ def match(line, pattern, keys, results):
 
 
 def handle_summary_line(line: str, key_patt_dict: dict, reflns: dict, shell: dict):
+    # print('handling', line)
     for k, p in key_patt_dict.items():
         if match_summary_line(line, k, p, reflns, shell):
             return
@@ -55,23 +56,29 @@ def match_summary_line(line: str, key: str, pattern: str, reflns: dict, shell: d
     if x:
         reflns[key] = x.group(1)
         # first row is outer shell, second is inner
-        shell[key] = (x.group(3), x.group(2))
+        # hack to handle that the property name for the shell reflections are d_res_high/low
+        shell[_replace_shell_key(key)] = (x.group(3), x.group(2))
+        # print('    found', key,  x.group(1),  x.group(3),  x.group(2))
         return True
     else:
         return False
 
 
+def _replace_shell_key(key):
+    return key.replace('d_resolution_', 'd_res_').replace('number_obs', 'number_unique_obs')
+
+
 KEY_REFLNS_ENTRY_ID = 'entry_id'
 KEY_REFLNS_DIFFRN_ID = 'pdbx_diffrn_id'
 KEY_REFLNS_PDBX_ORDINAL = 'pdbx_ordinal'
-KEY_REFLNS_RESO_LOW = 'd_res_low'
-KEY_REFLNS_RESO_HIGH = 'd_res_high'
-KEY_REFLNS_NUM_OBS = 'number_obs'
+KEY_REFLNS_RESO_LOW = 'd_resolution_low'
+KEY_REFLNS_RESO_HIGH = 'd_resolution_high'
 KEY_REFLNS_PDBX_RMERGE_I_OBS = 'pdbx_Rmerge_I_obs'
 KEY_REFLNS_PDBX_RRIM_I_ALL = 'pdbx_Rrim_I_all'
 KEY_REFLNS_PDBX_RPIM_I_ALL = 'pdbx_Rpim_I_all'
 KEY_REFLNS_PDBX_CC_HALF = 'pdbx_CC_half'
-KEY_REFLNS_PDBX_NUM_MEASURED = 'pdbx_number_measured_all'
+KEY_REFLNS_NUM_MEASURED = 'number_measured_obs'
+KEY_REFLNS_NUM_OBSERVED = 'number_obs'
 KEY_REFLNS_PDBX_REDUNDANCY = 'pdbx_redundancy'
 KEY_REFLNS_CHI_SQ = 'pdbx_chi_squared'
 KEY_REFLNS_POSSIBLE_OBS = 'percent_possible_obs'
@@ -85,7 +92,8 @@ d_autoproc = {
     KEY_REFLNS_PDBX_RRIM_I_ALL: r'Rmeas\s+\(all\s*I\+\s*&\s*I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_RPIM_I_ALL: r'Rpim\s+\(all I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_CC_HALF: r'Mn\(I\)\s+half\-set\s+correlation\s+CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-    KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\s+of\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_NUM_MEASURED: r'Total\s+number\s+of\s+observations\s+(\d+)\s+(\d+)\s+(\d+)',
+    KEY_REFLNS_NUM_OBSERVED: r'Total\s+number\s+unique\s+(\d+)\s+(\d+)\s+(\d+)',
     KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_POSSIBLE_OBS: r'Completeness\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_NETI_OVER_SIGMA: r'Mean\(\(I\)\/sd\(I\)\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
@@ -99,7 +107,8 @@ d_autoproc_staraniso = {
     KEY_REFLNS_PDBX_RRIM_I_ALL: r'Rmeas\s+\(all\s*I\+\s*&\s*I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_RPIM_I_ALL: r'Rpim\s+\(all I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_CC_HALF: r'CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-    KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\s+of\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_NUM_MEASURED: r'Total\s+number\s+of\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_NUM_OBSERVED: r'Total\s+number\s+unique\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_CHI_SQ: r'Mean\(Chi\^2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_POSSIBLE_OBS: r'Completeness \(ellipsoidal\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
@@ -114,7 +123,8 @@ d_xia_3dii = {
     KEY_REFLNS_PDBX_RRIM_I_ALL: r'Rmeas\s+\(all\s+I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_RPIM_I_ALL: r'Rpim\s+\(all\s+I\+\s+&\s+I-\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_CC_HALF: r'Mn\(I\)\s+half\-set\s+correlation\s+CC\(1/2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-    KEY_REFLNS_PDBX_NUM_MEASURED: r'Total\s+number\sof\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_NUM_MEASURED: r'Total\s+number\sof\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
+    KEY_REFLNS_NUM_OBSERVED: r'Total\s+number\s+unique\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_CHI_SQ: r'Mean\(Chi\^2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_POSSIBLE_OBS: r'Completeness\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
@@ -149,8 +159,8 @@ def handle_text_file(file, regexes):
     for k in regexes:
         if k not in reflns:
             warn('key', k, 'not found for reflns')
-        if k not in shell:
-            warn('key', k, 'not found for shell')
+        if _replace_shell_key(k) not in shell:
+            warn('key', k + '/' + _replace_shell_key(k), 'not found for shell')
 
     info("read", read_count, "lines,  processed", processed_count)
     return reflns, shell
