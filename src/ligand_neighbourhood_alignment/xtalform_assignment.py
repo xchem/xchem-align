@@ -28,7 +28,7 @@ def chain_to_array(chain):
 def get_chain_centroid(chain):
     chain_array = chain_to_array(chain)
     centroid = np.mean(chain_array, axis=0)
-    print(chain_array.shape)
+    # print(chain_array.shape)
     if centroid.size != 3:
           raise Exception(          
               f'The centroid should have been 3 numbers but instead got: {centroid}\n'
