@@ -90,7 +90,7 @@ def process_input(
 
     xtals_list = []
     cmpd_moldata = {}
-    # grab the ligand smile sof the collator output
+    # grab the ligand smiles of the collator output
     for crystal in crystals:
         mol_data = []
         cmpd_moldata[crystal] = mol_data
@@ -119,6 +119,13 @@ def process_input(
         mmcifgen_diffrn_tags = list(mmcifgen_diffrn_item.loop.tags)
         mmcifgen_diffrn_values = list(mmcifgen_diffrn_item.loop.values)
         mmcifgen_diffrn_item.erase()
+
+    (
+        mmcif_gen_entity_tags,
+        mmcif_gen_entity_values,
+        mmcif_gen_poly_tags,
+        mmcif_gen_poly_values,
+    ) = read_mmcifgen_entity_poly_data_and_erase(mmcifgen_block)
 
     path_to_soakdb_file = base_dir / input_path / soakdb_file
 
@@ -197,6 +204,15 @@ def process_input(
             if debug:
                 structure_cif_doc.write_file(str(xtal_out_path / 'original.cif'))
 
+            merge_entity_poly(
+                xtal_name,
+                structure_cif_block0,
+                mmcif_gen_entity_tags,
+                mmcif_gen_entity_values,
+                mmcif_gen_poly_tags,
+                mmcif_gen_poly_values,
+            )
+
             # do some cleaning
             delete_pair_item(structure_cif_doc, '_struct')
             delete_pair_item(structure_cif_doc, '_struct_keywords')
@@ -215,7 +231,8 @@ def process_input(
                         to_add = False
                         if len(item.loop.values) > 1:
                             template = item.loop.values[1]
-                            template = template.replace('$CompoundName', cmpd_code)
+                            template = template.replace('$CompoundCode', cmpd_code)
+                            template = template.replace('$CrystalName', xtal_name)
                             new_loop = structure_cif_block0.init_loop('', item.loop.tags)
                             new_loop.add_row([item.loop.values[0], template])
                 if to_add:
@@ -379,6 +396,121 @@ def process_input(
                     values.append(inchis)
                     values.append(inchik)
                 tsv.write('\t'.join(values) + '\n')
+
+
+def read_mmcifgen_entity_poly_data_and_erase(mmcifgen_block):
+    mmcifgen_entity_item = find_loop_item(mmcifgen_block, '_entity')
+    mmcifgen_poly_item = find_loop_item(mmcifgen_block, '_entity_poly')
+
+    mmcif_gen_entity_tags = None
+    mmcif_gen_entity_values = None
+    mmcif_gen_poly_tags = None
+    mmcif_gen_poly_values = None
+
+    if mmcifgen_entity_item.loop:
+        mmcif_gen_entity_tags = mmcifgen_entity_item.loop.tags
+        mmcif_gen_entity_values = mmcifgen_entity_item.loop.values
+    if mmcifgen_poly_item.loop:
+        mmcif_gen_poly_tags = mmcifgen_poly_item.loop.tags
+        mmcif_gen_poly_values = mmcifgen_poly_item.loop.values
+    if mmcifgen_entity_item:
+        mmcifgen_entity_item.erase()
+    if mmcifgen_poly_item:
+        mmcifgen_poly_item.erase()
+
+    return mmcif_gen_entity_tags, mmcif_gen_entity_values, mmcif_gen_poly_tags, mmcif_gen_poly_values
+
+
+def merge_entity_poly(
+    xtal_name, model_block, mmcif_gen_entity_tags, mmcif_gen_entity_values, mmcif_gen_poly_tags, mmcif_gen_poly_values
+):
+    model_entity_item = find_loop_item(model_block, '_entity')
+    model_poly_item = find_loop_item(model_block, '_entity_poly')
+
+    model_entity_tags = None
+    model_entity_values = None
+    model_poly_tags = None
+    model_poly_values = None
+
+    if model_entity_item and model_entity_item.loop:
+        model_entity_tags = model_entity_item.loop.tags
+        model_entity_values = model_entity_item.loop.values
+        model_entity_item.erase()
+    else:
+        warn('_entity loop not present in model CIF for', xtal_name)
+    if model_poly_item and model_poly_item.loop:
+        model_poly_tags = model_poly_item.loop.tags
+        model_poly_values = model_poly_item.loop.values
+        model_poly_item.erase()
+    else:
+        warn('_entity_poly loop not present in model CIF for', xtal_name)
+
+    all_entity_tags = []
+    if mmcif_gen_entity_tags:
+        all_entity_tags.extend(mmcif_gen_entity_tags)
+    if model_entity_tags:
+        for t in model_entity_tags:
+            if t not in all_entity_tags:
+                all_entity_tags.append(t)
+
+    all_poly_tags = []
+    if mmcif_gen_poly_tags:
+        all_poly_tags.extend(mmcif_gen_poly_tags)
+    if model_poly_tags:
+        for t in model_poly_tags:
+            if t not in all_poly_tags:
+                all_poly_tags.append(t)
+
+    loop = model_block.init_loop('', all_entity_tags)
+    model_entity_rows = collect_entity_poly_values(
+        model_entity_tags, model_entity_values, exclude_pairs=[('_entity.type', 'polymer')]
+    )
+    mmcifgen_entity_rows = collect_entity_poly_values(mmcif_gen_entity_tags, mmcif_gen_entity_values)
+    append_entity_poly_values(all_entity_tags, mmcifgen_entity_rows, loop)
+    append_entity_poly_values(all_entity_tags, model_entity_rows, loop)
+
+    loop = model_block.init_loop('', all_poly_tags)
+    model_poly_rows = collect_entity_poly_values(
+        model_poly_tags, model_poly_values, exclude_pairs=[('_entity_poly.type', 'polypeptide(L)')]
+    )
+    mmcifgen_poly_rows = collect_entity_poly_values(mmcif_gen_poly_tags, mmcif_gen_poly_values)
+    append_entity_poly_values(all_poly_tags, mmcifgen_poly_rows, loop)
+    append_entity_poly_values(all_poly_tags, model_poly_rows, loop)
+
+
+def append_entity_poly_values(tags, rows, loop):
+    for d in rows:
+        data = []
+        for tag in tags:
+            if tag in d:
+                data.append(d[tag])
+            else:
+                data.append('?')
+        loop.add_row(data)
+
+
+def collect_entity_poly_values(tags, values, exclude_pairs=[]):
+    rows = []
+    if values:
+        d = None
+        for i, value in enumerate(values):
+            if i % len(tags) == 0:
+                if d:
+                    add_row_if_not_excluded(d, rows, exclude_pairs)
+                d = {}
+            tag = tags[i % len(tags)]
+            d[tag] = value
+        add_row_if_not_excluded(d, rows, exclude_pairs)
+    return rows
+
+
+def add_row_if_not_excluded(d, rows, exclude_pairs):
+    is_excluded = False
+    for exclude in exclude_pairs:
+        if d.get(exclude[0]) == exclude[1]:
+            is_excluded = True
+    if not is_excluded:
+        rows.append(d)
 
 
 def delete_pair_item(doc, prefix):

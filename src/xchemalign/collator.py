@@ -1152,22 +1152,16 @@ class Collator:
                                                         "Failed to generate canonical smiles for "
                                                         + "soaked molecule from soakDB"
                                                     )
-                                        if not smi:
-                                            try:
-                                                smi = Chem.MolToSmiles(mol)
-                                            except:
-                                                self._log_warning(
-                                                    "Failed to generate SMILES from CIF molecule for ligand " + name
-                                                )
-                                        if smi:
-                                            ligands[name][Constants.META_SMILES] = smi
-                                        else:
+
+                                        try:
+                                            modelled_smi = Chem.MolToSmiles(mol)
+                                            ligands[name][Constants.META_SMILES] = modelled_smi
+                                        except:
                                             self._log_error(
-                                                "could not generate SMILES for "
-                                                + xtal_name
-                                                + " - not defined in SoakDB CompoundSMILES column "
-                                                + "and could not be generated from CIF file"
+                                                "Failed to generate SMILES from CIF molecule for ligand " + name
                                             )
+                                        if modelled_smi:
+                                            ligands[name][Constants.META_SMILES] = modelled_smi
 
                                     if ligands:
                                         data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
@@ -1451,7 +1445,6 @@ class Collator:
 
 
 def main():
-
     parser = argparse.ArgumentParser(description="collator")
 
     parser.add_argument("-d", "--dir", help="Working directory")
