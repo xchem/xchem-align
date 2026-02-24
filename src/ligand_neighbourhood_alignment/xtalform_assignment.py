@@ -160,8 +160,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
                 f'Error occured trying to map chains from xtalform {xtalform_id}\n'
                 f'Ref structure is: {xtalform.reference}\n'
             )
-        print(f'Chanin mapping: {chain_mapping}')
-        print(f'Min distances: {min_distances}')
+        # print(f'Chanin mapping: {chain_mapping}')
+        # print(f'Min distances: {min_distances}')
         all_mappings[xtalform_id] = chain_mapping
         all_distances[xtalform_id] = min_distances
         all_ref_centroids[xtalform_id] = ref_centroids
