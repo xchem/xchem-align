@@ -351,4 +351,7 @@ def _update_ligand_neighbourhood_transforms(
             matches.append(ligand_2_id)
 
     if len(matches) == 0:
-        rprint(f"No Matches For {ligand_1_id}! No alignments will be generated!")
+        logger.info(
+            f'There were no ligand neighbourhoods to which {ligand_1_id} could be aligned!\n' 
+            'NO ALIGNMENTS will be generated for this ligand!\n'
+            )

@@ -94,7 +94,7 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
                 )
             
             dist = nearest_image.dist()
-            print(f'Closest distance between {ref_centroid} and {mov_centroid} is {dist}')
+            # print(f'Closest distance between {ref_centroid} and {mov_centroid} is {dist}')
             distances[ref_chain][mov_chain] = dist
             
     # Assign each movin chain its closest ref chain
