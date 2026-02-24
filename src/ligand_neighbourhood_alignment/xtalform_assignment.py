@@ -75,7 +75,8 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
             raise Exception(
                 'Error occured while trying to verify the crystalform chain placements are comparable\n' 
                 f'Chain is: {chain}\n'
-                f'Chains in moving dataset are: {[x.name for x in mov[0]]}'
+                f'Chains in moving dataset are: {[x.name for x in mov[0]]}\n'
+                f'Residues in chain are: {len([x for x in mov[0][chain]])}'
                                       )
 
     # Get the distances under symmetry and PBC
