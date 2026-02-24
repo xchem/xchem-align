@@ -204,6 +204,9 @@ def process_input(
             if debug:
                 structure_cif_doc.write_file(str(xtal_out_path / 'original.cif'))
 
+            # #find and delete the _exptl loop as mmcifgen handles this
+            delete_pair_item(structure_cif_doc, '_exptl')
+
             merge_entity_poly(
                 xtal_name,
                 structure_cif_block0,
