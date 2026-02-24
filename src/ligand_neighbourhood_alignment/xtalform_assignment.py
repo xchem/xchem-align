@@ -32,7 +32,8 @@ def get_chain_centroid(chain):
     if centroid.size != 3:
           raise Exception(          
               f'The centroid should have been 3 numbers but instead got: {centroid}\n'
-              f'Chain array shape: {chain_array.shape}'
+              f'Chain array shape: {chain_array.shape}\n'
+              f'Chain is: {chain}'
           )
 
     return centroid
