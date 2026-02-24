@@ -207,7 +207,10 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
         structures,
     )
     except Exception as e:
-        raise Exception(f'Error occured assigning the xtalform of dataset: {dataset.dtag}')
+        raise Exception(
+            f'Error occured assigning the xtalform of dataset: {dataset.dtag}\n'
+            f'Path to structure: {dataset.pdb}'
+            )
 
     if (closest_xtalform_id is None) & (deltas is None):
         xtalform_info = {
