@@ -77,7 +77,7 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
                 f'Chain is: {chain}\n'
                 f'Chains in moving dataset are: {[x.name for x in mov[0]]}\n'
                 f'Residues in chain are: {len([x for x in mov[0][chain]])}\n'
-                f'Residues in chain polymer are: {len([x for x in transformed_chain])}'
+                f'Residues in chain polymer are: {len([x for x in transformed_chain])}\n'
                                       )
 
     # Get the distances under symmetry and PBC
