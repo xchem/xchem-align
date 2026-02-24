@@ -27,8 +27,15 @@ def chain_to_array(chain):
 
 def get_chain_centroid(chain):
     chain_array = chain_to_array(chain)
+    centroid = np.mean(chain_array, axis=0)
     print(chain_array.shape)
-    return np.mean(chain_array, axis=0)
+    if centroid.size != 3:
+          raise Exception(          
+              f'The centroid should have been 3 numbers but instead got: {centroid}\n'
+              f'Chain array shape: {chain_array.shape}'
+          )
+
+    return centroid
     ...
 
 def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
@@ -61,12 +68,11 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
         transformed_chain = mov[0][chain].clone().get_polymer()
         transformed_chain.transform_pos_and_adp(sup.transform)
 
-        mov_centroids[chain] = get_chain_centroid(transformed_chain)
-        if mov_centroids[chain].size != 3:
+        try:
+            mov_centroids[chain] = get_chain_centroid(transformed_chain)
+        except Exception as e:
             raise Exception(
-                'Error occured while trying to verify the crystalform chain placements are comparable\n'
-                f'The centroid should have been 3 numbers but instead got: {mov_centroids[chain]}\n'
-            )
+                'Error occured while trying to verify the crystalform chain placements are comparable\n'            )
 
     # Get the distances under symmetry and PBC
     distances = {}
