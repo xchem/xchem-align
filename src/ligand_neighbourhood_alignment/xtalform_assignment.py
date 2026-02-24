@@ -75,6 +75,7 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
             raise Exception(
                 'Error occured while trying to verify the crystalform chain placements are comparable\n' 
                 f'Chain is: {chain}\n'
+                f'Chains in moving dataset are: {[x.name for x in mov[0]]}'
                                       )
 
     # Get the distances under symmetry and PBC
@@ -154,7 +155,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
                 )
         except Exception as e:
             raise Exception(
-                f'Error occured trying to map chains from xtalform {xtalform_id}'
+                f'Error occured trying to map chains from xtalform {xtalform_id}\n'
+                f'Ref structure is: {xtalform.reference}\n'
             )
         print(f'Chanin mapping: {chain_mapping}')
         print(f'Min distances: {min_distances}')
