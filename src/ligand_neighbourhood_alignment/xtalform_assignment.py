@@ -73,7 +73,9 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
             mov_centroids[chain] = get_chain_centroid(transformed_chain)
         except Exception as e:
             raise Exception(
-                'Error occured while trying to verify the crystalform chain placements are comparable\n'            )
+                'Error occured while trying to verify the crystalform chain placements are comparable\n' 
+                f'Chain is: {chain}\n'
+                                      )
 
     # Get the distances under symmetry and PBC
     distances = {}
