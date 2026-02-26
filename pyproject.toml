@@ -53,8 +53,8 @@ dev = [
     "pylint == 4.0.5",
     "pytest-cov == 7.0.0",
     "sphinx-autobuild",
-    "sphinx-copybutton == 0.5.2",
-    "sphinx-design == 0.7.0",
+    "sphinx-copybutton",
+    "sphinx-design",
     "tox-direct == 0.4",
     "types-mock == 5.2.0.20250924",
     # from lna
