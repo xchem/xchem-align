@@ -27,8 +27,16 @@ def chain_to_array(chain):
 
 def get_chain_centroid(chain):
     chain_array = chain_to_array(chain)
-    print(chain_array.shape)
-    return np.mean(chain_array, axis=0)
+    centroid = np.mean(chain_array, axis=0)
+    # print(chain_array.shape)
+    if centroid.size != 3:
+          raise Exception(          
+              f'The centroid should have been 3 numbers but instead got: {centroid}\n'
+              f'Chain array shape: {chain_array.shape}\n'
+              f'Chain is: {chain}'
+          )
+
+    return centroid
     ...
 
 def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
@@ -61,8 +69,16 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
         transformed_chain = mov[0][chain].clone().get_polymer()
         transformed_chain.transform_pos_and_adp(sup.transform)
 
-        mov_centroids[chain] = get_chain_centroid(transformed_chain)
-        assert mov_centroids[chain].size == 3
+        try:
+            mov_centroids[chain] = get_chain_centroid(transformed_chain)
+        except Exception as e:
+            raise Exception(
+                'Error occured while trying to verify the crystalform chain placements are comparable\n' 
+                f'Chain is: {chain}\n'
+                f'Chains in moving dataset are: {[x.name for x in mov[0]]}\n'
+                f'Residues in chain are: {len([x for x in mov[0][chain]])}\n'
+                f'Residues in chain polymer are: {len([x for x in transformed_chain])}\n'
+                                      )
 
     # Get the distances under symmetry and PBC
     distances = {}
@@ -78,7 +94,7 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
                 )
             
             dist = nearest_image.dist()
-            print(f'Closest distance between {ref_centroid} and {mov_centroid} is {dist}')
+            # print(f'Closest distance between {ref_centroid} and {mov_centroid} is {dist}')
             distances[ref_chain][mov_chain] = dist
             
     # Assign each movin chain its closest ref chain
@@ -93,8 +109,9 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
         assignments[ref_chain] = closest_chain
 
     if len(set(assignments.values())) != len(set(assignments.keys())):
-        print(f'ERROR! Chain assignment is {assignments}. No two chains should be modelled in the same symmetry position in the unit cell!')
-        raise Exception()
+        raise Exception(
+            f'ERROR! Chain assignment is {assignments}. No two chains should be modelled in the same symmetry position in the unit cell!'
+        )
     
     return assignments, min_distances, ref_centroids, mov_centroids
 
@@ -132,13 +149,19 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             continue
 
         # Check if the chains align reasonably
-        chain_mapping, min_distances, ref_centroids, mov_centroids = get_xtalform_chain_mapping(
-            ref_structure, 
-            structure, 
-            xtalform_protein_chains,
+        try:
+            chain_mapping, min_distances, ref_centroids, mov_centroids = get_xtalform_chain_mapping(
+                ref_structure, 
+                structure, 
+                xtalform_protein_chains,
+                )
+        except Exception as e:
+            raise Exception(
+                f'Error occured trying to map chains from xtalform {xtalform_id}\n'
+                f'Ref structure is: {xtalform.reference}\n'
             )
-        print(f'Chanin mapping: {chain_mapping}')
-        print(f'Min distances: {min_distances}')
+        # print(f'Chanin mapping: {chain_mapping}')
+        # print(f'Min distances: {min_distances}')
         all_mappings[xtalform_id] = chain_mapping
         all_distances[xtalform_id] = min_distances
         all_ref_centroids[xtalform_id] = ref_centroids
@@ -181,11 +204,17 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
 
 
 def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
-    closest_xtalform_id, deltas, all_mappings, all_distances, all_ref_centroids, all_mov_centroids = _get_closest_xtalform(
+    try:
+        closest_xtalform_id, deltas, all_mappings, all_distances, all_ref_centroids, all_mov_centroids = _get_closest_xtalform(
         xtalforms,
         structure,
         structures,
     )
+    except Exception as e:
+        raise Exception(
+            f'Error occured assigning the xtalform of dataset: {dataset.dtag}\n'
+            f'Path to structure: {dataset.pdb}'
+            )
 
     if (closest_xtalform_id is None) & (deltas is None):
         xtalform_info = {

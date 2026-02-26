@@ -8,6 +8,9 @@ def _get_structures(datasets):
     structures = {}
     for dtag, dataset in datasets.items():
         structure: gemmi.Structure = gemmi.read_structure(dataset.pdb)
+        structure.setup_entities()
+        structure.assign_label_seq_id()
+
         structures[dtag] = structure
 
     return structures
