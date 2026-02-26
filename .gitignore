@@ -13,7 +13,7 @@ test-data/outputs/upload_*
 *.ipynb
 venv*
 .vscode
-
+docs/source/_build/
 example-simple
 build
 
