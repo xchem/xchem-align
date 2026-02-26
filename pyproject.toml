@@ -29,7 +29,7 @@ dependencies = [
     # from lna
     'loguru == 0.7.3',
     'pydantic==2.6.0',
-    'networkx',
+    'networkx', # the version needed is specific to the Python version
     'rich == 14.3.3',
     'fire == 0.7.1',
     'boto3 == 1.42.57',
@@ -52,7 +52,7 @@ dev = [
     "pydata-sphinx-theme>=0.12",
     "pylint == 4.0.5",
     "pytest-cov == 7.0.0",
-    "sphinx-autobuild == 2025.8.25",
+    "sphinx-autobuild",
     "sphinx-copybutton == 0.5.2",
     "sphinx-design == 0.7.0",
     "tox-direct == 0.4",
