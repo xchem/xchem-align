@@ -3,7 +3,7 @@ from loguru import logger
 
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import structure
-from ligand_neighbourhood_alignment import alignment_landmarks 
+from ligand_neighbourhood_alignment import alignment_landmarks
 from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
 
 
@@ -90,6 +90,7 @@ def match_neighbourhood_to_sites(
 
     return None
 
+
 def _match_cas(
     ligand_1_neighbourhood: dt.Neighbourhood,
     ligand_2_neighbourhood: dt.Neighbourhood,
@@ -116,7 +117,7 @@ def _match_cas(
                             ),
                         )
                     )
-                    alignable_ids.append((ligand_1_atom_id,ligand_2_atom_id ))
+                    alignable_ids.append((ligand_1_atom_id, ligand_2_atom_id))
 
     if len(alignable_cas) >= min(
         [min_alignable_atoms, len(ligand_1_neighbourhood.atoms), len(ligand_2_neighbourhood.atoms)]
@@ -133,7 +134,9 @@ def _match_cas(
             return (
                 True,
                 dt.Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist(), alignable_ids=alignable_ids),
-                dt.Transform(vec=inverse_transform.vec.tolist(), mat=inverse_transform.mat.tolist(), alignable_ids=alignable_ids),
+                dt.Transform(
+                    vec=inverse_transform.vec.tolist(), mat=inverse_transform.mat.tolist(), alignable_ids=alignable_ids
+                ),
             )
         else:
             return False, None, None
@@ -142,28 +145,32 @@ def _match_cas(
 
 
 def calculate_insertion_matching_from_landmarks(
-        ref: dt.StructureLandmarks, 
-        mov: dt.StructureLandmarks, 
-        ref_chain: str, 
-        mov_chain: str,
-        debug=False
-        ):
+    ref: dt.StructureLandmarks, mov: dt.StructureLandmarks, ref_chain: str, mov_chain: str, debug=False
+):
     """
-    This could be a lot more efficient (and readable) it is used tables indexed to the alignment 
+    This could be a lot more efficient (and readable) it is used tables indexed to the alignment
     space with columns for the different index types. It might need to be...
     """
     # Get the residue sequences for alignment
     ref_seq = {
-        atom_id[1][1]: gemmi.one_letter_code([atom_id[1][0],]) 
-        for atom_id in ref 
+        atom_id[1][1]: gemmi.one_letter_code(
+            [
+                atom_id[1][0],
+            ]
+        )
+        for atom_id in ref
         if atom_id[0] == ref_chain
-        }
+    }
     mov_seq = {
-        atom_id[1][1]: gemmi.one_letter_code([atom_id[1][0],]) 
-        for atom_id in mov 
+        atom_id[1][1]: gemmi.one_letter_code(
+            [
+                atom_id[1][0],
+            ]
+        )
+        for atom_id in mov
         if atom_id[0] == mov_chain
-        }
-    
+    }
+
     # Perform the alignment
     blosum62 = gemmi.AlignmentScoring('b')
     # AA = gemmi.ResidueKind.AA
@@ -177,9 +184,11 @@ def calculate_insertion_matching_from_landmarks(
     )
 
     # Get the gap strings
-    formatted_match = result.formatted(''.join(ref_seq_sorted), ''.join(mov_seq_sorted), )
+    formatted_match = result.formatted(
+        ''.join(ref_seq_sorted),
+        ''.join(mov_seq_sorted),
+    )
     aligned_ref, match_string, aligned_mov = formatted_match.splitlines()
-
 
     # Get native index to aligned index for the ref seq
     # ref_seq_expanded = result.add_gaps(str(ref_seq_sorted), 1)
@@ -189,7 +198,7 @@ def calculate_insertion_matching_from_landmarks(
         if item not in ['-', ' ']:
             ref_to_aligned[count] = j
             count += 1
-    
+
     # Get the aligned index to native index for the mov seq
     # mov_seq_expanded = result.add_gaps(str(mov_seq_sorted), 2)
     mov_seq_index_to_key = {_j: _key for _j, _key in enumerate(mov_seq)}
@@ -199,7 +208,7 @@ def calculate_insertion_matching_from_landmarks(
         if item not in ['-', ' ']:
             aligned_to_mov[aligned_index] = mov_seq_index_to_key[count]
             count += 1
-    
+
     # Generate the residue mapping
     residue_mapping = {}
 
@@ -210,7 +219,7 @@ def calculate_insertion_matching_from_landmarks(
 
             # Get the corresponding mov res at that alignment index
             mov_seq_res = aligned_mov[alignment_index]
-            
+
             # Only consider matched residues
             if mov_seq_res != '-':
                 # Get the mov seq index
@@ -219,14 +228,13 @@ def calculate_insertion_matching_from_landmarks(
                 # Update the residue mapping
                 residue_mapping[ref_seqid] = mov_seqid
 
-
     except Exception as e:
         print('# j, ref index')
         print([j, ref_seqid])
 
         print('# Match string')
         print(result.match_string)
-    
+
         print('# ref seq')
         print(ref_seq)
 
@@ -239,7 +247,6 @@ def calculate_insertion_matching_from_landmarks(
         print('# aligned to move')
         print(aligned_to_mov)
 
-
         print('# mov seq sorted')
         print(ref_seq_sorted)
 
@@ -250,16 +257,15 @@ def calculate_insertion_matching_from_landmarks(
         # print(ref_seq_expanded)
         # print(type(ref_seq_expanded))
 
-
         # print('# mov seq expanded')
         # print(mov_seq_expanded)
         # print(type(mov_seq_expanded))
-        
+
         print('Formatted match')
         print(aligned_ref)
         print(aligned_mov)
 
-        raise e    
+        raise e
 
     return residue_mapping
 
@@ -309,11 +315,12 @@ def _get_transform_from_residues(rs: list[tuple[str, str]], srs, ssrs, other_rs=
 
     return sup.transform
 
+
 def align_on_residues(
-        residue_mapping,   # From reference to moving
-        reference_structure, 
-        moving_structure,
-        ):
+    residue_mapping,  # From reference to moving
+    reference_structure,
+    moving_structure,
+):
     """
     Take a residue mapping and generate a transform object
     """
@@ -329,19 +336,15 @@ def align_on_residues(
 
     transform = gemmi.superpose_positions(ref_poss, mov_poss).transform
 
-    return dt.Transform(
-        transform.vec.tolist(),
-        transform.mat.tolist(),
-        alignable_ids=[]
-    )
+    return dt.Transform(transform.vec.tolist(), transform.mat.tolist(), alignable_ids=[])
 
 
 def get_residue_mapping(  # ref-to-mov mapping
-        reference_chain,
-        moving_chain,
-        reference_structure,
-        moving_structure,
-    ) -> dict[tuple[str, str]]:
+    reference_chain,
+    moving_chain,
+    reference_structure,
+    moving_structure,
+) -> dict[tuple[str, str]]:
     # Get landmarks from structures
     ref_landmarks = alignment_landmarks.structure_to_landmarks(reference_structure)
     mov_landmarks = alignment_landmarks.structure_to_landmarks(moving_structure)
@@ -357,8 +360,7 @@ def get_residue_mapping(  # ref-to-mov mapping
     # Get the resid mapping
     residue_mapping = {
         (reference_chain, str(ref_seqid)): (moving_chain, str(mov_seqid))
-        for ref_seqid, mov_seqid
-        in insertion_mapping.items()
+        for ref_seqid, mov_seqid in insertion_mapping.items()
         # for residue in chain
         # for chain in model
         # for model in reference_structure

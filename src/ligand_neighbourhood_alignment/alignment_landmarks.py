@@ -2,11 +2,13 @@ import gemmi
 
 from ligand_neighbourhood_alignment import constants
 
+
 def icode_to_string(icode):
     if icode != ' ':
         return icode
     else:
         return ''
+
 
 def assembly_landmarks_to_dict(assembly_landmarks: dict[tuple[str, tuple[str, str], str], tuple[float, float, float]]):
     dic = {}
@@ -17,6 +19,7 @@ def assembly_landmarks_to_dict(assembly_landmarks: dict[tuple[str, tuple[str, st
             dic[assembly][key] = v
 
     return dic
+
 
 def dict_to_assembly_landmarks(dic):
     obj = {}
@@ -29,6 +32,7 @@ def dict_to_assembly_landmarks(dic):
 
     return obj
 
+
 def structure_to_landmarks(st):
     landmarks = {}
     for model in st:
@@ -38,7 +42,13 @@ def structure_to_landmarks(st):
                     continue
                 for atom in residue:
                     pos = atom.pos
-                    landmarks[(chain.name, (residue.name, str(residue.seqid.num)+icode_to_string(residue.seqid.icode)), atom.name)] = (pos.x, pos.y, pos.z)
+                    landmarks[
+                        (
+                            chain.name,
+                            (residue.name, str(residue.seqid.num) + icode_to_string(residue.seqid.icode)),
+                            atom.name,
+                        )
+                    ] = (pos.x, pos.y, pos.z)
 
     return landmarks
 

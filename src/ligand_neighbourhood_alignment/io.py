@@ -4,6 +4,7 @@ import networkx as nx
 
 from ligand_neighbourhood_alignment import dt
 
+
 def _get_structures(datasets):
     structures = {}
     for dtag, dataset in datasets.items():
@@ -40,6 +41,7 @@ def _save_assignments(fs_model: dt.FSModel, dataset_assignments: dict[str, str])
     with open(fs_model.dataset_assignments, "w") as f:
         yaml.safe_dump(dataset_assignments, f)
 
+
 def _save_graph(fs_model, alignability_graph):
     graph_for_output = nx.relabel_nodes(alignability_graph, {x: "/".join(x) for x in alignability_graph})
     nx.write_gml(
@@ -47,6 +49,7 @@ def _save_graph(fs_model, alignability_graph):
         str(fs_model.alignability_graph),
         # stringizer=lambda x: "/".join(x),
     )
+
 
 def _save_connected_components(fs_model, connected_components):
     with open(fs_model.connected_components, "w") as f:
@@ -70,6 +73,7 @@ def _save_canonical_sites(fs_model, canonical_sites: dict[str, dt.CanonicalSite]
         for canonical_site_id, canonical_site in canonical_sites.items():
             dic[dt.altloc_to_string(canonical_site_id)] = canonical_site.to_dict()
         yaml.safe_dump(dic, f)
+
 
 def _save_xtalform_sites(fs_model, xtalform_sites: dict[str, dt.XtalFormSite]):
     with open(fs_model.xtalform_sites, "w") as f:
@@ -97,6 +101,7 @@ def _save_canonical_site_transforms(fs_model: dt.FSModel, canonical_site_transfo
             dic[canonical_site_transform_id] = canonical_site_transform.to_dict()
         yaml.safe_dump(dic, f)
 
+
 def _save_fs_model(fs_model: dt.FSModel):
     with open(fs_model.fs_model, "w") as f:
         dic = fs_model.to_dict()
@@ -113,6 +118,7 @@ def _save_reference_structure_transforms(
         dic["~".join(reference_structure_transform_id)] = reference_structure_transform.to_dict()
     with open(fs_model.reference_structure_transforms, "w") as f:
         yaml.safe_dump(dic, f)
+
 
 def save_yaml(path, obj, obj_to_dict):
     with open(path, "w") as f:
@@ -243,7 +249,7 @@ def _load_alignability_graph(alignability_graph, fail_if_not_found=False):
             str(alignability_graph),
         )
 
-        g = nx.relabel_nodes(g_initial, {x: tuple([dt.string_to_altloc(y) for y in  x.split("/")]) for x in g_initial})
+        g = nx.relabel_nodes(g_initial, {x: tuple([dt.string_to_altloc(y) for y in x.split("/")]) for x in g_initial})
 
         return g
 
@@ -265,9 +271,7 @@ def _load_connected_components(connected_components_yaml, fail_if_not_found=Fals
                 dtag, chain, residue, altloc, version = [dt.string_to_altloc(x) for x in ligand_id.split("+")]
                 # print(f'{ligand_id} : {altloc}')
                 connected_components[(dtag, chain, residue, altloc, version)] = [
-                    tuple([dt.string_to_altloc(x) for x in _ligand_id.split("+")]) 
-                    for _ligand_id 
-                    in neighbourhood_info
+                    tuple([dt.string_to_altloc(x) for x in _ligand_id.split("+")]) for _ligand_id in neighbourhood_info
                 ]
 
     return connected_components

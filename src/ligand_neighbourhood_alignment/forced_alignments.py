@@ -1,6 +1,7 @@
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import alignment_heirarchy
 from ligand_neighbourhood_alignment import alignment_core
+
 # from ligand_neighbourhood_alignment.structure import _get_transform_from_residues
 
 
@@ -27,14 +28,14 @@ def _update_reference_structure_transforms(
     site_reference_ligand_id = conformer_sites[canonical_site.reference_conformer_site_id].reference_ligand_id
     site_reference_ligand_xtalform_id = dataset_assignments[site_reference_ligand_id[0]]
     site_reference_ligand_xtalform = xtalforms[site_reference_ligand_xtalform_id]
-    
+
     # # Get the biochain of the canonical site
     canonical_site_biochain, site_reference_ligand_xtalform = alignment_heirarchy.get_canonical_site_biochain(
         site_reference_ligand_id,
         site_reference_ligand_xtalform_id,
         site_reference_ligand_xtalform,
-        xtalform_sites, 
-        canonical_site_id, 
+        xtalform_sites,
+        canonical_site_id,
         assemblies,
     )
 
@@ -42,8 +43,7 @@ def _update_reference_structure_transforms(
     reference_structure = structures[key[0]]
     reference_structure_xtalform = xtalforms[dataset_assignments[key[0]]]
     xtalform_chains = [
-        chain for assembly in reference_structure_xtalform.assemblies.values() 
-        for chain in assembly.chains
+        chain for assembly in reference_structure_xtalform.assemblies.values() for chain in assembly.chains
     ]
     reference_structure_biochains = {
         chain: alignment_heirarchy._chain_to_biochain(chain, reference_structure_xtalform, assemblies)

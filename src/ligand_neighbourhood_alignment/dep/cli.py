@@ -457,29 +457,6 @@ def _get_structures(datasets):
     return structures
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # class CLI:
 #     def schema(self, output_dir: str):
 #         _output_dir = Path(output_dir)

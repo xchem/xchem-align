@@ -104,6 +104,3 @@ def get_alignability(
     logger.debug(connectivity)
 
     return np.array(connectivity), Transforms(ligand_ids=transform_ids, transforms=transforms)
-
-
-
