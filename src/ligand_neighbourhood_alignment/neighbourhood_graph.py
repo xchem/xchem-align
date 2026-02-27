@@ -13,7 +13,3 @@ def _update_graph(
     for to_ligand_id, from_ligand_id in ligand_neighbourhood_transforms:
         if (to_ligand_id, from_ligand_id) not in edges:
             alignability_graph.add_edge(to_ligand_id, from_ligand_id)
-
-
-
-

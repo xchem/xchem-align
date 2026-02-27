@@ -36,6 +36,7 @@ from ligand_neighbourhood_alignment.structures import (
 
 from ligand_neighbourhood_alignment.io import _get_structures
 
+
 def get_components(g):
     cliques = list(nx.connected_components(g))
     logger.debug(f"Cliques are: {cliques}")
@@ -253,7 +254,9 @@ def _update_conformer_site_transforms(
                 structures[ref_conformer_site.reference_ligand_id[0]],
             )
 
-            conformer_site_transforms[key] = dt.Transform(transform.vec.tolist(), transform.mat.tolist(), alignable_ids=[])
+            conformer_site_transforms[key] = dt.Transform(
+                transform.vec.tolist(), transform.mat.tolist(), alignable_ids=[]
+            )
 
 
 def get_site_transforms(sites: CanonicalSites, structures):
@@ -271,7 +274,9 @@ def get_site_transforms(sites: CanonicalSites, structures):
         site_structure = structures[srs]
 
         transform = get_transform_from_residues(ref_site_all_ress, rss, site_structure)
-        transforms[(rsid, site_id)] = Transform(vec=transform.vec.tolist(), mat=transform.mat.tolist(), alignable_ids = [])
+        transforms[(rsid, site_id)] = Transform(
+            vec=transform.vec.tolist(), mat=transform.mat.tolist(), alignable_ids=[]
+        )
 
     return transforms
 
@@ -294,9 +299,6 @@ def _update_canonical_site_transforms(
         transform.vec.tolist(),
         transform.mat.tolist(),
     )
-
-
-
 
 
 def _generate_sites_from_components(_source_dir: Path):

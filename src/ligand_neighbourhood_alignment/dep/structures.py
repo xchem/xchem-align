@@ -5,7 +5,6 @@ from ligand_neighbourhood_alignment.data import LigandNeighbourhood, ResidueID, 
 from src.ligand_neighbourhood_alignment.alignment_core import match_atom
 
 
-
 def _get_transform():
     ...
 
@@ -51,9 +50,6 @@ def get_transform_from_residues(rs: list[ResidueID], srs, ssrs):
     sup = gemmi.superpose_positions([x[0].pos for x in acs], [x[1].pos for x in acs])
 
     return sup.transform
-
-
-
 
 
 def get_transforms(
@@ -103,7 +99,7 @@ def generate_assembly(xtalform: XtalForm, structure):
             chains_to_delete.append((str(model.num), chain.name))
 
     for model_name, chain_name in chains_to_delete:
-        del full_st[int(model_name)-1][chain_name]
+        del full_st[int(model_name) - 1][chain_name]
 
     for assembly_id, assembly in xtalform.assemblies.items():
         for generator_id, generator in assembly.generators.items():
@@ -153,4 +149,4 @@ def remove_non_contact_chains(assembly, neighbourhood: LigandNeighbourhood):
 
     for model_name, chain_name in chains:
         if (model_name, chain_name) not in contact_chains:
-            del assembly[int(model_name)-1][chain_name]
+            del assembly[int(model_name) - 1][chain_name]

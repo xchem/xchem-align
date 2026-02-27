@@ -160,7 +160,7 @@ def get_blocks(rglb, rgub, xmap):
                             transform_vec.z,
                         ],
                         mat=(orth_arr @ frac_arr).tolist(),
-                        alignable_ids=[]
+                        alignable_ids=[],
                     ),
                 )
 

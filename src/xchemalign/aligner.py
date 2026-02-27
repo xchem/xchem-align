@@ -405,9 +405,9 @@ class Aligner:
         self.logger.info(f"Got {len(new_datasets)} new datasets")
         if sum([len(dataset.ligand_binding_events) for dataset in datasets.values()]) == 0:
             self.logger.error(
-                'There are no ligand binding events detected! The program will now exit.\n' 
+                'There are no ligand binding events detected! The program will now exit.\n'
                 'This is most likely because because there are no ligand cif files in the input data.'
-                )
+            )
             raise Exception
 
         # Get assemblies

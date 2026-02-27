@@ -1,6 +1,7 @@
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment.ligand_neighbourhoods import _get_centroid_res
 
+
 def _update_canonical_sites(
     canonical_sites: dict[str, dt.CanonicalSite],
     conformer_site: dt.ConformerSite,
@@ -52,4 +53,3 @@ def _update_canonical_sites(
 
         canonical_site_id = conformer_site_id
         canonical_sites[canonical_site_id] = canonical_site
-

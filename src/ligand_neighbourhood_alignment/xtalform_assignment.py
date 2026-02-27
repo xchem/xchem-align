@@ -4,8 +4,9 @@ import gemmi
 from rich import print as print
 import itertools
 
-from ligand_neighbourhood_alignment import dt 
+from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment.structure import _get_dataset_protein_chains
+
 
 def chain_to_array(chain):
     poss = []
@@ -14,30 +15,26 @@ def chain_to_array(chain):
             if "CA" not in atom.name:
                 continue
             pos = atom.pos
-            poss.append(
-                [
-                    pos.x,
-                    pos.y,
-                    pos.z
-                ]
-            )
+            poss.append([pos.x, pos.y, pos.z])
 
     return np.array(poss)
     ...
+
 
 def get_chain_centroid(chain):
     chain_array = chain_to_array(chain)
     centroid = np.mean(chain_array, axis=0)
     # print(chain_array.shape)
     if centroid.size != 3:
-          raise Exception(          
-              f'The centroid should have been 3 numbers but instead got: {centroid}\n'
-              f'Chain array shape: {chain_array.shape}\n'
-              f'Chain is: {chain}'
-          )
+        raise Exception(
+            f'The centroid should have been 3 numbers but instead got: {centroid}\n'
+            f'Chain array shape: {chain_array.shape}\n'
+            f'Chain is: {chain}'
+        )
 
     return centroid
     ...
+
 
 def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
     """
@@ -59,12 +56,12 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
     ref_poly = ref[0][xtalform_protein_chains[0]].get_polymer()
     mov_poly = mov[0][xtalform_protein_chains[0]].get_polymer()
     sup = gemmi.calculate_superposition(
-        ref_poly, 
-        mov_poly, 
-        ref_poly.check_polymer_type(), 
+        ref_poly,
+        mov_poly,
+        ref_poly.check_polymer_type(),
         gemmi.SupSelect.CaP,
-        )
-    
+    )
+
     for chain in xtalform_protein_chains:
         transformed_chain = mov[0][chain].clone().get_polymer()
         transformed_chain.transform_pos_and_adp(sup.transform)
@@ -73,12 +70,12 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
             mov_centroids[chain] = get_chain_centroid(transformed_chain)
         except Exception as e:
             raise Exception(
-                'Error occured while trying to verify the crystalform chain placements are comparable\n' 
+                'Error occured while trying to verify the crystalform chain placements are comparable\n'
                 f'Chain is: {chain}\n'
                 f'Chains in moving dataset are: {[x.name for x in mov[0]]}\n'
                 f'Residues in chain are: {len([x for x in mov[0][chain]])}\n'
                 f'Residues in chain polymer are: {len([x for x in transformed_chain])}\n'
-                                      )
+            )
 
     # Get the distances under symmetry and PBC
     distances = {}
@@ -88,23 +85,23 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
         distances[ref_chain] = {}
         for mov_chain, mov_centroid in mov_centroids.items():
             nearest_image = ref.cell.find_nearest_image(
-                gemmi.Position(ref_centroid[0], ref_centroid[1], ref_centroid[2]), 
-                gemmi.Position(mov_centroid[0], mov_centroid[1], mov_centroid[2]), 
+                gemmi.Position(ref_centroid[0], ref_centroid[1], ref_centroid[2]),
+                gemmi.Position(mov_centroid[0], mov_centroid[1], mov_centroid[2]),
                 gemmi.Asu.Any,
-                )
-            
+            )
+
             dist = nearest_image.dist()
             # print(f'Closest distance between {ref_centroid} and {mov_centroid} is {dist}')
             distances[ref_chain][mov_chain] = dist
-            
+
     # Assign each movin chain its closest ref chain
     assignments = {}
     min_distances = {}
     for ref_chain in xtalform_protein_chains:
         closest_chain = min(
-            distances[ref_chain], 
+            distances[ref_chain],
             key=lambda x: distances[ref_chain][x],
-            )
+        )
         min_distances[ref_chain] = distances[ref_chain][closest_chain]
         assignments[ref_chain] = closest_chain
 
@@ -112,12 +109,11 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
         raise Exception(
             f'ERROR! Chain assignment is {assignments}. No two chains should be modelled in the same symmetry position in the unit cell!'
         )
-    
+
     return assignments, min_distances, ref_centroids, mov_centroids
 
-
-
     ...
+
 
 def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structures):
     structure_spacegroup = structure.spacegroup_hm
@@ -140,8 +136,7 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
 
         # Check they have the same protein chains
         xtalform_protein_chains = [
-            _chain for xtalform_assembly in xtalform.assemblies.values() 
-            for _chain in xtalform_assembly.chains
+            _chain for xtalform_assembly in xtalform.assemblies.values() for _chain in xtalform_assembly.chains
         ]
         dataset_protein_chains = _get_dataset_protein_chains(structure)
 
@@ -151,10 +146,10 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         # Check if the chains align reasonably
         try:
             chain_mapping, min_distances, ref_centroids, mov_centroids = get_xtalform_chain_mapping(
-                ref_structure, 
-                structure, 
+                ref_structure,
+                structure,
                 xtalform_protein_chains,
-                )
+            )
         except Exception as e:
             raise Exception(
                 f'Error occured trying to map chains from xtalform {xtalform_id}\n'
@@ -198,28 +193,38 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         key=lambda _xtalform_id: np.sum(np.abs(xtalform_deltas[_xtalform_id] - 1)),
     )
 
-    return closest_xtalform, xtalform_deltas[closest_xtalform], all_mappings, all_distances, all_ref_centroids, all_mov_centroids
-
-
+    return (
+        closest_xtalform,
+        xtalform_deltas[closest_xtalform],
+        all_mappings,
+        all_distances,
+        all_ref_centroids,
+        all_mov_centroids,
+    )
 
 
 def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
     try:
-        closest_xtalform_id, deltas, all_mappings, all_distances, all_ref_centroids, all_mov_centroids = _get_closest_xtalform(
-        xtalforms,
-        structure,
-        structures,
-    )
+        (
+            closest_xtalform_id,
+            deltas,
+            all_mappings,
+            all_distances,
+            all_ref_centroids,
+            all_mov_centroids,
+        ) = _get_closest_xtalform(
+            xtalforms,
+            structure,
+            structures,
+        )
     except Exception as e:
         raise Exception(
-            f'Error occured assigning the xtalform of dataset: {dataset.dtag}\n'
-            f'Path to structure: {dataset.pdb}'
-            )
+            f'Error occured assigning the xtalform of dataset: {dataset.dtag}\n' f'Path to structure: {dataset.pdb}'
+        )
 
     if (closest_xtalform_id is None) & (deltas is None):
         xtalform_info = {
-            xtalform_id: structures[xtalform.reference].spacegroup_hm
-            for xtalform_id, xtalform in xtalforms.items()
+            xtalform_id: structures[xtalform.reference].spacegroup_hm for xtalform_id, xtalform in xtalforms.items()
         }
         message = (
             '\n'
@@ -232,10 +237,10 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
             '   and/or unit cell as this dataset. This can be diagnosed by comparing the \n'
             '   "# Dataset spacegroup" entry to the "# xtalform spacegroups" entry below. This is fixed\n'
             '   by creating a new xtalform with this dataset as reference.\n'
-            '2. Chain names vary to the references in a way the program cannot deal with. \n' 
-            '   In particular if after alignment on one chain -other- chains are not in approximately\n' \
-            '   the same place as their counterparts in a reference. This can be diagnosed by comparing\n' \
-            '   seeing if all chains map to themselves in the "# All chain mappings" entry below. This can\n' \
+            '2. Chain names vary to the references in a way the program cannot deal with. \n'
+            '   In particular if after alignment on one chain -other- chains are not in approximately\n'
+            '   the same place as their counterparts in a reference. This can be diagnosed by comparing\n'
+            '   seeing if all chains map to themselves in the "# All chain mappings" entry below. This can\n'
             '   be fixed by renaming chains in this dataset or removing this dataset.\n'
             '# Diagnostic Information for someone who knows what they are doing:\n'
             '# All chain mappings\n'

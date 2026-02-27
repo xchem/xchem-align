@@ -2,6 +2,7 @@ import os
 
 from ligand_neighbourhood_alignment import dt, constants
 
+
 def _update_fs_model(
     fs_model: dt.FSModel,
     canonical_sites: dict[str, dt.CanonicalSite],
@@ -30,7 +31,9 @@ def _update_fs_model(
                         {}, {}, {}, {}, {}, {}, {}, {}
                     )
 
-                ligand_neighbourhood_output: dt.LigandNeighbourhoodOutput = alignments[dtag][chain][residue][altloc][version]
+                ligand_neighbourhood_output: dt.LigandNeighbourhoodOutput = alignments[dtag][chain][residue][altloc][
+                    version
+                ]
 
                 if not (fs_model.source_dir / constants.ALIGNED_FILES_DIR / dtag).exists():
                     os.mkdir(fs_model.source_dir / constants.ALIGNED_FILES_DIR / dtag)
@@ -41,7 +44,12 @@ def _update_fs_model(
                         / constants.ALIGNED_FILES_DIR
                         / dtag
                         / constants.ALIGNED_STRUCTURE_TEMPLATE.format(
-                            dtag=dtag, chain=chain, residue=residue, altloc=dt.altloc_to_string(altloc), version=version, site=canonical_site_id
+                            dtag=dtag,
+                            chain=chain,
+                            residue=residue,
+                            altloc=dt.altloc_to_string(altloc),
+                            version=version,
+                            site=canonical_site_id,
                         )
                     )
 
@@ -50,7 +58,12 @@ def _update_fs_model(
                         / constants.ALIGNED_FILES_DIR
                         / dtag
                         / constants.ALIGNED_STRUCTURE_ARTEFACTS_TEMPLATE.format(
-                            dtag=dtag, chain=chain, residue=residue, altloc=dt.altloc_to_string(altloc),version=version, site=canonical_site_id
+                            dtag=dtag,
+                            chain=chain,
+                            residue=residue,
+                            altloc=dt.altloc_to_string(altloc),
+                            version=version,
+                            site=canonical_site_id,
                         )
                     )
 
@@ -59,7 +72,12 @@ def _update_fs_model(
                         / constants.ALIGNED_FILES_DIR
                         / dtag
                         / constants.ALIGNED_XMAP_TEMPLATE.format(
-                            dtag=dtag, chain=chain, residue=residue, altloc=dt.altloc_to_string(altloc), version=version, site=canonical_site_id
+                            dtag=dtag,
+                            chain=chain,
+                            residue=residue,
+                            altloc=dt.altloc_to_string(altloc),
+                            version=version,
+                            site=canonical_site_id,
                         )
                     )
 
@@ -68,7 +86,12 @@ def _update_fs_model(
                         / constants.ALIGNED_FILES_DIR
                         / dtag
                         / constants.ALIGNED_DIFF_TEMPLATE.format(
-                            dtag=dtag, chain=chain, residue=residue, altloc=dt.altloc_to_string(altloc), version=version, site=canonical_site_id
+                            dtag=dtag,
+                            chain=chain,
+                            residue=residue,
+                            altloc=dt.altloc_to_string(altloc),
+                            version=version,
+                            site=canonical_site_id,
                         )
                     )
 
@@ -77,7 +100,12 @@ def _update_fs_model(
                         / constants.ALIGNED_FILES_DIR
                         / dtag
                         / constants.ALIGNED_EVENT_MAP_TEMPLATE.format(
-                            dtag=dtag, chain=chain, residue=residue, altloc=dt.altloc_to_string(altloc), version=version, site=canonical_site_id
+                            dtag=dtag,
+                            chain=chain,
+                            residue=residue,
+                            altloc=dt.altloc_to_string(altloc),
+                            version=version,
+                            site=canonical_site_id,
                         )
                     )
 
@@ -87,7 +115,12 @@ def _update_fs_model(
                         / constants.ALIGNED_FILES_DIR
                         / dtag
                         / constants.ALIGNED_XMAP_CRYSTALLOGRAPHIC_TEMPLATE.format(
-                            dtag=dtag, chain=chain, residue=residue, altloc=dt.altloc_to_string(altloc), version=version, site=canonical_site_id
+                            dtag=dtag,
+                            chain=chain,
+                            residue=residue,
+                            altloc=dt.altloc_to_string(altloc),
+                            version=version,
+                            site=canonical_site_id,
                         )
                     )
 
@@ -96,7 +129,12 @@ def _update_fs_model(
                         / constants.ALIGNED_FILES_DIR
                         / dtag
                         / constants.ALIGNED_DIFF_CRYSTALLOGRAPHIC_TEMPLATE.format(
-                            dtag=dtag, chain=chain, residue=residue, altloc=dt.altloc_to_string(altloc), version=version, site=canonical_site_id
+                            dtag=dtag,
+                            chain=chain,
+                            residue=residue,
+                            altloc=dt.altloc_to_string(altloc),
+                            version=version,
+                            site=canonical_site_id,
                         )
                     )
 
@@ -105,7 +143,12 @@ def _update_fs_model(
                         / constants.ALIGNED_FILES_DIR
                         / dtag
                         / constants.ALIGNED_EVENT_MAP_CRYSTALLOGRAPHIC_TEMPLATE.format(
-                            dtag=dtag, chain=chain, residue=residue, altloc=dt.altloc_to_string(altloc), version=version, site=canonical_site_id
+                            dtag=dtag,
+                            chain=chain,
+                            residue=residue,
+                            altloc=dt.altloc_to_string(altloc),
+                            version=version,
+                            site=canonical_site_id,
                         )
                     )
 
@@ -138,5 +181,3 @@ def _update_fs_model(
                     / dtag
                     / constants.ALIGNED_REFERENCE_XMAP_TEMPLATE.format(dtag=dtag, site=canonical_site_id),
                 }
-
-

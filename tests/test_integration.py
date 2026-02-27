@@ -57,7 +57,6 @@ def test_aligner_upload_1(constants, assemblies_file):
     assert 'D' in meta[Constants.META_XTALS]["Mpro-IBM0078"][Constants.META_ALIGNED_FILES]['A']['1101']
 
 
-
 @pytest.mark.order(after="test_aligner_upload_1")
 def test_collator_upload_2(constants, config_2_file, upload_2_dir, uploads_dir, test_dir):
     c = Collator(test_dir)
@@ -102,10 +101,9 @@ def test_aligner_upload_2(constants):
         a.run()
 
     # Make sure there are aligned files for Mpro-i0130
-    aligned_file_dirs= [x.name for x in (Path(constants.UPLOAD_2_DIR) / "aligned_files").glob("*")]
+    aligned_file_dirs = [x.name for x in (Path(constants.UPLOAD_2_DIR) / "aligned_files").glob("*")]
     if "Mpro-i0130" not in aligned_file_dirs:
-        raise Exception(f'Mpro-i0130 should be in {aligned_file_dirs}') 
-
+        raise Exception(f'Mpro-i0130 should be in {aligned_file_dirs}')
 
 
 # @pytest.mark.order(after="test_aligner_upload_2")

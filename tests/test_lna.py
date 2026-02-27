@@ -1,7 +1,6 @@
 def test_get_residue_mapping_offset_sequence():
     ...
 
+
 def test_get_residue_mapping_different_res():
-
     ...
-
