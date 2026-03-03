@@ -240,14 +240,15 @@ class Copier:
                             xtal_dir_input_path,
                         )
 
-                    if dp_prog and dp_prog.lower() == 'autoproc' and dp_log_p.name.endswith('.log'):
-                        # probably a broken symlink which should be to the aimless.log file
-                        aimless = dp_log_p.parent / 'aimless.log'
-                        if aimless.is_file():
-                            num_files += self.copy_file_and_log(
-                                xtal_name, 'aimless.log', str(aimless), xtal_dir_input_path
-                            )
+                    # copy aimless.log if it exists
+                    # probably a broken symlink which should be to the aimless.log file
+                    aimless = dp_log_p.parent / 'aimless.log'
+                    if aimless.is_file():
+                        num_files += self.copy_file_and_log(
+                            xtal_name, 'aimless.log', str(aimless), xtal_dir_input_path
+                        )
 
+                    # coipy the xia2.mmcif.bz2 file if it exists
                     stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
                     if stats_cif_p.is_file():
                         num_files += self.copy_file_and_log(
