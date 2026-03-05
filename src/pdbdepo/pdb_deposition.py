@@ -9,11 +9,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import re
+
 
 import argparse
 import bz2
 import datetime
+import glob
+import re
 import shutil
 from pathlib import Path
 from collections import OrderedDict
@@ -75,6 +77,17 @@ def generate_collection_info_path(xtal_dir_path, xtal_name):
         return None
 
 
+def read_software_templates():
+    d = {}
+    templates = glob.glob('config/pdb-depo/*.cif')
+    for t in templates:
+        c = cif.read(t)
+        n = t[t.rfind('/') + 1 : -4].lower()
+        d[n] = c
+    info('read software templates', d)
+    return d
+
+
 def process_input(
     base_dir: Path,
     input_path: Path,
@@ -86,6 +99,8 @@ def process_input(
     output_dir: Path,
     debug=False,
 ):
+    software_templates = read_software_templates()
+
     crystals = meta_collator[Constants.META_XTALS]
 
     xtals_list = []
@@ -209,15 +224,17 @@ def process_input(
 
             if refinement_type == Constants.SOAKDB_VALUE_BUSTER:
                 structure_cif_doc = read_buster_structure(base_dir / utils.make_path_relative(Path(mmcif)))
+                refinement_prog = 'buster'
             else:
                 structure_cif_doc = read_refmac_structure(base_dir / utils.make_path_relative(Path(pdb)))
+                refinement_prog = 'refmac'
 
             structure_cif_block0 = structure_cif_doc[0]
             if debug:
                 structure_cif_doc.write_file(str(xtal_out_path / 'original.cif'))
 
-            # grab the software info and delete from the current CIF - we'll add it back later
-            model_software_tags, model_software_values = find_software_and_delete(structure_cif_block0)
+            # delete _software loop from the current CIF - we'll add it back later
+            delete_loop(structure_cif_block0, '_software.pdbx_ordinal')
 
             # #find and delete the _exptl loop as mmcifgen handles this
             delete_pair_item(structure_cif_doc, '_exptl')
@@ -279,12 +296,12 @@ def process_input(
                     # otherwise add the item as it is
                     added_item = structure_cif_block0.add_item(item)
 
-            prog = row.get(Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM)
-            if prog == 'dials':
-                prog = 'xia2-dials'
-            if prog and prog != 'None':
-                prog = prog.lower()
-                info('data processing was done with ' + prog)
+            data_processing_prog = row.get(Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM)
+            if data_processing_prog == 'dials':
+                data_processing_prog = 'xia2-dials'
+            if data_processing_prog and data_processing_prog != 'None':
+                data_processing_prog = data_processing_prog.lower()
+                info('data processing was done with ' + data_processing_prog)
                 if data_processing_logfile_p:
                     stats_cif = (
                         base_dir / utils.make_path_relative(Path(data_processing_logfile).parent) / 'xia2.mmcif.bz2'
@@ -296,7 +313,7 @@ def process_input(
                         if base_data_processing_logfile_p.is_file():
                             p = base_data_processing_logfile_p
                             info('processing stats from', data_processing_logfile_p.name)
-                        elif prog == 'autoproc' and data_processing_logfile.endswith('.log'):
+                        elif data_processing_prog == 'autoproc' and data_processing_logfile.endswith('.log'):
                             # look for the aimless.log file
                             if aimless.is_file():
                                 p = aimless
@@ -307,7 +324,7 @@ def process_input(
                             warn('could not find logfile', data_processing_logfile)
 
                         if p:
-                            stats_doc = scrape_processing_stats.handle_file(p, prog, None, None)
+                            stats_doc = scrape_processing_stats.handle_file(p, data_processing_prog, None, None)
                             if stats_doc is None:
                                 warn('stats could not be scraped from log file')
                             else:
@@ -315,43 +332,43 @@ def process_input(
                                 for item in stats_block0:
                                     structure_cif_block0.add_item(item)
 
-                        # handle _software section
-                        if aimless_ver is not None:
-                            tags1 = [
-                                '_software.pdbx_ordinal',
-                                '_software.classification',
-                                '_software.name',
-                                '_software.version',
-                                '_software.citation_id',
-                                '_software.type',
-                                '_software.description',
-                            ]
-                            tags, values = append_data_to_values(
-                                tags1,
-                                [
-                                    '1',
-                                    "'data scaling'",
-                                    'Aimless',
-                                    aimless_ver,
-                                    'https://www.ccp4.ac.uk/',
-                                    'program',
-                                    "'Data scaling'",
-                                ],
-                                model_software_tags,
-                                model_software_values,
-                                '_software.pdbx_ordinal',
-                            )
-
-                            loop = structure_cif_block0.init_loop('', tags1)
-                            for vals in values:
-                                loop.add_row(vals)
-                        else:
-                            loop = structure_cif_block0.init_loop('', model_software_tags)
-                            loop.add_row(model_software_values)
+                        # # handle _software section
+                        # if aimless_ver is not None:
+                        #     tags1 = [
+                        #         '_software.pdbx_ordinal',
+                        #         '_software.classification',
+                        #         '_software.name',
+                        #         '_software.version',
+                        #         '_software.citation_id',
+                        #         '_software.type',
+                        #         '_software.description',
+                        #     ]
+                        #     tags, values = append_data_to_values(
+                        #         tags1,
+                        #         [
+                        #             '1',
+                        #             "'data scaling'",
+                        #             'Aimless',
+                        #             aimless_ver,
+                        #             'https://www.ccp4.ac.uk/',
+                        #             'program',
+                        #             "'Data scaling'",
+                        #         ],
+                        #         model_software_tags,
+                        #         model_software_values,
+                        #         '_software.pdbx_ordinal',
+                        #     )
+                        #
+                        #     loop = structure_cif_block0.init_loop('', tags1)
+                        #     for vals in values:
+                        #         loop.add_row(vals)
+                        # else:
+                        #     loop = structure_cif_block0.init_loop('', model_software_tags)
+                        #     loop.add_row(model_software_values)
 
                     else:
                         info('processing stats from xia2.mmcif.bz2')
-                        stats_item_software = None
+                        # stats_item_software = None
                         stats_item_reflns_shell = None
                         stats_pair_reflns = OrderedDict()
                         stats_pair_diffrn = OrderedDict()
@@ -360,12 +377,15 @@ def process_input(
                             doc = cif.read_string(txt)
                             # info("STATS:", str(doc))
 
-                            # grab the software and diffrn loops from first block
-                            for item in doc[0]:
-                                if item.loop:
-                                    for tag in item.loop.tags:
-                                        if tag.startswith('_software.'):
-                                            stats_item_software = item
+                            # delete the software loop - it will be created separately
+                            delete_loop(doc[0], '_software.pdbx_ordinal')
+
+                            # # grab the software and diffrn loops from first block
+                            # for item in doc[0]:
+                            #     if item.loop:
+                            #         for tag in item.loop.tags:
+                            #             if tag.startswith('_software.'):
+                            #                 stats_item_software = item
 
                             # grab the reflns and diffrn data from second block
                             for item in doc[1]:
@@ -380,30 +400,30 @@ def process_input(
                                         if tag.startswith('_reflns_shell.'):
                                             stats_item_reflns_shell = item
 
-                        dimple_ver = read_phasing_software(xtal_in_path)
-
-                        if model_software_tags is None or model_software_values is None:
-                            info('structure software not found as loop or pairs')
-                        elif stats_item_software is None:
-                            info('stats software loop not found')
-                        else:
-                            print(
-                                'MERGING SOFTWARE',
-                                len(model_software_tags),
-                                len(model_software_values),
-                                len(stats_item_software.loop.tags),
-                                len(stats_item_software.loop.values),
-                                dimple_ver,
-                            )
-                            merge_software_loops(
-                                model_software_tags,
-                                model_software_values,
-                                stats_item_software.loop.tags,
-                                stats_item_software.loop.values,
-                                dimple_ver,
-                                aimless_ver,
-                                structure_cif_block0,
-                            )
+                        # dimple_ver = read_phasing_software(xtal_in_path)
+                        #
+                        # if model_software_tags is None or model_software_values is None:
+                        #     info('structure software not found as loop or pairs')
+                        # elif stats_item_software is None:
+                        #     info('stats software loop not found')
+                        # else:
+                        #     print(
+                        #         'MERGING SOFTWARE',
+                        #         len(model_software_tags),
+                        #         len(model_software_values),
+                        #         len(stats_item_software.loop.tags),
+                        #         len(stats_item_software.loop.values),
+                        #         dimple_ver,
+                        #     )
+                        #     merge_software_loops(
+                        #         model_software_tags,
+                        #         model_software_values,
+                        #         stats_item_software.loop.tags,
+                        #         stats_item_software.loop.values,
+                        #         dimple_ver,
+                        #         aimless_ver,
+                        #         structure_cif_block0,
+                        #     )
 
                         if stats_pair_reflns:
                             for k, v in stats_pair_reflns.items():
@@ -427,6 +447,9 @@ def process_input(
             combine_diffrn_loops(
                 collection_info_diffrn_item, mmcifgen_diffrn_tags, mmcifgen_diffrn_values, structure_cif_block0
             )
+
+            # add in the _software section
+            add_software_loop(software_templates, structure_cif_block0, refinement_prog, data_processing_prog)
 
             # move coordinates to the end
             coordinates_item = find_loop_item(structure_cif_block0, '_atom_site')
@@ -481,20 +504,104 @@ def process_input(
                 tsv.write('\t'.join(values) + '\n')
 
 
-def find_software_and_delete(block):
-    software_loop_item = find_loop_item(block, '_software')
-    model_tags = None
-    model_values = None
-    if software_loop_item:
-        model_tags = software_loop_item.loop.tags
-        model_values = software_loop_item.loop.values
-        software_loop_item.erase()
-    else:
-        # try it as pairs
-        d = delete_pairs(block, '_software')
-        if d:
-            model_tags, model_values = dict_to_tags_values(d)
-    return model_tags, model_values
+def add_software_loop(templates_dict, block, refinement_prog, data_processing_prog):
+    loop = block.init_loop(
+        '_software.',
+        [
+            'pdbx_ordinal',
+            'name',
+            'classification',
+            'type',
+            'version',
+            'date',
+            'location',
+            'description',
+            'citation_id',
+        ],
+    )
+
+    is_error = False
+    refinement_t = templates_dict.get(refinement_prog.lower())
+    if not refinement_t:
+        error('no software template found for', refinement_prog.lower())
+        is_error = True
+
+    data_processing_t = templates_dict.get(data_processing_prog.lower())
+    if not data_processing_t:
+        error('no software template found for', data_processing_prog.lower())
+        is_error = True
+
+    refinement_item = refinement_t[0].find_loop_item('_software.pdbx_ordinal')
+    if not refinement_item or not refinement_item.loop:
+        error('software template found for', refinement_prog.lower(), 'is not valid. No _software loop found.')
+        is_error = True
+
+    data_processing_item = data_processing_t[0].find_loop_item('_software.pdbx_ordinal')
+    if not data_processing_item or not data_processing_item.loop:
+        error('software template found for', data_processing_prog.lower(), 'is not valid. No _software loop found.')
+        is_error = True
+
+    if is_error:
+        exit(1)
+
+    refinement_tags = refinement_item.loop.tags
+    refinement_values = refinement_item.loop.values
+    data_processing_tags = data_processing_item.loop.tags
+    data_processing_values = data_processing_item.loop.values
+
+    values = []
+    i = 1
+    print(data_processing_tags)
+    for j, value in enumerate(data_processing_values):
+        if j % len(data_processing_tags) == 0:
+            print(i, j, values)
+            if values:
+                loop.add_row(values)
+                i += 1
+            values.clear()
+            values.append(str(i))
+        else:
+            values.append(value)
+
+    loop.add_row(values)
+    i += 1
+    values.clear()
+
+    print(refinement_tags)
+    for j, value in enumerate(refinement_values):
+        if j % len(refinement_tags) == 0:
+            print(i, j, values)
+            if values:
+                loop.add_row(values)
+                i += 1
+            values.clear()
+            values.append(str(i))
+        else:
+            values.append(value)
+        i += 1
+    loop.add_row(values)
+
+
+def delete_loop(block, name):
+    item = block.find_loop_item(name)
+    if item:
+        item.erase()
+
+
+# def find_software_and_delete(block):
+#     software_loop_item = find_loop_item(block, '_software')
+#     model_tags = None
+#     model_values = None
+#     if software_loop_item:
+#         model_tags = software_loop_item.loop.tags
+#         model_values = software_loop_item.loop.values
+#         software_loop_item.erase()
+#     else:
+#         # try it as pairs
+#         d = delete_pairs(block, '_software')
+#         if d:
+#             model_tags, model_values = dict_to_tags_values(d)
+#     return model_tags, model_values
 
 
 def scrape_aimless_version(aimless_p):
@@ -769,62 +876,62 @@ def combine_diffrn_loops(collection_info_item: cif.Item, tags_list: list, values
         new_loop.add_row(values)
 
 
-def merge_software_loops(model_tags, model_values, stats_tags, stats_values, dimple_ver, aimless_ver, into: cif.Block):
-    d = OrderedDict()
-    for tag in model_tags:
-        d[tag] = []
-    for tag in stats_tags:
-        if tag not in d:
-            d[tag] = []
-
-    if dimple_ver:
-        d['_software.pdbx_ordinal'].append('1')
-        d['_software.classification'].append('phasing')
-        d['_software.name'].append('DIMPLE')
-        d['_software.version'].append(dimple_ver)
-    if aimless_ver:
-        d['_software.pdbx_ordinal'].append('2')
-        d['_software.classification'].append('scaling')
-        d['_software.name'].append('AIMLESS')
-        d['_software.version'].append(aimless_ver)
-
-    num_rows1 = int(len(model_values) / len(model_tags))
-    num_values = num_rows1
-    expanded_tags1 = []
-    for i in range(num_rows1):
-        expanded_tags1.extend(model_tags)
-    for tag, value in zip(expanded_tags1, model_values):
-        d[tag].append(value)
-    for k, v in d.items():
-        if len(v) < num_values:
-            for i in range(num_rows1):
-                v.append('?')
-
-    num_rows2 = int(len(stats_values) / len(stats_tags))
-    num_values = num_values + num_rows2
-    expanded_tags2 = []
-    for i in range(num_rows2):
-        expanded_tags2.extend(stats_tags)
-    for tag, value in zip(expanded_tags2, stats_values):
-        d[tag].append(value)
-    for k, v in d.items():
-        if len(v) < num_values:
-            for i in range(num_rows2):
-                v.append('?')
-
-    # fix the pdbx_ordinal column
-    for k in d:
-        if k.endswith('.pdbx_ordinal'):
-            values = d[k]
-            for i, k in enumerate(values):
-                values[i] = str(i + 1)
-
-    new_loop = into.init_loop('', list(d.keys()))
-    for i in range(num_values):
-        values = []
-        for k, v in d.items():
-            values.append(str(v[i]))
-        new_loop.add_row(values)
+# def merge_software_loops(model_tags, model_values, stats_tags, stats_values, dimple_ver, aimless_ver, into: cif.Block):
+#     d = OrderedDict()
+#     for tag in model_tags:
+#         d[tag] = []
+#     for tag in stats_tags:
+#         if tag not in d:
+#             d[tag] = []
+#
+#     if dimple_ver:
+#         d['_software.pdbx_ordinal'].append('1')
+#         d['_software.classification'].append('phasing')
+#         d['_software.name'].append('DIMPLE')
+#         d['_software.version'].append(dimple_ver)
+#     if aimless_ver:
+#         d['_software.pdbx_ordinal'].append('2')
+#         d['_software.classification'].append('scaling')
+#         d['_software.name'].append('AIMLESS')
+#         d['_software.version'].append(aimless_ver)
+#
+#     num_rows1 = int(len(model_values) / len(model_tags))
+#     num_values = num_rows1
+#     expanded_tags1 = []
+#     for i in range(num_rows1):
+#         expanded_tags1.extend(model_tags)
+#     for tag, value in zip(expanded_tags1, model_values):
+#         d[tag].append(value)
+#     for k, v in d.items():
+#         if len(v) < num_values:
+#             for i in range(num_rows1):
+#                 v.append('?')
+#
+#     num_rows2 = int(len(stats_values) / len(stats_tags))
+#     num_values = num_values + num_rows2
+#     expanded_tags2 = []
+#     for i in range(num_rows2):
+#         expanded_tags2.extend(stats_tags)
+#     for tag, value in zip(expanded_tags2, stats_values):
+#         d[tag].append(value)
+#     for k, v in d.items():
+#         if len(v) < num_values:
+#             for i in range(num_rows2):
+#                 v.append('?')
+#
+#     # fix the pdbx_ordinal column
+#     for k in d:
+#         if k.endswith('.pdbx_ordinal'):
+#             values = d[k]
+#             for i, k in enumerate(values):
+#                 values[i] = str(i + 1)
+#
+#     new_loop = into.init_loop('', list(d.keys()))
+#     for i in range(num_values):
+#         values = []
+#         for k, v in d.items():
+#             values.append(str(v[i]))
+#         new_loop.add_row(values)
 
 
 def prune_loop(loop, retain):

@@ -1,0 +1,14 @@
+data_software
+#
+loop_
+_software.pdbx_ordinal
+_software.name
+_software.classification
+_software.type
+_software.version
+_software.date
+_software.location
+_software.description
+_software.citation_id
+1 REFMAC refinement package 5.8.0267 ? https://www.ccp4.ac.uk/ 'An expert system to perform automated X-ray diffraction data processing' 10.1107/S0907444996012255
+#

@@ -1,0 +1,25 @@
+data_software
+#
+loop_
+_software.pdbx_ordinal
+_software.name
+_software.classification
+_software.type
+_software.version
+_software.date
+_software.location
+_software.description
+_software.citation_id
+1 autoPROC 'data processing' package ? ? https://www.globalphasing.com/autoproc/ 'Automated data processing system' ?
+2 autoPROC 'data reduction' package ? ? https://www.globalphasing.com/autoproc/ 'Automated data processing system' ?
+3 XDS 'data reduction' package ? ? https://xds.mr.mpg.de/html_doc/XDS.html 'Data integration and processing' 10.1107/S0907444909047337
+4 autoPROC 'data scaling' package ? ? https://www.globalphasing.com/autoproc/ 'Automated data processing system' ?
+5 XDS 'data scaling' package ? ? https://xds.mr.mpg.de/html_doc/XDS.html 'Data integration and processing' 10.1107/S0907444909047337
+6 AIMLESS 'data scaling' program ? ? https://www.ccp4.ac.uk/ 'Data scaling' ?
+7 STARANISO 'data scaling' program ? ? https://staraniso.globalphasing.org/ 'Analysis of data anisotropy (including an anisotropic cut-off of merged intensity data), Bayesian estimation of structure factor amplitudes and anisotropic correction' ?
+8 DIMPLE phasing program 2.6.1 ? https://github.com/ccp4/dimple 'Automated macromolecular crystallography pipeline for rapid refinement and ligand screening.' ?
+9 REFMAC phasing package 5.8.0267 ? https://www.ccp4.ac.uk/ 'An expert system to perform automated X-ray diffraction data processing' 10.1107/S0907444996012255
+10 DIMPLE 'model building' program 2.6.1 ? https://github.com/ccp4/dimple 'Automated macromolecular crystallography pipeline for rapid refinement and ligand screening.' ?
+11 Coot 'model building' package ? ? https://github.com/pemsley/coot 'Coot is for macromolecular model building, model completion and validation, particularly suitable for protein modelling using X-ray data.' 10.1107/S0907444996012255
+12 gemmi 'data extraction' library 0.7.3 ? https://github.com/project-gemmi/gemmi 'A Python library developed primarily for use in the field of macromolecular crystallography (MX)' 10.21105/joss.04200
+#
