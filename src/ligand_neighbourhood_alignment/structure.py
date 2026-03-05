@@ -3,6 +3,7 @@ import gemmi
 
 from ligand_neighbourhood_alignment import constants
 
+
 def _get_dataset_protein_chains(structure):
     protein_chains = []
     for model in structure:
@@ -15,6 +16,7 @@ def _get_dataset_protein_chains(structure):
                 protein_chains.append(chain.name)
 
     return protein_chains
+
 
 def get_res_from_resid(resid, structure):
     return structure[0][resid[0]][resid[1]][0]

@@ -40,9 +40,6 @@ def get_structure_fragments(dataset: Dataset, structure: Structure) -> dict[Liga
     return fragments
 
 
-
-
-
 def __get_model_and_artefact_atoms(
     residue_neighbours: dict[tuple[float, float, float], gemmi.NeighborSearch.Mark],
     structure: Structure,
@@ -64,9 +61,6 @@ def __get_model_and_artefact_atoms(
             model_atoms[pos] = cra
 
     return model_atoms, artefact_atoms
-
-
-
 
 
 def get_ligand_neighbourhood(
@@ -175,8 +169,6 @@ def get_ligand_neighbourhood(
     )
 
     return ligand_neighbourhood
-
-
 
 
 def get_dataset_neighbourhoods(

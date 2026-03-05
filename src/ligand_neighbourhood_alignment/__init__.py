@@ -6,4 +6,5 @@
 # __all__ = ["__version__"]
 
 import gemmi
+
 gemmi.set_leak_warnings(False)

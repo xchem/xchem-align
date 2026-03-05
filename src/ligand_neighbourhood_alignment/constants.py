@@ -48,8 +48,12 @@ ALIGNED_XMAP_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}
 ALIGNED_DIFF_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_diff.ccp4"
 ALIGNED_EVENT_MAP_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_event.ccp4"
 
-ALIGNED_XMAP_CRYSTALLOGRAPHIC_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_sigmaa_crystallographic.ccp4"
-ALIGNED_DIFF_CRYSTALLOGRAPHIC_TEMPLATE: str = "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_diff_crystallographic.ccp4"
+ALIGNED_XMAP_CRYSTALLOGRAPHIC_TEMPLATE: str = (
+    "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_sigmaa_crystallographic.ccp4"
+)
+ALIGNED_DIFF_CRYSTALLOGRAPHIC_TEMPLATE: str = (
+    "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_diff_crystallographic.ccp4"
+)
 ALIGNED_EVENT_MAP_CRYSTALLOGRAPHIC_TEMPLATE: str = (
     "{dtag}_{chain}_{residue}_{altloc}_{version}_{site}_event_crystallographic.ccp4"
 )

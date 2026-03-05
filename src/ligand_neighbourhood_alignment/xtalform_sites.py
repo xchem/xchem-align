@@ -3,6 +3,7 @@ import numpy as np
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment.ligand_neighbourhoods import _get_centroid_res
 
+
 def _get_dist(pos_1, pos_2):
     return np.linalg.norm(np.array([pos_1.x, pos_1.y, pos_1.z]) - np.array([pos_2.x, pos_2.y, pos_2.z]))
 
@@ -72,9 +73,6 @@ def _crystalform_incremental_cluster(observation_centroid_residues, xtalform_sit
         observations_to_assign = [_k for _k in observations_to_assign if _k not in assigned_observations]
 
     return assignments
-
-
-
 
 
 def _update_xtalform_sites(

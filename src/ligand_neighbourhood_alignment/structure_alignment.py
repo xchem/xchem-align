@@ -140,7 +140,7 @@ def _drop_non_binding_chains_and_symmetrize_waters(
 
             base_atom_id = (
                 cra.chain.name,
-                str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
+                str(cra.residue.seqid.num) + icode_to_string(cra.residue.seqid.icode),
                 cra.atom.name,
             )
 
@@ -217,7 +217,7 @@ def _drop_non_binding_chains_and_symmetrize_waters(
             # Record local water chain and seqid
             if chain.name not in local_water_chains:
                 local_water_chains[chain.name] = []
-            local_water_chains[chain.name].append(str(residue.seqid.num)+icode_to_string(residue.seqid.icode))
+            local_water_chains[chain.name].append(str(residue.seqid.num) + icode_to_string(residue.seqid.icode))
 
             # Update water position from mark
             pos = atom.pos
@@ -233,11 +233,14 @@ def _drop_non_binding_chains_and_symmetrize_waters(
             new_chain = gemmi.Chain(_chain.name)
             # Iterate residues in the old chain, adding the local waters
             for _residue in _chain:
-                if (_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode)) in other_ligand_ids:
+                if (_chain.name, str(_residue.seqid.num) + icode_to_string(_residue.seqid.icode)) in other_ligand_ids:
                     continue
                 if _residue.name == 'HOH':
                     if _chain.name in local_water_chains:
-                        if str(_residue.seqid.num)+icode_to_string(residue.seqid.icode) in local_water_chains[_chain.name]:
+                        if (
+                            str(_residue.seqid.num) + icode_to_string(residue.seqid.icode)
+                            in local_water_chains[_chain.name]
+                        ):
                             new_chain.add_residue(_residue.clone())
                 else:
                     if (_chain.name in lig_assembly.chains) or (_chain.name in neighbourhood_chains):
@@ -255,13 +258,10 @@ def _drop_non_binding_chains_and_symmetrize_waters(
 
 
 def _drop_non_assembly_chains_and_symmetrize_waters(
-    _structure, 
-    neighbourhood, 
-    moving_ligand_id, 
-    dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
+    _structure, neighbourhood, moving_ligand_id, dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
 ):
     DEBUG = False
-    if (moving_ligand_id[0] in ['6w7h', '6w8q']) :
+    if moving_ligand_id[0] in ['6w7h', '6w8q']:
         print(f'Processing error dataset!')
         DEBUG = True
 
@@ -269,7 +269,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
     other_ligand_ids = [
         (lid[1], lid[2])
         for lid in dataset_ligand_neighbourhood_ids
-        if not ((lid[1] == moving_ligand_id[1]) & (lid[2] == moving_ligand_id[2]) )
+        if not ((lid[1] == moving_ligand_id[1]) & (lid[2] == moving_ligand_id[2]))
     ]
     if DEBUG:
         print(f'OTHER LIGAND IDS: {moving_ligand_id} : {other_ligand_ids}')
@@ -283,14 +283,10 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
 
     # Determine the assembly each chain is part of
     chain_assemblies = {
-        _chain: _assembly 
-        for _assembly_name, _assembly 
-        in xtalform.assemblies.items() 
-        for _chain in _assembly.chains
+        _chain: _assembly for _assembly_name, _assembly in xtalform.assemblies.items() for _chain in _assembly.chains
     }
     if DEBUG:
         print(f'CHAIN ASSEMBLY: {moving_ligand_id} : {chain_assemblies}')
-                    
 
     # Get the assembly the ligand is modelled as part of
     for xsid, _xtalform_site in xtalform_sites.items():
@@ -322,7 +318,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
 
             base_atom_id = (
                 cra.chain.name,
-                str(cra.residue.seqid.num)+icode_to_string(cra.residue.seqid.icode),
+                str(cra.residue.seqid.num) + icode_to_string(cra.residue.seqid.icode),
                 cra.atom.name,
             )
 
@@ -400,7 +396,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
             # Record local water chain and seqid
             if chain.name not in local_water_chains:
                 local_water_chains[chain.name] = []
-            local_water_chains[chain.name].append(str(residue.seqid.num)+icode_to_string(residue.seqid.icode))
+            local_water_chains[chain.name].append(str(residue.seqid.num) + icode_to_string(residue.seqid.icode))
 
             # Update water position from mark
             pos = atom.pos
@@ -420,27 +416,35 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
             new_chain = gemmi.Chain(_chain.name)
             # Iterate residues in the old chain, adding the local waters
             for _residue in _chain:
-                if (_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode)) in other_ligand_ids:
+                if (_chain.name, str(_residue.seqid.num) + icode_to_string(_residue.seqid.icode)) in other_ligand_ids:
                     if DEBUG:
-                        print(f'RESIDUE SKIP: {moving_ligand_id} : skipping {(_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode))}')
+                        print(
+                            f'RESIDUE SKIP: {moving_ligand_id} : skipping {(_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode))}'
+                        )
                     continue
                 if _residue.name == 'HOH':
                     if _chain.name in local_water_chains:
-                        if str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode) in local_water_chains[_chain.name]:
+                        if (
+                            str(_residue.seqid.num) + icode_to_string(_residue.seqid.icode)
+                            in local_water_chains[_chain.name]
+                        ):
                             new_chain.add_residue(_residue.clone())
                 else:
                     # Only add the chains that are part of the biological assemly the ligand
                     # is modelled as part of
-                    if (_chain.name in lig_assembly.chains):
+                    if _chain.name in lig_assembly.chains:
                         # If ligand drop other altlocs
-                        if (_chain.name, str(_residue.seqid.num)+icode_to_string(_residue.seqid.icode)) == (moving_ligand_id[1], moving_ligand_id[2]):
+                        if (_chain.name, str(_residue.seqid.num) + icode_to_string(_residue.seqid.icode)) == (
+                            moving_ligand_id[1],
+                            moving_ligand_id[2],
+                        ):
                             new_residue = _residue.clone()
                             atoms_to_delete = set(
                                 [
-                                    (_atom.name, _atom.altloc) 
-                                    for _atom in new_residue 
+                                    (_atom.name, _atom.altloc)
+                                    for _atom in new_residue
                                     if _atom.altloc != moving_ligand_id[3]
-                                    ]
+                                ]
                             )
                             for _atom_name, _altloc in atoms_to_delete:
                                 new_residue.remove_atom(_atom_name, _altloc)
@@ -451,7 +455,6 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
                         else:
                             # Don't include other ligands
                             new_chain.add_residue(_residue.clone())
-                    
 
             if len(new_chain) > 0:
                 new_chains.append(new_chain)
@@ -464,13 +467,12 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
         chain_ress = {_chain.name: len([x for x in _chain]) for _chain in new_structure[0]}
         print(f'CHAIN RESIUDES: {moving_ligand_id} : {chain_ress}')
 
-
     return new_structure
 
 
 def get_alignment_transform(
-    g, 
-    moving_ligand_id, 
+    g,
+    moving_ligand_id,
     reference_ligand_id,
     neighbourhood_transforms,
     chain_to_assembly_transform,
@@ -526,16 +528,14 @@ def _align_structure(
     assembly_transform,
     xtalform_sites,
 ):
-
-
     # Drop chains that are not in the ligand's biological assembly
     reduced_structure = _drop_non_assembly_chains_and_symmetrize_waters(
         _structure, neighbourhood, moving_ligand_id, dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
     )
 
     transform = get_alignment_transform(
-        g, 
-        moving_ligand_id, 
+        g,
+        moving_ligand_id,
         reference_ligand_id,
         neighbourhood_transforms,
         chain_to_assembly_transform,
@@ -631,7 +631,7 @@ def get_structure_from_template(structure):
     model = new_structure[0]
     for chain_name in chain_names:
         del model[chain_name]
-    
+
     num_chains = len([x for x in new_structure[0]])
     assert num_chains == 0, f'Should have no chains in template structure! Got {num_chains}'
 
@@ -659,7 +659,7 @@ def transform_chain(structure, chain_name, image):
 def get_structure_from_chain_images(structure, artefact_chains):
     # Get a clean template structure
     new_structure = get_structure_from_template(structure)
-    
+
     # Build the transformed chains
     new_chains = []
     chain_counts = {chain_name: 0 for chain_name, _ in artefact_chains}
@@ -667,10 +667,10 @@ def get_structure_from_chain_images(structure, artefact_chains):
         transformed_chain = transform_chain(structure, chain_name, image)
         transformed_chain.name = f'{chain_name}{chain_counts[chain_name]}'
         new_chains.append(transformed_chain)
-        
+
         chain_counts[chain_name] += 1
 
-    # Add the transformed chains with unique names 
+    # Add the transformed chains with unique names
     for chain in new_chains:
         new_structure[0].add_chain(chain)
 
@@ -678,7 +678,6 @@ def get_structure_from_chain_images(structure, artefact_chains):
     assert num_chains == len(artefact_chains), f'Should have {len(artefact_chains)} but have {num_chains}'
 
     return new_structure
-
 
 
 def _align_artefacts(
@@ -697,30 +696,25 @@ def _align_artefacts(
     xtalform_sites,
 ):
     # Get the artefact chains in the neighbourhood
-    identity_transform = dt.Transform(
-        [0.0,0.0,0.0],
-        [[1.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,1.0]],
-        []
-    )
+    identity_transform = dt.Transform([0.0, 0.0, 0.0], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], [])
     identity_transform_string = dt.transform_to_string(identity_transform)
     artefact_chains = {
-        (atom_id[0], dt.transform_to_string(atom.image)): atom.image 
-        for atom_id, atom 
-        in neighbourhood.artefact_atoms.items()
+        (atom_id[0], dt.transform_to_string(atom.image)): atom.image
+        for atom_id, atom in neighbourhood.artefact_atoms.items()
         if dt.transform_to_string(atom.image) != identity_transform_string
-        }
+    }
     # print(f'{moving_ligand_id[0]} : {artefact_chains}')
 
     # Build the artefact structure
     artefact_structure = get_structure_from_chain_images(
-        _structure, 
+        _structure,
         artefact_chains,
-        )
+    )
 
     # Align it with the same transform as was used for the non-artefact atoms
     transform = get_alignment_transform(
-        g, 
-        moving_ligand_id, 
+        g,
+        moving_ligand_id,
         reference_ligand_id,
         neighbourhood_transforms,
         chain_to_assembly_transform,
@@ -730,9 +724,9 @@ def _align_artefacts(
     logger.debug(f"Transform from native frame to reference frame is: {gemmi_to_transform(transform)}")
 
     aligned_structure = superpose_structure(
-        transform, 
+        transform,
         artefact_structure,
-        )
+    )
 
     # Write the fully aligned structure
     aligned_structure.write_pdb(str(out_path))

@@ -774,8 +774,8 @@ class FilesystemSource(DataSource):
         object_key = f"{validation_data['target_name']}/{str(inputs_path)}"
 
         if not inputs_path.is_file():
-            base_dir, inputs, ref_datasets = self._get_copy_inputs(self.config)
-            self._copy_inputs(base_dir, inputs, ref_datasets, inputs_path)
+            base_dir = self._get_copy_inputs(self.config)
+            self._copy_inputs(base_dir, self.config, inputs_path)
 
         upload_to_s3(inputs_path, object_key=object_key)
 
@@ -817,17 +817,14 @@ class FilesystemSource(DataSource):
         except KeyError as exc:
             raise KeyError(f"Key 'base_dir' missing from {cls.CONFIG_FILE}") from exc
 
-        ref_datasets = config.get(utils.Constants.CONFIG_REF_DATASETS, [])
-        inputs = config.get(utils.Constants.CONFIG_INPUTS)
-
-        return base_dir, inputs, ref_datasets
+        return base_dir
 
     @classmethod
-    def _copy_inputs(cls, base_dir, inputs, ref_datasets, inputs_path):
+    def _copy_inputs(cls, base_dir, config, inputs_path):
         with TemporaryDirectory() as tempdir:
             compressible_tempdir = Path(tempdir).joinpath("inputs")
             try:
-                handle_inputs(base_dir, inputs, ref_datasets, str(compressible_tempdir), logger)
+                handle_inputs(base_dir, config, str(compressible_tempdir), logger)
             except Exception as exc:
                 logger.error(f"Error copying inputs: {exc.args}")
             compress_directory(compressible_tempdir, inputs_path)

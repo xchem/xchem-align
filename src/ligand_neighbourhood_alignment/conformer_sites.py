@@ -4,6 +4,7 @@ from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import alignment_heirarchy
 from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
 
+
 def _get_connected_components(alignability_graph, clusters, max_path_length=2):
     """
     Construct neighbourhoods around the most connected neighbourhoods by some max path length,
@@ -57,8 +58,6 @@ def _get_connected_components(alignability_graph, clusters, max_path_length=2):
     return clusters
 
 
-
-
 def _update_conformer_sites(
     conformer_sites: dict[str, dt.ConformerSite],
     connected_component_id: tuple[str, str, str, str],
@@ -92,7 +91,7 @@ def _update_conformer_sites(
                 biochain = alignment_heirarchy._chain_to_biochain(
                     atom_id[0], xtalforms[xtalform_assignments[lid[0]]], assemblies
                 )
-                
+
                 model = st[0]
                 chain = model[atom_id[0]]
                 ress = chain[atom_id[1]]
@@ -115,9 +114,5 @@ def _update_conformer_sites(
             # [x for x in connected_component][0]
             connected_component_id,
         )
-        conformer_site_id = "+".join(
-            [dt.altloc_to_string(x) for x in conformer_site.reference_ligand_id]
-            )
+        conformer_site_id = "+".join([dt.altloc_to_string(x) for x in conformer_site.reference_ligand_id])
         conformer_sites[conformer_site_id] = conformer_site
-
-

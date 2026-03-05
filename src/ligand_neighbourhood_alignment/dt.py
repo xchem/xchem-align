@@ -16,14 +16,14 @@ from pydantic import BaseModel, field_validator
 from ligand_neighbourhood_alignment import constants
 
 
-
 logger.remove()  # for someone not familiar with the lib, whats going on here?
 logger.add(sys.stdout, level="INFO")
 
 AlignmentHeirarchy = dict[str, tuple[str, str]]
 StructureLandmarks = dict[tuple[str, tuple[str, str], str], tuple[float, float, float]]
 Structure = gemmi.Structure
-LigandNeighbourhoodID = tuple[str,str,str,str,str]
+LigandNeighbourhoodID = tuple[str, str, str, str, str]
+
 
 class DatasetID(BaseModel):
     dtag: str
@@ -314,19 +314,10 @@ class LigandNeighbourhoods(BaseModel):
 #     dz: int
 #     transform: Transform
 
+
 class Block:
     def __init__(
-        self,
-        xi: int,
-        yi: int,
-        zi: int,
-        xmi: int,
-        ymi: int,
-        zmi: int,
-        dx: int,
-        dy: int,
-        dz: int,
-        transform: Transform
+        self, xi: int, yi: int, zi: int, xmi: int, ymi: int, zmi: int, dx: int, dy: int, dz: int, transform: Transform
     ):
         self.xi: int = xi
         self.yi: int = yi
@@ -336,8 +327,9 @@ class Block:
         self.zmi: int = zmi
         self.dx: int = dx
         self.dy: int = dy
-        self.dz: int = dz 
+        self.dz: int = dz
         self.transform: Transform = transform
+
 
 class ResidueID(BaseModel):
     chain: str
@@ -1098,10 +1090,8 @@ class LigandBindingEvent:
         self.dtag: str = dtag
         self.chain: str = chain
         self.residue: str = residue
-        self.altloc:str = altloc
+        self.altloc: str = altloc
         self.xmap: str = xmap
-
-
 
 
 # class SourceDataModel:
@@ -1314,11 +1304,12 @@ def altloc_to_string(altloc):
     else:
         return altloc
 
+
 def string_to_altloc(altloc):
     if str(altloc) == '0':
         return '\0'
     else:
-        return altloc 
+        return altloc
 
 
 class Transform:
@@ -1326,7 +1317,6 @@ class Transform:
         self.vec: list[float] = vec
         self.mat: list[list[float]] = mat
         self.alignable_ids = alignable_ids
-
 
     @staticmethod
     def from_dict(dic):
@@ -1431,8 +1421,12 @@ class ConformerSite:
         for member in dic["members"]:
             dtag, chain, residue, altloc, version = [string_to_altloc(x) for x in member.split("/")]
             members.append((dtag, chain, residue, string_to_altloc(altloc), version))
-        ref_dtag, ref_chain, ref_residue, ref_altloc, version = [string_to_altloc(x) for x in dic["reference_ligand_id"].split("/")]
-        return ConformerSite(residues, residues_aligned, members, (ref_dtag, ref_chain, ref_residue, ref_altloc, version))
+        ref_dtag, ref_chain, ref_residue, ref_altloc, version = [
+            string_to_altloc(x) for x in dic["reference_ligand_id"].split("/")
+        ]
+        return ConformerSite(
+            residues, residues_aligned, members, (ref_dtag, ref_chain, ref_residue, ref_altloc, version)
+        )
 
     def to_dict(
         self,
@@ -1521,7 +1515,6 @@ class XtalFormSite:
         yield self.to_dict()
 
 
-
 class Dataset:
     def __init__(
         self,
@@ -1536,4 +1529,3 @@ class Dataset:
         self.xmap = xmap
         self.mtz = mtz
         self.ligand_binding_events = ligand_binding_events
-
