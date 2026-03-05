@@ -35,6 +35,7 @@ def read_dbmeta(dbfile):
             """SELECT ID, CompoundSMILES, CompoundCode, CrystalName, ispybStatus,
                                 RefinementCIF, RefinementCIFStatus, RefinementBoundConformation, RefinementMTZ_latest,
                                 RefinementMTZfree, RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
+                                DataProcessingProgram, DataProcessingPathToLogfile,
                                 LastUpdated
                                 FROM mainTable WHERE RefinementOutcome IS NOT NULL""",
             cnx,
@@ -71,9 +72,10 @@ def read_pdb_depo(dbfile):
     # Create your connection.
     with sqlite3.connect(dbfile) as cnx:
         df = pd.read_sql_query(
-            """SELECT ID, CrystalName,
-                                RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest,
-                                RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated
+            """SELECT ID, CrystalName, CompoundCode,
+                                RefinementDate, RefinementOutcome, RefinementMMCIFmodel_latest, RefinementCIF,
+                                RefinementBoundConformation, RefinementMTZ_latest, RefinementMTZfree, LastUpdated,
+                                DataProcessingProgram, DataProcessingPathToLogfile
                                 FROM mainTable WHERE RefinementOutcome like '5%'""",
             cnx,
         )

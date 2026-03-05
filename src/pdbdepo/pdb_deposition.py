@@ -9,17 +9,70 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import re
 
 import argparse
+import bz2
+import datetime
 import shutil
 from pathlib import Path
+from collections import OrderedDict
 
 import gemmi
 from gemmi import cif
 
+from rdkit import rdBase
+from rdkit import Chem
+
 from xchemalign import dbreader, utils
 from xchemalign.utils import Constants
 from pdbdepo import merge_sf
+from pdbdepo import scrape_processing_stats
+
+LOG = utils.Logger()
+
+
+def info(*args, **kwargs):
+    if LOG:
+        LOG.info(*args, **kwargs)
+
+
+def warn(*args, **kwargs):
+    if LOG:
+        LOG.warn(*args, **kwargs)
+
+
+def error(*args, **kwargs):
+    if LOG:
+        LOG.error(*args, **kwargs)
+
+
+# def gen_xtal_dir_from_pdb(pdb_file, xtal_name):
+#     # not clear what is the best approach for this
+#     d = Path(pdb_file)
+#     while d is not None:
+#         d = d.parent
+#         if d.name == xtal_name:
+#             return d
+#     return None
+
+
+def generate_dimple_log_path(xtal_dir_path):
+    dimple_log_path = xtal_dir_path / 'dimple/dimple/dimple.log'
+    if dimple_log_path.is_file():
+        return dimple_log_path
+    else:
+        warn('Dimple log file not found: ' + str(dimple_log_path))
+        return None
+
+
+def generate_collection_info_path(xtal_dir_path, xtal_name):
+    collection_info_path = xtal_dir_path / 'autoprocessing/' / (xtal_name + '_collection_info.cif')
+    if collection_info_path.is_file():
+        return collection_info_path
+    else:
+        warn('Collection info CIF file not found: ' + str(collection_info_path))
+        return None
 
 
 def process_input(
@@ -27,32 +80,95 @@ def process_input(
     input_path: Path,
     collator_output_dir: Path,
     soakdb_file: Path,
-    meta: dict,
+    input_config: dict,
+    meta_collator: dict,
+    mmcifgen_block,
     output_dir: Path,
-    logger,
+    debug=False,
 ):
+    crystals = meta_collator[Constants.META_XTALS]
+
+    xtals_list = []
+    cmpd_moldata = {}
+    # grab the ligand smiles of the collator output
+    for crystal in crystals:
+        mol_data = []
+        cmpd_moldata[crystal] = mol_data
+        ligand_cif = crystals[crystal][Constants.META_XTAL_FILES].get(Constants.META_XTAL_CIF)
+        if ligand_cif:
+            ligands = ligand_cif[Constants.META_LIGANDS]
+            if ligands:
+                for lig_name in ligands:
+                    data = ligands[lig_name]
+                    cmpd_code = data.get(Constants.META_CMPD_CODE)
+                    cmpd_smiles = data.get(Constants.META_SMILES)
+                    mol_data.append((cmpd_code, cmpd_smiles))
+    info('read ligand data for', len(cmpd_moldata), 'ligands')
+
+    mmcifgen_refine_tags = None
+    mmcifgen_refine_values = None
+    mmcifgen_diffrn_tags = None
+    mmcifgen_diffrn_values = None
+    mmcifgen_refine_item = find_loop_item(mmcifgen_block, '_refine')
+    mmcifgen_diffrn_item = find_loop_item(mmcifgen_block, '_diffrn')
+    if mmcifgen_refine_item:
+        mmcifgen_refine_tags = list(mmcifgen_refine_item.loop.tags)
+        mmcifgen_refine_values = list(mmcifgen_refine_item.loop.values)
+        mmcifgen_refine_item.erase()
+    if mmcifgen_diffrn_item:
+        mmcifgen_diffrn_tags = list(mmcifgen_diffrn_item.loop.tags)
+        mmcifgen_diffrn_values = list(mmcifgen_diffrn_item.loop.values)
+        mmcifgen_diffrn_item.erase()
+
+    (
+        mmcif_gen_entity_tags,
+        mmcif_gen_entity_values,
+        mmcif_gen_poly_tags,
+        mmcif_gen_poly_values,
+    ) = read_mmcifgen_entity_poly_data_and_erase(mmcifgen_block)
+
     path_to_soakdb_file = base_dir / input_path / soakdb_file
-    crystals = meta[Constants.META_XTALS]
-    logger.info("reading soakdb file:", path_to_soakdb_file)
+
+    info("reading soakdb file:", path_to_soakdb_file)
     df = dbreader.read_pdb_depo(path_to_soakdb_file)
-    logger.info("read {} rows".format(len(df)))
+    info("read {} rows".format(len(df)))
     for index, row in df.iterrows():
-        mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
-        if mmcif:
-            refinement_type = Constants.SOAKDB_VALUE_BUSTER
-        else:
-            refinement_type = Constants.SOAKDB_VALUE_REFMAC
         xtal_name = row[Constants.SOAKDB_XTAL_NAME]
-        xtal_out_dir = output_dir / xtal_name
-        if xtal_out_dir.is_dir():
+        cmpd_codes = []
+        xtals_list.append(xtal_name)
+        mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
+        cmpd_code = row[Constants.SOAKDB_COL_COMPOUND_CODE]
+        tokens = cmpd_code.split(';')
+        for token in tokens:
+            cmpd_codes.append(token.strip())
+        if mmcif is None or mmcif == 'None':
+            refinement_type = Constants.SOAKDB_VALUE_REFMAC
+        else:
+            refinement_type = Constants.SOAKDB_VALUE_BUSTER
+
+        info(index, xtal_name, refinement_type)
+
+        data_processing_logfile = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
+        aimless_ver = None
+        data_processing_logfile_p = None
+        if data_processing_logfile and data_processing_logfile != 'None':
+            data_processing_logfile_p = Path(data_processing_logfile)
+            aimless = base_dir / utils.make_path_relative(data_processing_logfile_p).parent / 'aimless.log'
+            if aimless.is_file():
+                aimless_ver = scrape_aimless_version(aimless)
+                info('AIMLESS+VER', aimless_ver)
+
+        xtal_in_path = base_dir / input_path / utils.Constants.DEFAULT_MODEL_BUILDING_DIR / xtal_name
+        xtal_out_path = output_dir / xtal_name
+        if xtal_out_path.is_dir():
             # delete it
-            shutil.rmtree(xtal_out_dir)
+            shutil.rmtree(xtal_out_path)
         # create the output dir
-        xtal_out_dir.mkdir(parents=True)
-        print(index, xtal_name, refinement_type)
+        xtal_out_path.mkdir(parents=True)
+
         meta_data = crystals.get(xtal_name)
         if meta_data is None:
-            logger.warn("Crystal {} not found in metadata. This is strange.".format(xtal_name))
+            warn("Crystal {} not found in metadata. This is strange.".format(xtal_name))
         else:
             mtz_latest = row.get(Constants.SOAKDB_COL_MTZ_LATEST)
             mtz_free = row.get(Constants.SOAKDB_COL_MTZ_FREE)
@@ -64,7 +180,7 @@ def process_input(
                 for ligand_binding_event in ligand_binding_events:
                     ccp4_filename = ligand_binding_event.get(Constants.META_FILE)
                     if not ccp4_filename:
-                        print("WARNING: no event map file for " + xtal_name)
+                        info("no event map file for " + xtal_name)
                     else:
                         ccp4_files.append(str(collator_output_dir.parent / ligand_binding_event[Constants.META_FILE]))
 
@@ -77,33 +193,644 @@ def process_input(
                     while True:
                         parent = parent.parent
                         if parent == Path('/'):
-                            print("Couldn't find dir ")
+                            info("Couldn't find dir ")
                             break
                         if parent.name == xtal_name:
                             mtz_free_path = parent / mtz_free
                             break
                 if not (base_dir / utils.make_path_relative(mtz_free_path)).is_file():
-                    print("WARNING: couldn't find mtz_free file " + mtz_free)
+                    warn("couldn't find mtz_free file " + mtz_free)
 
-            print(
-                "  mtz_latest: {}\n  mtz_free: {}\n  mmcif: {}\n  pdb: {}\n  ccp4: {}".format(
+            info(
+                "located files:\n  mtz_latest: {}\n  mtz_free: {}\n  mmcif: {}\n  pdb: {}\n  ccp4: {}".format(
                     mtz_latest, str(mtz_free_path), mmcif, pdb, ccp4_files
                 )
             )
 
             if refinement_type == Constants.SOAKDB_VALUE_BUSTER:
-                cif_doc = read_buster_structure(base_dir / utils.make_path_relative(Path(mmcif)))
+                structure_cif_doc = read_buster_structure(base_dir / utils.make_path_relative(Path(mmcif)))
             else:
-                cif_doc = read_refmac_structure(base_dir / utils.make_path_relative(Path(pdb)))
-            cif_doc.write_file(str(xtal_out_dir / 'structure.mmcif'))
+                structure_cif_doc = read_refmac_structure(base_dir / utils.make_path_relative(Path(pdb)))
+
+            structure_cif_block0 = structure_cif_doc[0]
+            if debug:
+                structure_cif_doc.write_file(str(xtal_out_path / 'original.cif'))
+
+            # grab the software info and delete from the current CIF - we'll add it back later
+            model_software_tags, model_software_values = find_software_and_delete(structure_cif_block0)
+
+            # #find and delete the _exptl loop as mmcifgen handles this
+            delete_pair_item(structure_cif_doc, '_exptl')
+
+            merge_entity_poly(
+                xtal_name,
+                structure_cif_block0,
+                mmcif_gen_entity_tags,
+                mmcif_gen_entity_values,
+                mmcif_gen_poly_tags,
+                mmcif_gen_poly_values,
+            )
+
+            # do some cleaning
+            delete_pair_item(structure_cif_doc, '_struct')
+            delete_pair_item(structure_cif_doc, '_struct_keywords')
+            delete_pair_item(structure_cif_doc, '_pdbx_database_status')
+
+            refine_item = find_loop_item(structure_cif_block0, '_refine')
+            if refine_item:
+                # probably a loop if generated from refmac pdb file
+                model_refine_tags = list(refine_item.loop.tags)
+                model_refine_values = list(refine_item.loop.values)
+                refine_item.erase()
+                append_loop_items(
+                    structure_cif_block0,
+                    model_refine_tags,
+                    model_refine_values,
+                    mmcifgen_refine_tags,
+                    mmcifgen_refine_values,
+                )
+            else:
+                # might be pairs if generated by buster
+                d = delete_pairs(structure_cif_block0, '_refine')
+                if d:
+                    model_refine_tags, model_refine_values = dict_to_tags_values(d)
+                    append_loop_items(
+                        structure_cif_block0,
+                        model_refine_tags,
+                        model_refine_values,
+                        mmcifgen_refine_tags,
+                        mmcifgen_refine_values,
+                    )
+
+            # add in the common metadata (generated by mmcif-gen)
+            for item in mmcifgen_block:
+                to_add = True
+                if item.loop is not None:
+                    if '_struct.title' in item.loop.tags:
+                        # special case of the structure title loop that needs expanding
+                        to_add = False
+                        if len(item.loop.values) > 1:
+                            template = item.loop.values[1]
+                            template = template.replace('$CompoundCode', cmpd_code)
+                            template = template.replace('$CrystalName', xtal_name)
+                            new_loop = structure_cif_block0.init_loop('', item.loop.tags)
+                            new_loop.add_row([item.loop.values[0], template])
+                if to_add:
+                    # otherwise add the item as it is
+                    added_item = structure_cif_block0.add_item(item)
+
+            prog = row.get(Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM)
+            if prog == 'dials':
+                prog = 'xia2-dials'
+            if prog and prog != 'None':
+                prog = prog.lower()
+                info('data processing was done with ' + prog)
+                if data_processing_logfile_p:
+                    stats_cif = (
+                        base_dir / utils.make_path_relative(Path(data_processing_logfile).parent) / 'xia2.mmcif.bz2'
+                    )
+                    if not stats_cif.is_file():
+                        p = None
+                        # info(str(stats_cif) + ' mmcif file containing data processing stats not found')
+                        base_data_processing_logfile_p = base_dir / utils.make_path_relative(data_processing_logfile_p)
+                        if base_data_processing_logfile_p.is_file():
+                            p = base_data_processing_logfile_p
+                            info('processing stats from', data_processing_logfile_p.name)
+                        elif prog == 'autoproc' and data_processing_logfile.endswith('.log'):
+                            # look for the aimless.log file
+                            if aimless.is_file():
+                                p = aimless
+                                info('processing stats from aimless.log')
+                            else:
+                                warn('no aimless.log file found')
+                        else:
+                            warn('could not find logfile', data_processing_logfile)
+
+                        if p:
+                            stats_doc = scrape_processing_stats.handle_file(p, prog, None, None)
+                            if stats_doc is None:
+                                warn('stats could not be scraped from log file')
+                            else:
+                                stats_block0 = stats_doc[0]
+                                for item in stats_block0:
+                                    structure_cif_block0.add_item(item)
+
+                        # handle _software section
+                        if aimless_ver is not None:
+                            tags1 = [
+                                '_software.pdbx_ordinal',
+                                '_software.classification',
+                                '_software.name',
+                                '_software.version',
+                                '_software.citation_id',
+                                '_software.type',
+                                '_software.description',
+                            ]
+                            tags, values = append_data_to_values(
+                                tags1,
+                                [
+                                    '1',
+                                    "'data scaling'",
+                                    'Aimless',
+                                    aimless_ver,
+                                    'https://www.ccp4.ac.uk/',
+                                    'program',
+                                    "'Data scaling'",
+                                ],
+                                model_software_tags,
+                                model_software_values,
+                                '_software.pdbx_ordinal',
+                            )
+
+                            loop = structure_cif_block0.init_loop('', tags1)
+                            for vals in values:
+                                loop.add_row(vals)
+                        else:
+                            loop = structure_cif_block0.init_loop('', model_software_tags)
+                            loop.add_row(model_software_values)
+
+                    else:
+                        info('processing stats from xia2.mmcif.bz2')
+                        stats_item_software = None
+                        stats_item_reflns_shell = None
+                        stats_pair_reflns = OrderedDict()
+                        stats_pair_diffrn = OrderedDict()
+                        with bz2.open(stats_cif) as stats:
+                            txt = stats.read()
+                            doc = cif.read_string(txt)
+                            # info("STATS:", str(doc))
+
+                            # grab the software and diffrn loops from first block
+                            for item in doc[0]:
+                                if item.loop:
+                                    for tag in item.loop.tags:
+                                        if tag.startswith('_software.'):
+                                            stats_item_software = item
+
+                            # grab the reflns and diffrn data from second block
+                            for item in doc[1]:
+                                if item.loop is None:
+                                    p = item.pair
+                                    if p[0].startswith('_reflns.'):
+                                        stats_pair_reflns[p[0]] = p[1]
+                                    if p[0].startswith('_diffrn.'):
+                                        stats_pair_diffrn[p[0]] = p[1]
+                                else:
+                                    for tag in item.loop.tags:
+                                        if tag.startswith('_reflns_shell.'):
+                                            stats_item_reflns_shell = item
+
+                        dimple_ver = read_phasing_software(xtal_in_path)
+
+                        if model_software_tags is None or model_software_values is None:
+                            info('structure software not found as loop or pairs')
+                        elif stats_item_software is None:
+                            info('stats software loop not found')
+                        else:
+                            print(
+                                'MERGING SOFTWARE',
+                                len(model_software_tags),
+                                len(model_software_values),
+                                len(stats_item_software.loop.tags),
+                                len(stats_item_software.loop.values),
+                                dimple_ver,
+                            )
+                            merge_software_loops(
+                                model_software_tags,
+                                model_software_values,
+                                stats_item_software.loop.tags,
+                                stats_item_software.loop.values,
+                                dimple_ver,
+                                aimless_ver,
+                                structure_cif_block0,
+                            )
+
+                        if stats_pair_reflns:
+                            for k, v in stats_pair_reflns.items():
+                                structure_cif_block0.set_pair(k, v)
+                        if stats_item_reflns_shell:
+                            structure_cif_block0.add_item(stats_item_reflns_shell)
+
+            # handle the collection_info.cif file
+            collection_info_p = generate_collection_info_path(xtal_in_path, xtal_name)
+            collection_info_diffrn_item = None
+            if collection_info_p is not None:
+                doc = cif.read(str(collection_info_p))
+                info('read ' + str(collection_info_p))
+                for item in doc[0]:
+                    if item.loop:
+                        if item.loop.tags[0].startswith('_diffrn.'):
+                            # don't add this one as it needs special handling
+                            collection_info_diffrn_item = item
+                            continue
+                    structure_cif_block0.add_item(item)
+            combine_diffrn_loops(
+                collection_info_diffrn_item, mmcifgen_diffrn_tags, mmcifgen_diffrn_values, structure_cif_block0
+            )
+
+            # move coordinates to the end
+            coordinates_item = find_loop_item(structure_cif_block0, '_atom_site')
+            item_count = 0
+            coordinates_pos = None
+            for item in structure_cif_block0:
+                if item == coordinates_item:
+                    coordinates_pos = item_count
+                item_count += 1
+            if coordinates_pos is not None:
+                structure_cif_block0.move_item(coordinates_pos, item_count - 1)
+
+            structure_cif_doc.write_file(str(xtal_out_path / (xtal_name + '_struc.cif')))
+
+            # include the ligand CIF file
+            if debug:
+                cif_file = row[Constants.SOAKDB_COL_CIF]
+                if cif_file:
+                    p = base_dir / utils.make_path_relative(Path(cif_file))
+                    if p.is_file():
+                        p2 = shutil.copy2(p, xtal_out_path / (xtal_name + '_lig.cif'), follow_symlinks=True)
+                        info('copied ligand CIF', p)
+                    else:
+                        warn('ligand CIF file not found:', p)
 
             # handle the structure factors
             merge_sf.run(
                 str(base_dir / utils.make_path_relative(Path(mtz_latest))),
                 str(base_dir / utils.make_path_relative(mtz_free_path)),
                 ccp4_files,
-                str(xtal_out_dir / 'structure_factors.cif'),
+                str(xtal_out_path / (xtal_name + '_sf.cif')),
+                output_individual=debug,
             )
+
+    # write out the ligands to a file
+    with open(output_dir / 'ligands.tab', 'wt') as tsv:
+        for xtal in xtals_list:
+            data = cmpd_moldata.get(xtal)
+            if not data:
+                warn('compound data not found for', xtal)
+            else:
+                values = []
+                for t in data:
+                    values.append(xtal)
+                    values.append(t[0])
+                    values.append(t[1])
+                    mol = Chem.MolFromSmiles(t[1])
+                    inchis = Chem.MolToInchi(mol)
+                    inchik = Chem.InchiToInchiKey(inchis)
+                    values.append(inchis)
+                    values.append(inchik)
+                tsv.write('\t'.join(values) + '\n')
+
+
+def find_software_and_delete(block):
+    software_loop_item = find_loop_item(block, '_software')
+    model_tags = None
+    model_values = None
+    if software_loop_item:
+        model_tags = software_loop_item.loop.tags
+        model_values = software_loop_item.loop.values
+        software_loop_item.erase()
+    else:
+        # try it as pairs
+        d = delete_pairs(block, '_software')
+        if d:
+            model_tags, model_values = dict_to_tags_values(d)
+    return model_tags, model_values
+
+
+def scrape_aimless_version(aimless_p):
+    with open(aimless_p, "rt") as f:
+        i = 0
+        for line in f:
+            i += 1
+            if i > 10:
+                info('could not read aimless version from', aimless_p)
+                return None
+            # the line we are after looks like this:
+            ### CCP4 8.0.016: AIMLESS           version 0.7.13 : 20/07/23##
+            match = re.search(r'.*AIMLESS\s+version\s+([\d\.]+)\s+', line)
+            if match:
+                aimless_ver = match.group(1)
+                LOG.info('found aimless version', aimless_ver)
+                return aimless_ver
+    return None
+
+
+def dict_to_tags_values(d: dict):
+    """
+    Convert a dict to lists of tags and values suitable for a loop
+    :param d:
+    :return:
+    """
+    tags = []
+    values = []
+    for t, v in d.items():
+        tags.append(t)
+        values.append(v)
+    return tags, values
+
+
+def read_mmcifgen_entity_poly_data_and_erase(mmcifgen_block):
+    mmcifgen_entity_item = find_loop_item(mmcifgen_block, '_entity')
+    mmcifgen_poly_item = find_loop_item(mmcifgen_block, '_entity_poly')
+
+    mmcif_gen_entity_tags = None
+    mmcif_gen_entity_values = None
+    mmcif_gen_poly_tags = None
+    mmcif_gen_poly_values = None
+
+    if mmcifgen_entity_item.loop:
+        mmcif_gen_entity_tags = mmcifgen_entity_item.loop.tags
+        mmcif_gen_entity_values = mmcifgen_entity_item.loop.values
+    if mmcifgen_poly_item.loop:
+        mmcif_gen_poly_tags = mmcifgen_poly_item.loop.tags
+        mmcif_gen_poly_values = mmcifgen_poly_item.loop.values
+    if mmcifgen_entity_item:
+        mmcifgen_entity_item.erase()
+    if mmcifgen_poly_item:
+        mmcifgen_poly_item.erase()
+
+    return mmcif_gen_entity_tags, mmcif_gen_entity_values, mmcif_gen_poly_tags, mmcif_gen_poly_values
+
+
+def merge_entity_poly(
+    xtal_name, model_block, mmcif_gen_entity_tags, mmcif_gen_entity_values, mmcif_gen_poly_tags, mmcif_gen_poly_values
+):
+    model_entity_item = find_loop_item(model_block, '_entity')
+    model_poly_item = find_loop_item(model_block, '_entity_poly')
+
+    model_entity_tags = None
+    model_entity_values = None
+    model_poly_tags = None
+    model_poly_values = None
+
+    if model_entity_item and model_entity_item.loop:
+        model_entity_tags = model_entity_item.loop.tags
+        model_entity_values = model_entity_item.loop.values
+        model_entity_item.erase()
+    else:
+        warn('_entity loop not present in model CIF for', xtal_name)
+    if model_poly_item and model_poly_item.loop:
+        model_poly_tags = model_poly_item.loop.tags
+        model_poly_values = model_poly_item.loop.values
+        model_poly_item.erase()
+    else:
+        warn('_entity_poly loop not present in model CIF for', xtal_name)
+
+    all_entity_tags = []
+    if mmcif_gen_entity_tags:
+        all_entity_tags.extend(mmcif_gen_entity_tags)
+    if model_entity_tags:
+        for t in model_entity_tags:
+            if t not in all_entity_tags:
+                all_entity_tags.append(t)
+
+    all_poly_tags = []
+    if mmcif_gen_poly_tags:
+        all_poly_tags.extend(mmcif_gen_poly_tags)
+    if model_poly_tags:
+        for t in model_poly_tags:
+            if t not in all_poly_tags:
+                all_poly_tags.append(t)
+
+    loop = model_block.init_loop('', all_entity_tags)
+    model_entity_rows = collect_entity_poly_values(
+        model_entity_tags, model_entity_values, exclude_pairs=[('_entity.type', 'polymer')]
+    )
+    mmcifgen_entity_rows = collect_entity_poly_values(mmcif_gen_entity_tags, mmcif_gen_entity_values)
+    append_entity_poly_values(all_entity_tags, mmcifgen_entity_rows, loop)
+    append_entity_poly_values(all_entity_tags, model_entity_rows, loop)
+
+    loop = model_block.init_loop('', all_poly_tags)
+    model_poly_rows = collect_entity_poly_values(
+        model_poly_tags, model_poly_values, exclude_pairs=[('_entity_poly.type', 'polypeptide(L)')]
+    )
+    mmcifgen_poly_rows = collect_entity_poly_values(mmcif_gen_poly_tags, mmcif_gen_poly_values)
+    append_entity_poly_values(all_poly_tags, mmcifgen_poly_rows, loop)
+    append_entity_poly_values(all_poly_tags, model_poly_rows, loop)
+
+
+def append_entity_poly_values(tags, rows, loop):
+    for d in rows:
+        data = []
+        for tag in tags:
+            if tag in d:
+                data.append(d[tag])
+            else:
+                data.append('?')
+        loop.add_row(data)
+
+
+def collect_entity_poly_values(tags, values, exclude_pairs=[]):
+    rows = []
+    if values:
+        d = None
+        for i, value in enumerate(values):
+            if i % len(tags) == 0:
+                if d:
+                    add_row_if_not_excluded(d, rows, exclude_pairs)
+                d = {}
+            tag = tags[i % len(tags)]
+            d[tag] = value
+        add_row_if_not_excluded(d, rows, exclude_pairs)
+    return rows
+
+
+def add_row_if_not_excluded(d, rows, exclude_pairs):
+    is_excluded = False
+    for exclude in exclude_pairs:
+        if d.get(exclude[0]) == exclude[1]:
+            is_excluded = True
+    if not is_excluded:
+        rows.append(d)
+
+
+def delete_pair_item(doc, prefix):
+    for block in doc:
+        for item in block:
+            if item.pair is not None:
+                if item.pair[0].startswith(prefix + '.'):
+                    item.erase()
+
+
+def delete_loop_item(doc, prefix):
+    for block in doc:
+        item = find_loop_item(block, prefix)
+        if item:
+            # print('erasing', item)
+            item.erase()
+
+
+def find_loop_item(block, prefix):
+    for item in block:
+        if item.loop is not None:
+            for tag in item.loop.tags:
+                if tag.startswith(prefix + '.'):
+                    return item
+    return None
+
+
+def delete_pairs(block, prefix):
+    """
+    Delete the pairs with this prefix and generate a dict of tags and values
+    :param block:
+    :param prefix:
+    :return:
+    """
+    d = {}
+    for item in block:
+        if item.pair is not None:
+            if item.pair[0].startswith(prefix + '.'):
+                d[item.pair[0]] = item.pair[1]
+                item.erase()
+    return d
+
+
+def append_loop_items(block_to_add_to: cif.Block, tags1, values1, tags2, values2):
+    """Simplistic approach that merges two 1-row loops, add the data from item2 into item1
+
+    :param block_to_add_to: the block the loop needs to be added to
+    :param tags1: the first tags to append
+    :param values1: the first values to append
+    :param tags1: the second tags to append
+    :param values1: the second values to append
+    :return:
+    """
+
+    # its seems that you can't just append to the existing loop's tags and value, you have to create a new loop
+    combined_tags = []
+    combined_values = []
+    combined_tags.extend(tags1)
+    combined_tags.extend(tags2)
+    combined_values.extend(values1)
+    combined_values.extend(values2)
+
+    loop = block_to_add_to.init_loop('', combined_tags)
+
+    loop.add_row(combined_values)
+
+
+def append_data_to_values(tags1, values1, tags2, values2, ordinal_col):
+    """
+    Append the data is tags/values2 to that in tags/values1, ensuring the order is correct
+    If no value is found then ? is written
+    :param tags1:
+    :param values1:
+    :param tags2:
+    :param values2:
+    :return: A list of lists of the values
+    """
+
+    if ordinal_col:
+        ordinal_idx = tags1.index(ordinal_col)
+    else:
+        ordinal_idx = None
+
+    combined_values = []
+    combined_values.append(values1)
+    n = len(tags2)
+    dicts = []
+    d = None
+    ordinal_count = len(combined_values)
+    for i, val in enumerate(values2):
+        ordinal_count += 1
+        if i % n == 0:
+            d = {}
+            dicts.append(d)
+        if i % n == ordinal_idx:
+            d[tags2[i % n]] = str(ordinal_count)
+        else:
+            d[tags2[i % n]] = val
+
+    for d in dicts:
+        l = []
+        combined_values.append(l)
+        for tag1 in tags1:
+            if tag1 in d:
+                l.append(d[tag1])
+            else:
+                l.append('?')
+
+    return tags1, combined_values
+
+
+def combine_diffrn_loops(collection_info_item: cif.Item, tags_list: list, values_list: list, into: cif.Block):
+    tags = []
+    if collection_info_item:
+        tags.extend(collection_info_item.loop.tags)
+    if tags_list:
+        tags.extend(tags_list)
+    values = []
+    if collection_info_item:
+        values.extend(collection_info_item.loop.values)
+    if values_list:
+        values.extend(values_list)
+    if tags:
+        new_loop = into.init_loop('', tags)
+        new_loop.add_row(values)
+
+
+def merge_software_loops(model_tags, model_values, stats_tags, stats_values, dimple_ver, aimless_ver, into: cif.Block):
+    d = OrderedDict()
+    for tag in model_tags:
+        d[tag] = []
+    for tag in stats_tags:
+        if tag not in d:
+            d[tag] = []
+
+    if dimple_ver:
+        d['_software.pdbx_ordinal'].append('1')
+        d['_software.classification'].append('phasing')
+        d['_software.name'].append('DIMPLE')
+        d['_software.version'].append(dimple_ver)
+    if aimless_ver:
+        d['_software.pdbx_ordinal'].append('2')
+        d['_software.classification'].append('scaling')
+        d['_software.name'].append('AIMLESS')
+        d['_software.version'].append(aimless_ver)
+
+    num_rows1 = int(len(model_values) / len(model_tags))
+    num_values = num_rows1
+    expanded_tags1 = []
+    for i in range(num_rows1):
+        expanded_tags1.extend(model_tags)
+    for tag, value in zip(expanded_tags1, model_values):
+        d[tag].append(value)
+    for k, v in d.items():
+        if len(v) < num_values:
+            for i in range(num_rows1):
+                v.append('?')
+
+    num_rows2 = int(len(stats_values) / len(stats_tags))
+    num_values = num_values + num_rows2
+    expanded_tags2 = []
+    for i in range(num_rows2):
+        expanded_tags2.extend(stats_tags)
+    for tag, value in zip(expanded_tags2, stats_values):
+        d[tag].append(value)
+    for k, v in d.items():
+        if len(v) < num_values:
+            for i in range(num_rows2):
+                v.append('?')
+
+    # fix the pdbx_ordinal column
+    for k in d:
+        if k.endswith('.pdbx_ordinal'):
+            values = d[k]
+            for i, k in enumerate(values):
+                values[i] = str(i + 1)
+
+    new_loop = into.init_loop('', list(d.keys()))
+    for i in range(num_values):
+        values = []
+        for k, v in d.items():
+            values.append(str(v[i]))
+        new_loop.add_row(values)
+
+
+def prune_loop(loop, retain):
+    for tag in loop.tags:
+        if not tag.startswith(retain):
+            loop.remove_column(tag)
 
 
 def read_buster_structure(mmcif):
@@ -112,50 +839,140 @@ def read_buster_structure(mmcif):
     return doc
 
 
+def read_phasing_software(xtal_dir):
+    dimple_log_file_path = Path(xtal_dir) / 'dimple/dimple/dimple.log'
+    dimple_ver = None
+    if dimple_log_file_path.is_file():
+        with open(dimple_log_file_path, 'rt') as dimple:
+            looking = False
+            for line in dimple:
+                line = line.strip()
+                if looking:
+                    match = re.search(r'^version:\s+([\d\.]+)$', line)
+                    if match:
+                        LOG.info('found dimple version', match.group(1))
+                        dimple_ver = match.group(1)
+                        break
+                    match = re.search(r'^\[\w+\]$', line)
+                    if match:
+                        LOG.info('dimple version not found')
+                        break
+                else:
+                    if line == '[workflow]':
+                        looking = True
+
+    else:
+        LOG.warn('dimple log file not found:', str(dimple_log_file_path))
+
+    return dimple_ver
+
+
 def read_refmac_structure(pdb):
-    struc = gemmi.read_pdb(str(pdb))
+    struc = gemmi.read_pdb(str(pdb), ignore_ter=True)
+    struc.setup_entities()
     return struc.make_mmcif_document()
 
 
-def run(collator_dir, output_dir, logger):
+# def read_refmac_structure(pdb):
+#     # this next big adds a missing TER line that is needed for correct conversion to MMCIF
+#     lines = []
+#     with open(pdb, 'r') as infile:
+#         previous_line_was_atom_or_anisou = False
+#         for line in infile:
+#             is_atom_or_anisou = line.startswith('ATOM') or line.startswith('ANISOU')
+#             is_hetatm = line.startswith('HETATM')
+#
+#             if is_hetatm and previous_line_was_atom_or_anisou:
+#                 lines.append('TER\n')
+#
+#             if not line.startswith('TER'):
+#                 lines.append(line)
+#
+#             previous_line_was_atom_or_anisou = is_atom_or_anisou
+#
+#     # now convert to MMCIF
+#     struc = gemmi.read_pdb_string(''.join(lines))
+#     doc = struc.make_mmcif_document()
+#     scrape_pdb_stats.run(str(pdb), doc)
+#     return doc
+
+
+def create_pairs(data: dict, prefix: str, block: cif.Block):
+    block.set_pairs(prefix, data)
+
+
+def create_loop(data: dict, prefix: str, block: cif.Block):
+    loop = block.init_loop(prefix, list(data.keys()))
+    size = len(next(iter(data.values())))
+    for i in range(size):
+        values = []
+        for k, v in data.items():
+            values.append(str(v[i]))
+        loop.add_row(values)
+
+
+def run(collator_dir, metadata_cif, output_dir, debug=False):
+    info('run on ' + str(datetime.datetime.now()))
+    info('using RDKit version ' + rdBase.rdkitVersion)
+    # info('using InCHI version ' + Chem.GetInchiVersion())
+
+    meta_doc = cif.read(metadata_cif)
+    meta_mmcifgen = meta_doc[0]
+
     collator_path = Path(collator_dir)
     config = utils.read_config_file(collator_path / 'config.yaml')
-    meta = utils.read_config_file(collator_path / 'meta_collator.yaml')
+    meta_collator = utils.read_config_file(collator_path / 'meta_collator.yaml')
     base_dir = config.get(Constants.CONFIG_BASE_DIR)
+    info('using base dir of', base_dir)
 
     inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
-    logger.info("found {} inputs".format(len(inputs)))
+    info("found {} inputs".format(len(inputs)))
     for input in inputs:
         if input[Constants.CONFIG_TYPE] == Constants.CONFIG_TYPE_MODEL_BUILDING:
             soakdb_file = utils.find_soakdb_file(input)
             input_path = input[Constants.CONFIG_DIR]
-            logger.info("Running for " + input_path)
+            info("running for input " + input_path)
             process_input(
-                Path(base_dir), Path(input_path), collator_path, Path(soakdb_file), meta, Path(output_dir), logger
+                Path(base_dir),
+                Path(input_path),
+                collator_path,
+                Path(soakdb_file),
+                input,
+                meta_collator,
+                meta_mmcifgen,
+                Path(output_dir),
+                debug=debug,
             )
 
 
 def main():
     # Example:
-    #   python -m pdbdepo.pdb_deposition -w path_to_collator_output -o depo
+    #   python -m pdbdepo.pdb_deposition -w path_to_collator_output -o depo -l pdb_deo.log
+
+    global LOG
 
     parser = argparse.ArgumentParser(description="pdb deposition")
 
     parser.add_argument("-w", "--collator-dir", required=True, help="collator's output dir")
+    parser.add_argument("-m", "--metadata-cif", required=True, help="CIF file with common metadata (mmcif-gen)")
 
     parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
+    parser.add_argument("-v", "--debug", action="store_true", help="Include source files in output")
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
     args = parser.parse_args()
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
-    logger.info("pdb_deposition: ", args)
-    utils.LOG = logger
+    LOG = utils.Logger(logfile=args.log_file, level=args.log_level)
 
-    run(args.collator_dir, args.output_dir, logger)
+    utils.LOG = LOG
+    scrape_processing_stats.LOG = LOG
+    merge_sf.LOG = LOG
+    LOG.info("pdb_deposition: ", args)
 
-    logger.report()
-    logger.close()
+    run(args.collator_dir, args.metadata_cif, args.output_dir, debug=args.debug)
+
+    LOG.report()
+    LOG.close()
 
 
 if __name__ == "__main__":

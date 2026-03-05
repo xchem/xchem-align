@@ -1015,10 +1015,6 @@ class Collator:
 
                     # Determine the ligands present and their coordinates
                     dataset_ligands = self.get_dataset_ligands(pdb_input, ligand_names)
-                    if xtal_name == "Mpro-i0130":
-                        print(f"pdb_input: {pdb_input}")
-                        print(f"Ligand names: {ligand_names}")
-                        print(f"Got ligands: {dataset_ligands}")
 
                     # Match ligand to panddas event maps if possible and determine if those maps are new
                     best_event_map_paths = self.get_dataset_event_maps(xtal_name, dataset_ligands, event_tables)
@@ -1194,22 +1190,16 @@ class Collator:
                                                         "Failed to generate canonical smiles for "
                                                         + "soaked molecule from soakDB"
                                                     )
-                                        if not smi:
-                                            try:
-                                                smi = Chem.MolToSmiles(mol)
-                                            except:
-                                                self._log_warning(
-                                                    "Failed to generate SMILES from CIF molecule for ligand " + name
-                                                )
-                                        if smi:
-                                            ligands[name][Constants.META_SMILES] = smi
-                                        else:
+
+                                        try:
+                                            modelled_smi = Chem.MolToSmiles(mol)
+                                            ligands[name][Constants.META_SMILES] = modelled_smi
+                                        except:
                                             self._log_error(
-                                                "could not generate SMILES for "
-                                                + xtal_name
-                                                + " - not defined in SoakDB CompoundSMILES column "
-                                                + "and could not be generated from CIF file"
+                                                "Failed to generate SMILES from CIF molecule for ligand " + name
                                             )
+                                        if modelled_smi:
+                                            ligands[name][Constants.META_SMILES] = modelled_smi
 
                                     if ligands:
                                         data_to_add[Constants.META_XTAL_CIF][Constants.META_LIGANDS] = ligands
@@ -1444,17 +1434,17 @@ class Collator:
                                 pos = atom.pos
                                 poss.append([pos.x, pos.y, pos.z])
 
-                            arr = np.array(poss)
-                            mean = np.mean(arr, axis=0)
-                            ligand_coords[
-                                (
-                                    str(model.num),
-                                    chain.name,
-                                    str(residue.seqid.num) + icode_to_string(residue.seqid.icode),
-                                    altloc,
-                                    residue.name,
-                                )
-                            ] = mean
+                        arr = np.array(poss)
+                        mean = np.mean(arr, axis=0)
+                        ligand_coords[
+                            (
+                                str(model.num),
+                                chain.name,
+                                str(residue.seqid.num) + icode_to_string(residue.seqid.icode),
+                                altloc,
+                                residue.name,
+                            )
+                        ] = mean
 
         return ligand_coords
 

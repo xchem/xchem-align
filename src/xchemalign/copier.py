@@ -18,6 +18,7 @@ from pathlib import Path
 import pandas as pd
 
 from xchemalign import dbreader, collator, utils
+from pdbdepo import pdb_deposition
 from .utils import Constants
 
 
@@ -188,41 +189,91 @@ class Copier:
                 self.logger.info("ignoring {} as status is 7".format(xtal_name))
                 continue
 
-            xtal_dir_path = collator.generate_xtal_dir(self.input_path, xtal_name)
-            self.logger.info("processing {} {}".format(count, xtal_name))
-            expected_path = self.base_path / self.input_path / Constants.DEFAULT_MODEL_BUILDING_DIR
+            # this path is relative. Needs base_dir prepending to it  to get the full path
+            xtal_dir_input_path = collator.generate_xtal_dir(self.input_path, xtal_name)
+            self.logger.info("processing {} {} {}".format(count, xtal_name, str(xtal_dir_input_path)))
 
-            file = row[Constants.SOAKDB_COL_PDB]
-            result = self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_PDB, row[Constants.SOAKDB_COL_PDB], xtal_dir_path
-            )
+            pdb_file = row[Constants.SOAKDB_COL_PDB]
+            result = self.copy_file_and_log(xtal_name, Constants.SOAKDB_COL_PDB, pdb_file, xtal_dir_input_path)
             num_files += result
             if result:
-                datasets[xtal_name] = row[Constants.SOAKDB_COL_PDB]
+                datasets[xtal_name] = pdb_file
 
             num_files += self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_MTZ_LATEST, row[Constants.SOAKDB_COL_MTZ_LATEST], xtal_dir_path
+                xtal_name, Constants.SOAKDB_COL_MTZ_LATEST, row[Constants.SOAKDB_COL_MTZ_LATEST], xtal_dir_input_path
             )
             num_files += self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_MTZ_FREE, row[Constants.SOAKDB_COL_MTZ_FREE], xtal_dir_path
+                xtal_name, Constants.SOAKDB_COL_MTZ_FREE, row[Constants.SOAKDB_COL_MTZ_FREE], xtal_dir_input_path
             )
-            num_files += self.copy_file_and_log(
-                xtal_name,
-                Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST,
-                row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST],
-                xtal_dir_path,
-            )
+            mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
+            if mmcif and mmcif != 'None':
+                num_files += self.copy_file_and_log(
+                    xtal_name,
+                    Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST,
+                    mmcif,
+                    xtal_dir_input_path,
+                )
+            else:
+                self.logger.info(
+                    Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST + " not defined for crystal " + xtal_name
+                )
             result = self.copy_file_and_log(
-                xtal_name, Constants.SOAKDB_COL_CIF, row[Constants.SOAKDB_COL_CIF], xtal_dir_path
+                xtal_name, Constants.SOAKDB_COL_CIF, row[Constants.SOAKDB_COL_CIF], xtal_dir_input_path
             )
             if result:
                 # for the ligand CIF file also copy the corresponding PDB file
                 filename = row[Constants.SOAKDB_COL_CIF]
-                ok = self.copy_file(Path(filename).with_suffix(".pdb"), xtal_dir_path)
+                ok = self.copy_file(Path(filename).with_suffix(".pdb"), xtal_dir_input_path)
                 if ok:
                     num_files += 1
                 else:
                     self._log_warning("Ligand PDB file " + filename + " not copied for crystal " + xtal_name)
+
+            # Copy files needed for PDB deposition if the status is 5 or 6
+            # TODO - review which statuses should be copied
+            if status_str.startswith("5") or status_str.startswith("6"):
+                dp_log = row[Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE]
+                dp_prog = row[Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM]
+                if dp_log and dp_log != 'None':
+                    dp_log_p = Path(dp_log)
+                    if dp_log_p.is_file():
+                        num_files += self.copy_file_and_log(
+                            xtal_name,
+                            Constants.SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE,
+                            dp_log,
+                            xtal_dir_input_path,
+                        )
+
+                    # copy aimless.log if it exists
+                    # probably a broken symlink which should be to the aimless.log file
+                    aimless = dp_log_p.parent / 'aimless.log'
+                    if aimless.is_file():
+                        num_files += self.copy_file_and_log(
+                            xtal_name, 'aimless.log', str(aimless), xtal_dir_input_path
+                        )
+
+                    # coipy the xia2.mmcif.bz2 file if it exists
+                    stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
+                    if stats_cif_p.is_file():
+                        num_files += self.copy_file_and_log(
+                            xtal_name, 'xia2.mmcif.bz2', str(stats_cif_p), xtal_dir_input_path
+                        )
+                else:
+                    self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
+
+                # copy the <CrystalName>_collection_info.cif file
+                collection_info_p = pdb_deposition.generate_collection_info_path(
+                    self.base_path / xtal_dir_input_path, xtal_name
+                )
+                if collection_info_p is not None:
+                    num_files += self.copy_file_and_log(
+                        xtal_name, xtal_name + '_collection_info.cif', collection_info_p, xtal_dir_input_path
+                    )
+
+                # copy dimple.log files
+                dimple_log_p = pdb_deposition.generate_dimple_log_path(self.base_path / xtal_dir_input_path)
+                if dimple_log_p is not None:
+                    num_files += self.copy_file_and_log(xtal_name, 'dimple.log', dimple_log_p, xtal_dir_input_path)
 
         # copy the specified csv files with the panddas info
         self.logger.info("Copying", len(self.panddas_file_paths), "panddas csv files")
@@ -246,6 +297,7 @@ class Copier:
             path = Path(col_value)
             ok = self.copy_file(path, xtal_dir_path)
             if ok:
+                self.logger.info('copied', str(path))
                 return 1
             else:
                 self._log_warning(
@@ -467,6 +519,23 @@ def main():
     # Example:
     #   python -m xchemalign.copier -c config.yaml -o inputs -l copier.log
 
+    # Files copied to be used in the collator and/or pdb_deposition processes are:
+    #
+    # File                     Source
+    # ----                     ------
+    # PDB structure            RefinementBoundConformation column from soakDB
+    # MMCIF structure          RefinementMMCIFmodel_latest column from soakDB (not always defined .e.g using Refmac)
+    # Latest .mtz              RefinementMTZ_latest column from soakDB
+    # Free .mtz                RefinementMTZfree column from soakDB, but full path usually not specified
+    # Ligand CIF file          RefinementCIF column from soakDB
+    # Ligand PDB               Same as ligand CIF but with .pdb extension
+    # Event maps               Relevant ones identified from .csv files listed in panddas_event_files from config.yaml
+    # dimple.log               <xtal_dir>/dimple/dimple/dimple.log
+    # collection_info.cif      <xtal_dir>/autoprocessing/<xtal_name>_collection_info.cif
+    # Data processing logfile  DataProcessingPathToLogfile column from soakDB (though symlink sometimes broken)
+    # xia2.mmcif.bz2           In directory containing Data processing logfile
+    # soakDBDataFile.sqlite    From config.yaml or <visit_dir>/processing/database/soakDBDataFile.sqlite
+
     parser = argparse.ArgumentParser(description="copier")
 
     parser.add_argument("-c", "--config-file", required=True, default="config.yaml", help="Configuration file")
@@ -481,6 +550,7 @@ def main():
     logger = utils.Logger(logfile=args.log_file, level=args.log_level)
     logger.info("copier: ", args)
     utils.LOG = logger
+    pdb_deposition.LOG = logger
 
     config = utils.read_config_file(args.config_file)
 

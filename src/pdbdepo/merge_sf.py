@@ -13,15 +13,38 @@
 import argparse
 import datetime
 
+from pathlib import Path
+
 import gemmi
 from gemmi import cif
 
+from xchemalign import utils
 
-def run(latest_mtz, free_mtz, event_maps, output):
+LOG = utils.Logger()
+
+
+def write_mtz_to_cif_file(mtz_file, cif_file):
+    mtz = gemmi.read_mtz_file(mtz_file)
+    to_cif = gemmi.MtzToCif()
+    s = to_cif.write_cif_to_string(mtz)
+    with open(cif_file, 'wt') as f:
+        f.write(s)
+
+
+def run(latest_mtz, free_mtz, event_maps, output, output_individual=False):
     today = datetime.date.today()
     formatted_date = today.strftime("%Y-%m-%d")
 
     doc_final = cif.Document()
+
+    if output_individual:
+        dir = Path(output).parent
+        write_mtz_to_cif_file(latest_mtz, dir / 'mtz_latest.cif')
+        write_mtz_to_cif_file(free_mtz, dir / 'mtz_free.cif')
+        for i, event_map in enumerate(event_maps):
+            cif_s = read_ccp4(event_map)
+            with open(dir / ('event_map_' + str(i) + '.cif'), 'wt') as f:
+                f.write(cif_s)
 
     # handle the latest_mtz data
     cif_s = read_mtz(latest_mtz)
@@ -64,7 +87,7 @@ def run(latest_mtz, free_mtz, event_maps, output):
 def read_mtz(file):
     mtz = gemmi.read_mtz_file(file)
     mtz.title = "MMMM"
-    print("read mtz " + file)
+    LOG.info("read mtz " + file)
     to_cif = gemmi.MtzToCif()
     cif_s = to_cif.write_cif_to_string(mtz)
     return cif_s
@@ -76,7 +99,7 @@ def read_ccp4(file):
     RESOLUTION_LIMIT = 1.5
 
     map = gemmi.read_ccp4_map(file)
-    print("read ccp4 " + file)
+    LOG.info("read ccp4 " + file)
     sf = gemmi.transform_map_to_f_phi(map.grid, half_l=True)
     data = sf.prepare_asu_data(dmin=RESOLUTION_LIMIT)
 
