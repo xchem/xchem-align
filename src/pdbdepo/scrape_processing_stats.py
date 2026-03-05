@@ -110,7 +110,6 @@ d_autoproc_staraniso = {
     KEY_REFLNS_NUM_MEASURED: r'Total\s+number\s+of\s+observations\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_NUM_OBSERVED: r'Total\s+number\s+unique\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_PDBX_REDUNDANCY: r'Multiplicity\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
-    KEY_REFLNS_CHI_SQ: r'Mean\(Chi\^2\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_POSSIBLE_OBS: r'Completeness \(ellipsoidal\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
     KEY_REFLNS_NETI_OVER_SIGMA: r'Mean\(I\)\/sd\(I\)\s+([\.\d]+)\s+([\.\d]+)\s+([\.\d]+)',
 }
@@ -185,6 +184,8 @@ def handle_xia_3dii(file):
 def handle_file(file, type, doc: cif.Document, outputfile: str):
     if type == 'autoproc':
         reflns, shell = handle_autoproc(file)
+    elif type == 'autoproc_staraniso':
+        reflns, shell = handle_autoproc_staraniso(file)
     elif type == 'xia_3dii':
         reflns, shell = handle_xia_3dii(file)
     else:

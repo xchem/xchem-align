@@ -292,9 +292,9 @@ def process_input(
                     if not stats_cif.is_file():
                         p = None
                         # info(str(stats_cif) + ' mmcif file containing data processing stats not found')
-
-                        if data_processing_logfile_p.is_file():
-                            p = base_dir / utils.make_path_relative(data_processing_logfile_p)
+                        base_data_processing_logfile_p = base_dir / utils.make_path_relative(data_processing_logfile_p)
+                        if base_data_processing_logfile_p.is_file():
+                            p = base_data_processing_logfile_p
                             info('processing stats from', data_processing_logfile_p.name)
                         elif prog == 'autoproc' and data_processing_logfile.endswith('.log'):
                             # look for the aimless.log file
