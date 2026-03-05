@@ -505,6 +505,7 @@ class Collator:
         if statuses:
             self.logger.info("using user defined statuses:", statuses)
         df = dbreader.filter_dbmeta(dbfile, ref_datasets, statuses)
+
         count = 0
         processed = 0
         num_pdb_files = 0
@@ -651,6 +652,10 @@ class Collator:
                         if input.code_prefix is not None:
                             data[Constants.META_CODE_PREFIX] = input.code_prefix
                         data[Constants.META_XTAL_FILES] = f_data
+
+        if processed == 0:
+            self._log_error('No crystals were selected. Are there crystals corresponding to the specified statuses?')
+            exit(1)
 
         self.logger.info("validator handled {} rows from database, {} were valid".format(count, processed))
         if num_mtz_files < num_pdb_files:
