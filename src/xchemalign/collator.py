@@ -939,6 +939,7 @@ class Collator:
                 if pdb:
                     pdb_input = self.base_path / pdb[Constants.META_FILE]
                     if pdb_input.is_file():
+                        # do any chain renaming here
                         digest = utils.gen_sha256(pdb_input)
                         old_digest = historical_xtal_data.get(Constants.META_XTAL_PDB, {}).get(Constants.META_SHA256)
                         if digest != old_digest:
