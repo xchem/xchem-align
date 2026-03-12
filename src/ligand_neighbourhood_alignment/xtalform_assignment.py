@@ -97,23 +97,55 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
             # print(f'Closest distance between {ref_centroid} and {mov_centroid} is {dist}')
             distances[ref_chain][mov_chain] = dist
             
-    # Assign each movin chain its closest ref chain
+    # Assign each moving chain its closest ref chain
     assignments = {}
-    min_distances = {}
-    for ref_chain in xtalform_protein_chains:
-        closest_chain = min(
-            distances[ref_chain], 
-            key=lambda x: distances[ref_chain][x],
+    # min_distances = {}
+    # for ref_chain in xtalform_protein_chains:
+    #     closest_chain = min(
+    #         distances[ref_chain], 
+    #         key=lambda x: distances[ref_chain][x],
+    #         )
+    #     min_distances[ref_chain] = distances[ref_chain][closest_chain]
+    #     assignments[ref_chain] = closest_chain
+
+    # Get total rmsd of each assignment scheme
+    possible_assignments = [
+        {
+            _ref_chain: _mov_chain
+            for _ref_chain, _mov_chain in zip(distances, _mov_chain_permutation)
+         }
+         for _mov_chain_permutation in itertools.permutations(
+                mov_centroids, 
+                len(mov_centroids)
             )
-        min_distances[ref_chain] = distances[ref_chain][closest_chain]
-        assignments[ref_chain] = closest_chain
+    ]
+    
+    total_rmsds = []
+    for assignment in possible_assignments:
+        total_rmsd = sum(
+            [
+                distances[_ref_chain][assignment[_ref_chain]]
+                for _ref_chain in assignment
+            ]
+        )
+        total_rmsds.append(total_rmsd)
+    
+    best_assignment, min_distances = None, None
+    for assignment, rmsd in zip(possible_assignments, total_rmsds):
+        if rmsd == min(total_rmsds):
+            best_assignment, min_distances = assignment, {
+                _ref_chain: distances[_ref_chain][assignment[_ref_chain]]
+                for _ref_chain
+                in assignment
+                }
+
 
     if len(set(assignments.values())) != len(set(assignments.keys())):
         raise Exception(
             f'ERROR! Chain assignment is {assignments}. No two chains should be modelled in the same symmetry position in the unit cell!'
         )
     
-    return assignments, min_distances, ref_centroids, mov_centroids
+    return best_assignment, min_distances, ref_centroids, mov_centroids
 
 
 
