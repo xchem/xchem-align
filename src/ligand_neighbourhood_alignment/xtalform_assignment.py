@@ -184,6 +184,7 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             for xtalform_assembly in xtalform.assemblies.values() 
             for _chain in xtalform_assembly.chains
         ]
+
         dataset_protein_chains = _get_dataset_protein_chains(structure)
 
         if set(dataset_protein_chains) != set(xtalform_protein_chains):
