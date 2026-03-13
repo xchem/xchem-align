@@ -55,7 +55,7 @@ The main tools are implemented as the following Python modules:
 
 ## Rollout
 
-There is an environment at Diamond where users user the XChem align code on their data.
+There is an environment at Diamond where users run the XChem align code on their data.
 This can be found on the Diamond file system at `/dls/science/groups/i04-1/software/xchem-align`.
 To roll out a new version of this:
 
@@ -81,6 +81,19 @@ developers. If you want to roll out a new environment and the repo is not tagged
 5. `rm -rf env_xchem_align` - remove the old conda environment
 6. `conda deactivate` - deactivate the current conda env (if necessary)
 7. `conda env create -f environment.yaml -p env_xchem_align` - create the new conda environment
+
+### Staging environment rollout
+
+There is a staging environment at Diamond where users run a test version the XChem align code on their data.
+This can be found on the Diamond file system at `/dls/science/groups/i04-1/software/xchem-align-staging`.
+This code is not tagged and data should only be uploaded to the staging Fragalysis. Production Fragalysis will
+refuse to load data from a non-tagged version of XCA.
+
+The procedure for rolling out to the staging environment is identical to for the production site described above,
+except that you do this in the `xchem-align-staging` directory. Ensure you checkout the required branch or tag before
+building the conda environment.
+
+
 
 ---
 
