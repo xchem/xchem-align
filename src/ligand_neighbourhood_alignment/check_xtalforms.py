@@ -6,6 +6,7 @@ def _check_xtalforms(xtalforms, structures):
     and it shares the same spacegroup
     """
     identical_crystalforms = []
+    all_deltas = {}
     for ref_xtalform_id, ref_xtalform in xtalforms.items():
         ref_structure = structures[ref_xtalform.reference]
         ref_spacegroup = ref_structure.spacegroup_hm
@@ -22,7 +23,7 @@ def _check_xtalforms(xtalforms, structures):
                 continue
 
             # Check deltas
-            deltas = np.array(
+            deltas = np.round(np.array(
             [
                 mov_structure_cell.a / ref_structure_cell.a,
                 mov_structure_cell.b / ref_structure_cell.b,
@@ -31,7 +32,7 @@ def _check_xtalforms(xtalforms, structures):
                 mov_structure_cell.beta / ref_structure_cell.beta,
                 mov_structure_cell.gamma / ref_structure_cell.gamma,
             ]
-            )
+            ), 2)
             if np.any(deltas > 1.1) | np.any(deltas < 0.91):
                 continue
 
@@ -40,13 +41,14 @@ def _check_xtalforms(xtalforms, structures):
             identical_crystalform = set([ref_xtalform_id, mov_xtalform_id])
             if identical_crystalform not in identical_crystalforms:
                 identical_crystalforms.append(identical_crystalform)
+            all_deltas[identical_crystalform] = deltas
         
     if len(identical_crystalforms) != 0:
         exception = f'There were identical crystalforms present in the assemblies.yaml \n'
         for identical_crystalform in identical_crystalforms:
             identical_crystalform_tuple = tuple(identical_crystalform)
             print(identical_crystalform_tuple)
-            exception += f'\t{identical_crystalform_tuple[0]} is identical to {identical_crystalform_tuple[1]}\n'
+            exception += f'\t{identical_crystalform_tuple[0]} is identical to {identical_crystalform_tuple[1]}: deltas {all_deltas[identical_crystalform]}\n'
         exception += 'Please remove the redundancy and rerun!'
         raise Exception(
                 exception
