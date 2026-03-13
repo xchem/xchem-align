@@ -205,8 +205,6 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             continue
 
         if np.mean([x for x in min_distances.values()]) > 5:
-            print('Min distances is large!')
-            print(min_distances)
             continue
 
         # Get the deltas
