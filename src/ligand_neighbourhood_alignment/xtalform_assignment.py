@@ -58,6 +58,7 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
                 f'Chain is: {chain}\n'
                 f'Chains in ref dataset are: {[x.name for x in ref[0]]}\n'
                 f'Residues in chain are: {len([x for x in ref[0][chain]])}\n'
+                f'Xtalform protein chains are: {xtalform_protein_chains}\n'
                 f'Residues in chain polymer are: {[x.name for x in ref[0][chain]]}\n'
                                       )
     # Get the mov chain centroids
