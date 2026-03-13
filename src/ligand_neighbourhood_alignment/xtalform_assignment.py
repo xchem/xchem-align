@@ -199,6 +199,9 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             raise Exception(
                 f'Error occured trying to map chains from xtalform {xtalform_id}\n'
                 f'Ref structure is: {xtalform.reference}\n'
+                f'Dataset protein chains: {dataset_protein_chains}\n'
+                f'Xtalform portein chains: {xtalform_protein_chains}\n'
+
             )
         # print(f'Chanin mapping: {chain_mapping}')
         # print(f'Min distances: {min_distances}')
