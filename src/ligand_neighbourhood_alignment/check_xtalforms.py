@@ -15,6 +15,9 @@ def _check_xtalforms(xtalforms, structures):
             mov_spacegroup = mov_structure.spacegroup_hm
             mov_structure_cell = mov_structure.cell
 
+            if ref_xtalform_id == mov_xtalform_id:
+                continue
+
             if mov_spacegroup != ref_spacegroup:
                 continue
 
