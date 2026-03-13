@@ -41,7 +41,8 @@ def _check_xtalforms(xtalforms, structures):
     if len(identical_crystalforms) != 0:
         exception = f'There were identical crystalforms present in the assemblies.yaml \n'
         for identical_crystalform in identical_crystalforms:
-            exception += f'\t{identical_crystalform[0]} is identical to {identical_crystalform[1]}\n'
+            identical_crystalform_tuple = tuple(identical_crystalform)
+            exception += f'\t{identical_crystalform_tuple[0]} is identical to {identical_crystalform_tuple[1]}\n'
         exception += 'Please remove the redundancy and rerun!'
         raise Exception(
                 exception
