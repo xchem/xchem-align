@@ -50,9 +50,16 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
     # Get the ref chain centroids
     ref_centroids = {}
     for chain in xtalform_protein_chains:
-        ref_centroids[chain] = get_chain_centroid(ref[0][chain])
-        assert ref_centroids[chain].size == 3
-
+        try:
+            ref_centroids[chain] = get_chain_centroid(ref[0][chain])
+        except Exception as e:
+            raise Exception(
+                'Error occured while trying to verify the crystalform chain placements are comparable\n' 
+                f'Chain is: {chain}\n'
+                f'Chains in ref dataset are: {[x.name for x in ref[0]]}\n'
+                f'Residues in chain are: {len([x for x in ref[0][chain]])}\n'
+                f'Residues in chain polymer are: {len([x.name for x in ref[0][chain]])}\n'
+                                      )
     # Get the mov chain centroids
     mov_centroids = {}
     # Get an alignment based on the first chain (should get around indexing choice!)
@@ -77,7 +84,7 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
                 f'Chain is: {chain}\n'
                 f'Chains in moving dataset are: {[x.name for x in mov[0]]}\n'
                 f'Residues in chain are: {len([x for x in mov[0][chain]])}\n'
-                f'Residues in chain polymer are: {len([x for x in transformed_chain])}\n'
+                f'Residues in chain polymer are: {len([x.name for x in transformed_chain])}\n'
                                       )
 
     # Get the distances under symmetry and PBC
