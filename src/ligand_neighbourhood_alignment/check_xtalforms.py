@@ -22,6 +22,18 @@ def _check_xtalforms(xtalforms, structures):
             if mov_spacegroup != ref_spacegroup:
                 continue
 
+            ref_xtalform_protein_chains = [
+            _chain for xtalform_assembly in ref_xtalform.assemblies.values() 
+            for _chain in xtalform_assembly.chains
+        ]
+            mov_xtalform_protein_chains = [
+            _chain for xtalform_assembly in mov_xtalform.assemblies.values() 
+            for _chain in xtalform_assembly.chains
+        ]
+
+            if set(ref_xtalform_protein_chains) != set(mov_xtalform_protein_chains):
+                continue
+
             # Check deltas
             deltas = np.round(np.array(
             [
