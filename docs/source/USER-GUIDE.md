@@ -166,9 +166,9 @@ base_dir: /                                  # All _inputs_ are relative to this
 
 extra_files_dir: path/to/extra_files         # Optional directory where your extra files are located
                                              # Defaults to extra_files in the current version directory
-ref_datasets:        # List of datasets with reference conformations; these get aligned to every ligand binding site.
+ref_datasets:        # List of datasets with reference conformations; these get aligned to every canonical site.
                      # You generally want at least one for each major class of conformation
-- Mpro-IBM0045       # Provide here the crystal ids as they appear in the model_building directory
+- Mpro-IBM0045       # Provide here the crystal ids as they appear in the model_building or reference directories
 - Mpro-IBM0175
 
 panddas_missing_ok: [ Mpro-x0089, Mpro-x0211 ]    # Crystals for which XCA should ignore that event maps are missing.
