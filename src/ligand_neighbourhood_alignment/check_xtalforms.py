@@ -41,14 +41,14 @@ def _check_xtalforms(xtalforms, structures):
             identical_crystalform = set([ref_xtalform_id, mov_xtalform_id])
             if identical_crystalform not in identical_crystalforms:
                 identical_crystalforms.append(identical_crystalform)
-            all_deltas[identical_crystalform] = deltas
+            all_deltas[tuple(identical_crystalform)] = deltas
         
     if len(identical_crystalforms) != 0:
         exception = f'There were identical crystalforms present in the assemblies.yaml \n'
         for identical_crystalform in identical_crystalforms:
             identical_crystalform_tuple = tuple(identical_crystalform)
             print(identical_crystalform_tuple)
-            exception += f'\t{identical_crystalform_tuple[0]} is identical to {identical_crystalform_tuple[1]}: deltas {all_deltas[identical_crystalform]}\n'
+            exception += f'\t{identical_crystalform_tuple[0]} is identical to {identical_crystalform_tuple[1]}: deltas {all_deltas[identical_crystalform_tuple]}\n'
         exception += 'Please remove the redundancy and rerun!'
         raise Exception(
                 exception
