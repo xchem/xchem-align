@@ -372,7 +372,7 @@ def update(
     save_yaml(fs_model.assembly_transforms, assembly_transforms, lambda x: x)
 
     # Check xtalforms for duplication
-    _check_xtalforms(xtalforms)
+    _check_xtalforms(xtalforms, structures)
 
     # Assign datasets
     new_dataset_assignments = {}
