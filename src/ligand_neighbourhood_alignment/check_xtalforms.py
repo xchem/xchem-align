@@ -32,7 +32,7 @@ def _check_xtalforms(xtalforms, structures):
                 mov_structure_cell.gamma / ref_structure_cell.gamma,
             ]
             )
-            if np.any(deltas > 1.1) | np.any(deltas < 0.9):
+            if np.any(deltas > 1.1) | np.any(deltas < 0.91):
                 continue
 
             # If this code executes then the spacegroup is the same and the unit cell is close: raise 

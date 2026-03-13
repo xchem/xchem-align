@@ -284,7 +284,7 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
         )
         raise Exception(message)
 
-    if np.any(deltas > 1.1) | np.any(deltas < 0.9):
+    if np.any(deltas > 1.1) | np.any(deltas < 0.91):
         logger.info(f"No reference for dataset: {dataset.dtag}")
         logger.info(f"Deltas to closest unit cell are: {deltas}")
         logger.info(f"Structure path is: {dataset.pdb}")
