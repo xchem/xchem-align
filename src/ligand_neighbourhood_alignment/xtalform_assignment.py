@@ -180,7 +180,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
 
         # Check they have the same protein chains
         xtalform_protein_chains = [
-            _chain for xtalform_assembly in xtalform.assemblies.values() 
+            _chain 
+            for xtalform_assembly in xtalform.assemblies.values() 
             for _chain in xtalform_assembly.chains
         ]
         dataset_protein_chains = _get_dataset_protein_chains(structure)
