@@ -5,7 +5,7 @@ XChemAlign (XCA) is a suite of command line tools for crystallographic fragment 
 
 ## Getting started
 
-XCA is typically run on fragment screening data that is collected by [XChem](https://https://www.diamond.ac.uk/Instruments/Mx/Fragment-Screening.html) at [Diamond Light Source](https://www.diamond.ac.uk/) and subsequently uploaded to [Fragalysis](https://fragalysis.readthedocs.io) for analysis. If you are new to XCA, we recommend starting with the [**XChemAlgn user guide**](USER-GUIDE) to familiarise yourself with how it is run.
+XCA is typically run on fragment screening data that is collected by [XChem](https://https://www.diamond.ac.uk/Instruments/Mx/Fragment-Screening.html) at [Diamond Light Source](https://www.diamond.ac.uk/) and subsequently uploaded to [Fragalysis](https://fragalysis.readthedocs.io) for analysis. If you are new to XCA, we recommend starting with the [**XChemAlign user guide**](USER-GUIDE) to familiarise yourself with how it is run.
 
 ## Quick links
 
@@ -18,17 +18,17 @@ XCA is typically run on fragment screening data that is collected by [XChem](htt
 
 # Documentation Pages
 
-## XChem Align User Guide
+## XChemAlign User Guide
 ```{toctree}
 :maxdepth: 1
 USER-GUIDE.md
 ```
-## XChem Align Developer Guide
+## XChemAlign Developer Guide
 ```{toctree}
 :maxdepth: 1
 DEV-GUIDE.md
 ```
-## XChem Align Algorithm Guide
+## XChemAlign Algorithm Guide
 ```{toctree}
 :maxdepth: 1
 ALGORITHM-GUIDE.md
