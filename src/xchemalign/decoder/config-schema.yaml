@@ -32,6 +32,9 @@ properties:
     items:
       type: string
     minItems: 0
+  sequences:
+    $ref: '#/definitions/model-building-input'
+
   inputs:
     type: array
     items:
@@ -75,6 +78,8 @@ definitions:
         items:
           type: string
         minItems: 0
+      sequences:
+        $ref: '#/definitions/sequences'
     required:
     - dir
     - type
@@ -104,3 +109,29 @@ definitions:
   overrides:
     type: object
     additionalProperties: true
+
+  sequences:
+    type: object
+    additionalProperties: false
+    properties:
+      dir:
+        type: string
+      default:
+        type: string
+      variants:
+        type: array
+        items:
+          $ref: '#/definitions/variant'
+        minItems: 0
+
+  variant:
+    type: object
+    additionalProperties: false
+    properties:
+      sequence:
+        type: string
+      crystals:
+        type: array
+        items:
+          type: string
+        minItems: 1

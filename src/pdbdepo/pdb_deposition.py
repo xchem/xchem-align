@@ -88,6 +88,10 @@ def process_input(
 ):
     crystals = meta_collator[Constants.META_XTALS]
 
+    # read the sequences
+    default_seq, variants = utils.read_sequences(base_dir, input_config)
+    print('sequences', default_seq, variants)
+
     xtals_list = []
     cmpd_moldata = {}
     # grab the ligand smiles of the collator output
@@ -428,6 +432,8 @@ def process_input(
                 collection_info_diffrn_item, mmcifgen_diffrn_tags, mmcifgen_diffrn_values, structure_cif_block0
             )
 
+            add_sequences(xtal_name, default_seq, variants, structure_cif_block0)
+
             # move coordinates to the end
             coordinates_item = find_loop_item(structure_cif_block0, '_atom_site')
             item_count = 0
@@ -479,6 +485,19 @@ def process_input(
                     values.append(inchis)
                     values.append(inchik)
                 tsv.write('\t'.join(values) + '\n')
+
+
+def add_sequences(xtal_name, default_seq, variants, cif_block):
+    seq_dict = variants.get(xtal_name, default_seq)
+    info('sequences for', xtal_name, 'is', seq_dict)
+    existing_loop_item = find_loop_item(cif_block, '_entity_poly')
+    if existing_loop_item:
+        existing_loop_item.erase()
+    new_loop = cif_block.init_loop(
+        '_entity_poly.', ['entity_id', 'type', 'pdbx_seq_one_letter_code', 'pdbx_strand_id']
+    )
+    for chain, entity_seq in seq_dict.items():
+        new_loop.add_row([entity_seq[0], 'polypeptide(L)', entity_seq[1], chain])
 
 
 def find_software_and_delete(block):

@@ -16,6 +16,7 @@ import hashlib
 import math
 import os
 from pathlib import Path
+import re
 import sys
 import json
 
@@ -63,6 +64,11 @@ class Constants:
     CONFIG_CODE_PREFIX_TOOLTIP = 'code_prefix_tooltip'
     CONFIG_PANDDAS_EVENT_FILES = "panddas_event_files"
     CONFIG_OVERRIDES = "overrides"
+    CONFIG_SEQUENCES = "sequences"
+    CONFIG_SEQUENCE = "sequence"
+    CONFIG_DEFAULT = "default"
+    CONFIG_VARIANTS = "variants"
+    CONFIG_CRYSTALS = "crystals"
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
     META_VERSION_NUM = "version_number"
@@ -627,8 +633,76 @@ def collect_manual_files(manual_input_path: Path):
     return data
 
 
+def read_sequences(base_p, input_yaml):
+    dir1 = input_yaml.get(Constants.CONFIG_DIR)
+    sequences = input_yaml.get(Constants.CONFIG_SEQUENCES)
+    xtal_to_seq = {}
+    chain_seqs_default = None
+    if not sequences and input_yaml.get(Constants.CONFIG_TYPE) == Constants.CONFIG_TYPE_MODEL_BUILDING:
+        LOG.error('sequences definitions not found for input', input_yaml.get(Constants.CONFIG_DIR))
+        print(input_yaml)
+        exit(1)
+    else:
+        dir2 = sequences.get(Constants.CONFIG_DIR, 'processing/analysis/sequences')
+        seq_default = sequences.get(Constants.CONFIG_DEFAULT, 'default.fa')
+        p = base_p / dir1 / dir2 / seq_default
+        chain_seqs_default = read_fasta(p)
+        LOG.info('read default sequence', p, 'containing chains', ' '.join(chain_seqs_default.keys()))
+        variants = sequences.get(Constants.CONFIG_VARIANTS)
+
+        if variants:
+            for variant in variants:
+                seq = variant.get(Constants.CONFIG_SEQUENCE)
+                p = base_p / dir1 / dir2 / seq
+                chain_seqs_variant = read_fasta(p)
+                xtals = variant.get(Constants.CONFIG_CRYSTALS)
+                for xtal in xtals:
+                    xtal_to_seq[xtal] = chain_seqs_variant
+                LOG.info(
+                    'read variant sequence',
+                    p,
+                    'containing chains',
+                    ' '.join(chain_seqs_variant.keys()),
+                    'for crystals',
+                    ' '.join(xtals),
+                )
+
+    return chain_seqs_default, xtal_to_seq
+
+
+def read_fasta(seq_p):
+    data = {}
+    if seq_p.is_file():
+        with open(seq_p, 'rt') as f:
+            entity_name = None
+            chain_names = []
+            chain_seq = None
+            for line in f:
+                match = re.search(r'>\s*([A-Z])\s*([A-Z]+)', line)
+                if match:
+                    if chain_names:
+                        for chain_name in chain_names:
+                            data[chain_name] = (entity_name, chain_seq)
+                    entity_name = match.group(1)
+                    chain_names = list(match.group(2))
+                    entity_seq = ''
+                else:
+                    entity_seq += line.strip()
+            if chain_names:
+                for chain_name in chain_names:
+                    data[chain_name] = (entity_name, entity_seq)
+    else:
+        LOG.error('sequence file', str(seq_p), 'not found')
+        exit(1)
+
+    return data
+
+
 def main():
-    print(_verify_working_dir(Path('data/std_test/lb32633-6_2024-11-22/upload-current/upload_1')))
+    config = read_config_file('data/std_test/lb32627-71_2026-02-13/upload-current/config.yaml')
+    base = config.get(Constants.CONFIG_BASE_DIR)
+    inputs = config.get(Constants.CONFIG_INPUTS)
+    read_sequences(Path(base), inputs[0])
 
 
 if __name__ == "__main__":
