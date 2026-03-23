@@ -9,6 +9,6 @@ _software.version
 _software.date
 _software.location
 _software.description
-_software.citation_id
+_software.pdbx_reference_DOI
 1 BUSTER refinement program ? ? https://www.globalphasing.com/buster/ 'A refinement program' ?
 #
