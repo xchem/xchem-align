@@ -588,12 +588,12 @@ def merge_entity_poly(
         model_entity_item.erase()
     else:
         warn('_entity loop not present in model CIF for', xtal_name)
-    if model_poly_item and model_poly_item.loop:
-        model_poly_tags = model_poly_item.loop.tags
-        model_poly_values = model_poly_item.loop.values
-        model_poly_item.erase()
-    else:
-        warn('_entity_poly loop not present in model CIF for', xtal_name)
+    # if model_poly_item and model_poly_item.loop:
+    #     model_poly_tags = model_poly_item.loop.tags
+    #     model_poly_values = model_poly_item.loop.values
+    #     model_poly_item.erase()
+    # else:
+    #     warn('_entity_poly loop not present in model CIF for', xtal_name)
 
     all_entity_tags = []
     if mmcif_gen_entity_tags:
@@ -606,10 +606,10 @@ def merge_entity_poly(
     all_poly_tags = []
     if mmcif_gen_poly_tags:
         all_poly_tags.extend(mmcif_gen_poly_tags)
-    if model_poly_tags:
-        for t in model_poly_tags:
-            if t not in all_poly_tags:
-                all_poly_tags.append(t)
+    # if model_poly_tags:
+    #     for t in model_poly_tags:
+    #         if t not in all_poly_tags:
+    #             all_poly_tags.append(t)
 
     loop = model_block.init_loop('', all_entity_tags)
     model_entity_rows = collect_entity_poly_values(
@@ -619,13 +619,13 @@ def merge_entity_poly(
     append_entity_poly_values(all_entity_tags, mmcifgen_entity_rows, loop)
     append_entity_poly_values(all_entity_tags, model_entity_rows, loop)
 
-    loop = model_block.init_loop('', all_poly_tags)
-    model_poly_rows = collect_entity_poly_values(
-        model_poly_tags, model_poly_values, exclude_pairs=[('_entity_poly.type', 'polypeptide(L)')]
-    )
-    mmcifgen_poly_rows = collect_entity_poly_values(mmcif_gen_poly_tags, mmcif_gen_poly_values)
-    append_entity_poly_values(all_poly_tags, mmcifgen_poly_rows, loop)
-    append_entity_poly_values(all_poly_tags, model_poly_rows, loop)
+    # loop = model_block.init_loop('', all_poly_tags)
+    # model_poly_rows = collect_entity_poly_values(
+    #     model_poly_tags, model_poly_values, exclude_pairs=[('_entity_poly.type', 'polypeptide(L)')]
+    # )
+    # mmcifgen_poly_rows = collect_entity_poly_values(mmcif_gen_poly_tags, mmcif_gen_poly_values)
+    # append_entity_poly_values(all_poly_tags, mmcifgen_poly_rows, loop)
+    # append_entity_poly_values(all_poly_tags, model_poly_rows, loop)
 
 
 def append_entity_poly_values(tags, rows, loop):
