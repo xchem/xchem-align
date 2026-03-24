@@ -52,6 +52,7 @@ from ligand_neighbourhood_alignment.canonical_sites import _update_canonical_sit
 from ligand_neighbourhood_alignment.xtalform_assignment import _assign_dataset
 from ligand_neighbourhood_alignment.neighbourhood_graph import _update_graph
 from ligand_neighbourhood_alignment.fs import _update_fs_model
+from ligand_neighbourhood_alignment.check_xtalforms import _check_xtalforms
 
 logger.remove()  # for someone not familiar with the lib, whats going on here?
 logger.add(sys.stdout, level="WARNING")
@@ -369,6 +370,9 @@ def update(
             assembly_landmarks,
         )
     save_yaml(fs_model.assembly_transforms, assembly_transforms, lambda x: x)
+
+    # Check xtalforms for duplication
+    _check_xtalforms(xtalforms, structures)
 
     # Assign datasets
     new_dataset_assignments = {}
