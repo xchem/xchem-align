@@ -26,6 +26,8 @@ dependencies = [
     'tqdm == 4.67.3',
     'requests == 2.32.5',
     'requests-toolbelt == 1.0.0',
+    # for pdb deposition
+    'mmcif-gen == 1.2.2',
     # from lna
     'loguru == 0.7.3',
     'pydantic==2.6.0',
