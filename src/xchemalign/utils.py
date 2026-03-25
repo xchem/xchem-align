@@ -16,6 +16,7 @@ import hashlib
 import math
 import os
 from pathlib import Path
+import re
 import sys
 import json
 
@@ -65,6 +66,11 @@ class Constants:
     CONFIG_OVERRIDES = "overrides"
     CONFIG_COVALENT = "covalent"
     CONFIG_STATUSES = "statuses"
+    CONFIG_SEQUENCES = "sequences"
+    CONFIG_SEQUENCE = "sequence"
+    CONFIG_DEFAULT = "default"
+    CONFIG_VARIANTS = "variants"
+    CONFIG_CRYSTALS = "crystals"
     META_RUN_ON = "run_on"
     META_INPUT_DIRS = "input_dirs"
     META_VERSION_NUM = "version_number"
@@ -548,7 +554,7 @@ def parse_compound_smiles(val: str):
 
 # the integer part is the major version number (increment when the data format changes in an incompatible way)
 # the decimal part is the minor version number (something changed in XCA but does not impact the data format)
-DATA_FORMAT_VERSION = 3.0
+DATA_FORMAT_VERSION = 3.1
 
 
 def get_major_data_format_version():
@@ -631,6 +637,70 @@ def collect_manual_files(manual_input_path: Path):
     for k in list(data.keys()):
         if data[k][0] is None:
             del data[k]
+
+    return data
+
+
+def read_sequences(base_p, input_yaml):
+    dir1 = input_yaml.get(Constants.CONFIG_DIR)
+    sequences = input_yaml.get(Constants.CONFIG_SEQUENCES)
+    xtal_to_seq = {}
+    chain_seqs_default = None
+    if not sequences and input_yaml.get(Constants.CONFIG_TYPE) == Constants.CONFIG_TYPE_MODEL_BUILDING:
+        LOG.error('sequences definitions not found in config.yaml for input', input_yaml.get(Constants.CONFIG_DIR))
+        exit(1)
+    else:
+        dir2 = sequences.get(Constants.CONFIG_DIR, 'processing/analysis/sequences')
+        seq_default = sequences.get(Constants.CONFIG_DEFAULT, 'default.fa')
+        p = base_p / dir1 / dir2 / seq_default
+        chain_seqs_default = read_fasta(p)
+        LOG.info('read default sequence', p, 'containing chains', ' '.join(chain_seqs_default.keys()))
+        variants = sequences.get(Constants.CONFIG_VARIANTS)
+
+        if variants:
+            for variant in variants:
+                seq = variant.get(Constants.CONFIG_SEQUENCE)
+                p = base_p / dir1 / dir2 / seq
+                chain_seqs_variant = read_fasta(p)
+                xtals = variant.get(Constants.CONFIG_CRYSTALS)
+                for xtal in xtals:
+                    xtal_to_seq[xtal] = chain_seqs_variant
+                LOG.info(
+                    'read variant sequence',
+                    p,
+                    'containing chains',
+                    ' '.join(chain_seqs_variant.keys()),
+                    'for crystals',
+                    ' '.join(xtals),
+                )
+
+    return chain_seqs_default, xtal_to_seq
+
+
+def read_fasta(seq_p):
+    data = {}
+    if seq_p.is_file():
+        with open(seq_p, 'rt') as f:
+            entity_name = None
+            chain_names = []
+            chain_seq = None
+            for line in f:
+                match = re.search(r'>\s*([A-Z])\s*([A-Z]+)', line)
+                if match:
+                    if chain_names:
+                        for chain_name in chain_names:
+                            data[chain_name] = (entity_name, chain_seq)
+                    entity_name = match.group(1)
+                    chain_names = list(match.group(2))
+                    entity_seq = ''
+                else:
+                    entity_seq += line.strip()
+            if chain_names:
+                for chain_name in chain_names:
+                    data[chain_name] = (entity_name, entity_seq)
+    else:
+        LOG.error('sequence file', str(seq_p), 'not found')
+        exit(1)
 
     return data
 

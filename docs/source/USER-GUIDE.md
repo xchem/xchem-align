@@ -191,6 +191,15 @@ inputs:        # The datasources to collate
        panddas_event_files:         # List tables written by pandda_inspect, for all pandda runs (XCA figures out the rest)
          - processing/analysis/panddas/analyses/pandda_inspect_events.csv  # relative path, starting from 'dir'.
 
+      sequences:                    # use FASTA format files to define the protein sequences
+        dir: processing/analysis/sequences  # relative to the dir of the input
+        default: default.fa         # this sequence will be used unless the crystal is defined as a variant
+        variants:
+          - sequence: 2-chain.fa    # individual crystals can have a different sequence
+            crystals:
+              - A71EV2A-x5226
+              - A71EV2A-x5398
+
 
   - dir: dls/labxchem/data/lb32633/lb32633-6/processing/analysis/additional_pdbs_forXCA
     type: manual       # each downloaded pdb file (cif!) and corresponding .mtz file are put in this dir.
@@ -290,6 +299,60 @@ For `CompoundSMILES` the same applies - semi-colon separated and the same order.
 compound is different to the modeled one the soaked one can also be specified according to the following:
 `smiles1;smiles2 smiles3;smiles4`. In this case the second molecule (LG2) has a modeled SMILES of smiles2 and a
 soaked SMILES of smiles3. Only use space to separate the modeled and soaked SMILES.
+
+#### Sequence information
+
+In order to generate files for PDB deposition we need to specify the protein sequences.
+For each `type: model_building` section you must define the protein sequence information using a section like this:
+
+```yaml
+    sequences:
+      dir: processing/analysis/sequences
+      default: default.fa
+      variants:
+      - sequence: 2-chain.fa
+        crystals:
+        - A71EV2A-x5226
+        - A71EV2A-x5398
+```
+
+This states that the sequence information is defined in FASTA format files. If all chains have the same sequence then
+you only need to define the `default` and that will be used for all. If some sequences are different of there are
+multiple chains (see below) then you will need to define and appropriate `variant` and state which crystals correspond
+to that variant.
+
+The title of the FASTA record is used to define:
+1. the entity ID
+2. the chain  name
+
+Example sequence files could look like this (FASTA format):
+
+For a monomer with one chain - one entity (A), one chain (A)
+```
+> A A
+ADFGHKLQWERTYIPCVNM
+```
+
+For a homodimer - one entity (A), two chains (A + B)
+```
+> A AB
+ADFGHKLQWERTYIPCVNM
+```
+
+For a heterodimer - two entities (A + B), two chains (A + B)
+```
+> A A
+ADFGHKLQWERTYIPCVNM
+> B B
+MNVCLKHGGFDSAQWERTYIPGGHK
+```
+
+The sequence and entity names must match those names in the corresponding PDB and/or MMCIF files.
+
+If this information is found and is valid the sequences will be used:
+1. in defining the sequence(s) for the PDB deposition MMCIF files
+2. (at a later phase) in adding SEQRES records to the crystallographic and aligned files used by Fragalysis
+
 
 #### Extra files
 
