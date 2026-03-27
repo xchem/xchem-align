@@ -48,16 +48,6 @@ def error(*args, **kwargs):
         LOG.error(*args, **kwargs)
 
 
-# def gen_xtal_dir_from_pdb(pdb_file, xtal_name):
-#     # not clear what is the best approach for this
-#     d = Path(pdb_file)
-#     while d is not None:
-#         d = d.parent
-#         if d.name == xtal_name:
-#             return d
-#     return None
-
-
 def generate_dimple_log_path(xtal_dir_path):
     dimple_log_path = xtal_dir_path / 'dimple/dimple/dimple.log'
     if dimple_log_path.is_file():
@@ -231,20 +221,10 @@ def process_input(
             if debug:
                 structure_cif_doc.write_file(str(xtal_out_path / 'original.cif'))
 
-            # grab the software info and delete from the current CIF - we'll add it back later
-            # model_software_tags, model_software_values = find_software_and_delete(structure_cif_block0)
-
             # #find and delete the _exptl loop as mmcifgen handles this
             delete_pair_item(structure_cif_doc, '_exptl')
 
-            merge_entity_poly(
-                xtal_name,
-                structure_cif_block0,
-                mmcif_gen_entity_tags,
-                mmcif_gen_entity_values
-                # mmcif_gen_poly_tags,
-                # mmcif_gen_poly_values,
-            )
+            merge_entity(xtal_name, structure_cif_block0, mmcif_gen_entity_tags, mmcif_gen_entity_values)
 
             # do some cleaning
             delete_pair_item(structure_cif_doc, '_struct')
@@ -330,40 +310,6 @@ def process_input(
                                 for item in stats_block0:
                                     structure_cif_block0.add_item(item)
 
-                        # # handle _software section
-                        # if aimless_ver is not None:
-                        #     tags1 = [
-                        #         '_software.pdbx_ordinal',
-                        #         '_software.classification',
-                        #         '_software.name',
-                        #         '_software.version',
-                        #         '_software.citation_id',
-                        #         '_software.type',
-                        #         '_software.description',
-                        #     ]
-                        #     tags, values = append_data_to_values(
-                        #         tags1,
-                        #         [
-                        #             '1',
-                        #             "'data scaling'",
-                        #             'Aimless',
-                        #             aimless_ver,
-                        #             'https://www.ccp4.ac.uk/',
-                        #             'program',
-                        #             "'Data scaling'",
-                        #         ],
-                        #         model_software_tags,
-                        #         model_software_values,
-                        #         '_software.pdbx_ordinal',
-                        #     )
-                        #
-                        #     loop = structure_cif_block0.init_loop('', tags1)
-                        #     for vals in values:
-                        #         loop.add_row(vals)
-                        # else:
-                        #     loop = structure_cif_block0.init_loop('', model_software_tags)
-                        #     loop.add_row(model_software_values)
-
                     else:
                         info('processing stats from xia2.mmcif.bz2')
                         # stats_item_software = None
@@ -373,14 +319,6 @@ def process_input(
                         with bz2.open(stats_cif) as stats:
                             txt = stats.read()
                             doc = cif.read_string(txt)
-                            # info("STATS:", str(doc))
-
-                            # # grab the software and diffrn loops from first block
-                            # for item in doc[0]:
-                            #     if item.loop:
-                            #         for tag in item.loop.tags:
-                            #             if tag.startswith('_software.'):
-                            #                 stats_item_software = item
 
                             # grab the reflns and diffrn data from second block
                             for item in doc[1]:
@@ -394,31 +332,6 @@ def process_input(
                                     for tag in item.loop.tags:
                                         if tag.startswith('_reflns_shell.'):
                                             stats_item_reflns_shell = item
-
-                        # dimple_ver = read_phasing_software(xtal_in_path)
-                        #
-                        # if model_software_tags is None or model_software_values is None:
-                        #     info('structure software not found as loop or pairs')
-                        # elif stats_item_software is None:
-                        #     info('stats software loop not found')
-                        # else:
-                        #     print(
-                        #         'MERGING SOFTWARE',
-                        #         len(model_software_tags),
-                        #         len(model_software_values),
-                        #         len(stats_item_software.loop.tags),
-                        #         len(stats_item_software.loop.values),
-                        #         dimple_ver,
-                        #     )
-                        #     merge_software_loops(
-                        #         model_software_tags,
-                        #         model_software_values,
-                        #         stats_item_software.loop.tags,
-                        #         stats_item_software.loop.values,
-                        #         dimple_ver,
-                        #         aimless_ver,
-                        #         structure_cif_block0,
-                        #     )
 
                         if stats_pair_reflns:
                             for k, v in stats_pair_reflns.items():
@@ -592,22 +505,6 @@ def add_software_loop(templates_dict, block, refinement_prog, data_processing_pr
     loop.add_row(values)
 
 
-# def find_software_and_delete(block):
-#     software_loop_item = find_loop_item(block, '_software')
-#     model_tags = None
-#     model_values = None
-#     if software_loop_item:
-#         model_tags = software_loop_item.loop.tags
-#         model_values = software_loop_item.loop.values
-#         software_loop_item.erase()
-#     else:
-#         # try it as pairs
-#         d = delete_pairs(block, '_software')
-#         if d:
-#             model_tags, model_values = dict_to_tags_values(d)
-#     return model_tags, model_values
-
-
 def scrape_aimless_version(aimless_p):
     with open(aimless_p, "rt") as f:
         i = 0
@@ -646,31 +543,21 @@ def read_mmcifgen_entity_data_and_erase(mmcifgen_block):
 
     mmcif_gen_entity_tags = None
     mmcif_gen_entity_values = None
-    # mmcif_gen_poly_tags = None
-    # mmcif_gen_poly_values = None
 
     if mmcifgen_entity_item.loop:
         mmcif_gen_entity_tags = mmcifgen_entity_item.loop.tags
         mmcif_gen_entity_values = mmcifgen_entity_item.loop.values
-    # if mmcifgen_poly_item.loop:
-    #     mmcif_gen_poly_tags = mmcifgen_poly_item.loop.tags
-    #     mmcif_gen_poly_values = mmcifgen_poly_item.loop.values
     if mmcifgen_entity_item:
         mmcifgen_entity_item.erase()
-    # if mmcifgen_poly_item:
-    #     mmcifgen_poly_item.erase()
 
     return mmcif_gen_entity_tags, mmcif_gen_entity_values
 
 
-def merge_entity_poly(xtal_name, model_block, mmcif_gen_entity_tags, mmcif_gen_entity_values):
+def merge_entity(xtal_name, model_block, mmcif_gen_entity_tags, mmcif_gen_entity_values):
     model_entity_item = find_loop_item(model_block, '_entity')
-    # model_poly_item = find_loop_item(model_block, '_entity_poly')
 
     model_entity_tags = None
     model_entity_values = None
-    # model_poly_tags = None
-    # model_poly_values = None
 
     if model_entity_item and model_entity_item.loop:
         model_entity_tags = model_entity_item.loop.tags
@@ -678,12 +565,6 @@ def merge_entity_poly(xtal_name, model_block, mmcif_gen_entity_tags, mmcif_gen_e
         model_entity_item.erase()
     else:
         warn('_entity loop not present in model CIF for', xtal_name)
-    # if model_poly_item and model_poly_item.loop:
-    #     model_poly_tags = model_poly_item.loop.tags
-    #     model_poly_values = model_poly_item.loop.values
-    #     model_poly_item.erase()
-    # else:
-    #     warn('_entity_poly loop not present in model CIF for', xtal_name)
 
     all_entity_tags = []
     if mmcif_gen_entity_tags:
@@ -693,14 +574,6 @@ def merge_entity_poly(xtal_name, model_block, mmcif_gen_entity_tags, mmcif_gen_e
             if t not in all_entity_tags:
                 all_entity_tags.append(t)
 
-    # all_poly_tags = []
-    # if mmcif_gen_poly_tags:
-    #     all_poly_tags.extend(mmcif_gen_poly_tags)
-    # if model_poly_tags:
-    #     for t in model_poly_tags:
-    #         if t not in all_poly_tags:
-    #             all_poly_tags.append(t)
-
     loop = model_block.init_loop('', all_entity_tags)
     model_entity_rows = collect_entity_values(
         model_entity_tags, model_entity_values, exclude_pairs=[('_entity.type', 'polymer')]
@@ -708,14 +581,6 @@ def merge_entity_poly(xtal_name, model_block, mmcif_gen_entity_tags, mmcif_gen_e
     mmcifgen_entity_rows = collect_entity_values(mmcif_gen_entity_tags, mmcif_gen_entity_values)
     append_entity_values(all_entity_tags, mmcifgen_entity_rows, loop)
     append_entity_values(all_entity_tags, model_entity_rows, loop)
-
-    # loop = model_block.init_loop('', all_poly_tags)
-    # model_poly_rows = collect_entity_poly_values(
-    #     model_poly_tags, model_poly_values, exclude_pairs=[('_entity_poly.type', 'polypeptide(L)')]
-    # )
-    # mmcifgen_poly_rows = collect_entity_poly_values(mmcif_gen_poly_tags, mmcif_gen_poly_values)
-    # append_entity_poly_values(all_poly_tags, mmcifgen_poly_rows, loop)
-    # append_entity_poly_values(all_poly_tags, model_poly_rows, loop)
 
 
 def append_entity_values(tags, rows, loop):
@@ -878,64 +743,6 @@ def combine_diffrn_loops(collection_info_item: cif.Item, tags_list: list, values
         new_loop.add_row(values)
 
 
-# def merge_software_loops(model_tags, model_values, stats_tags, stats_values, dimple_ver, aimless_ver, into: cif.Block):
-#     d = OrderedDict()
-#     for tag in model_tags:
-#         d[tag] = []
-#     for tag in stats_tags:
-#         if tag not in d:
-#             d[tag] = []
-#
-#     if dimple_ver:
-#         d['_software.pdbx_ordinal'].append('1')
-#         d['_software.classification'].append('phasing')
-#         d['_software.name'].append('DIMPLE')
-#         d['_software.version'].append(dimple_ver)
-#     if aimless_ver:
-#         d['_software.pdbx_ordinal'].append('2')
-#         d['_software.classification'].append('scaling')
-#         d['_software.name'].append('AIMLESS')
-#         d['_software.version'].append(aimless_ver)
-#
-#     num_rows1 = int(len(model_values) / len(model_tags))
-#     num_values = num_rows1
-#     expanded_tags1 = []
-#     for i in range(num_rows1):
-#         expanded_tags1.extend(model_tags)
-#     for tag, value in zip(expanded_tags1, model_values):
-#         d[tag].append(value)
-#     for k, v in d.items():
-#         if len(v) < num_values:
-#             for i in range(num_rows1):
-#                 v.append('?')
-#
-#     num_rows2 = int(len(stats_values) / len(stats_tags))
-#     num_values = num_values + num_rows2
-#     expanded_tags2 = []
-#     for i in range(num_rows2):
-#         expanded_tags2.extend(stats_tags)
-#     for tag, value in zip(expanded_tags2, stats_values):
-#         d[tag].append(value)
-#     for k, v in d.items():
-#         if len(v) < num_values:
-#             for i in range(num_rows2):
-#                 v.append('?')
-#
-#     # fix the pdbx_ordinal column
-#     for k in d:
-#         if k.endswith('.pdbx_ordinal'):
-#             values = d[k]
-#             for i, k in enumerate(values):
-#                 values[i] = str(i + 1)
-#
-#     new_loop = into.init_loop('', list(d.keys()))
-#     for i in range(num_values):
-#         values = []
-#         for k, v in d.items():
-#             values.append(str(v[i]))
-#         new_loop.add_row(values)
-
-
 def prune_loop(loop, retain):
     for tag in loop.tags:
         if not tag.startswith(retain):
@@ -980,30 +787,6 @@ def read_refmac_structure(pdb):
     struc = gemmi.read_pdb(str(pdb), ignore_ter=True)
     struc.setup_entities()
     return struc.make_mmcif_document()
-
-
-# def read_refmac_structure(pdb):
-#     # this next big adds a missing TER line that is needed for correct conversion to MMCIF
-#     lines = []
-#     with open(pdb, 'r') as infile:
-#         previous_line_was_atom_or_anisou = False
-#         for line in infile:
-#             is_atom_or_anisou = line.startswith('ATOM') or line.startswith('ANISOU')
-#             is_hetatm = line.startswith('HETATM')
-#
-#             if is_hetatm and previous_line_was_atom_or_anisou:
-#                 lines.append('TER\n')
-#
-#             if not line.startswith('TER'):
-#                 lines.append(line)
-#
-#             previous_line_was_atom_or_anisou = is_atom_or_anisou
-#
-#     # now convert to MMCIF
-#     struc = gemmi.read_pdb_string(''.join(lines))
-#     doc = struc.make_mmcif_document()
-#     scrape_pdb_stats.run(str(pdb), doc)
-#     return doc
 
 
 def create_pairs(data: dict, prefix: str, block: cif.Block):
