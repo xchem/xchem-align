@@ -94,7 +94,6 @@ def process_input(
 
     # read the sequences
     default_seq, variants = utils.read_sequences(base_dir, input_config)
-    print('sequences', default_seq, variants)
 
     xtals_list = []
     cmpd_moldata = {}
@@ -137,6 +136,8 @@ def process_input(
     info("read {} rows".format(len(df)))
     for index, row in df.iterrows():
         xtal_name = row[Constants.SOAKDB_XTAL_NAME]
+        seq_dict = variants.get(xtal_name, default_seq)
+        info('sequences:', seq_dict)
         cmpd_codes = []
         xtals_list.append(xtal_name)
         mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
@@ -213,9 +214,9 @@ def process_input(
             )
 
             if refinement_type == Constants.SOAKDB_VALUE_BUSTER:
-                structure_cif_doc = read_buster_structure(base_dir / utils.make_path_relative(Path(mmcif)))
+                structure_cif_doc = read_buster_structure(base_dir / utils.make_path_relative(Path(mmcif)), seq_dict)
             else:
-                structure_cif_doc = read_refmac_structure(base_dir / utils.make_path_relative(Path(pdb)))
+                structure_cif_doc = read_refmac_structure(base_dir / utils.make_path_relative(Path(pdb)), seq_dict)
 
             structure_cif_block0 = structure_cif_doc[0]
             if debug:
@@ -359,7 +360,7 @@ def process_input(
             # add in the _software section
             add_software_loop(software_templates, structure_cif_block0, refinement_prog, data_processing_prog)
 
-            add_sequences(xtal_name, default_seq, variants, structure_cif_block0)
+            # add_sequences(xtal_name, seq_dict, structure_cif_block0)
 
             # move coordinates to the end
             coordinates_item = find_loop_item(structure_cif_block0, '_atom_site')
@@ -414,8 +415,7 @@ def process_input(
                 tsv.write('\t'.join(values) + '\n')
 
 
-def add_sequences(xtal_name, default_seq, variants, cif_block):
-    seq_dict = variants.get(xtal_name, default_seq)
+def add_sequences(xtal_name, seq_dict, cif_block):
     # info('sequences for', xtal_name, 'is', seq_dict)
     existing_loop_item = find_loop_item(cif_block, '_entity_poly')
     if existing_loop_item:
@@ -749,10 +749,73 @@ def prune_loop(loop, retain):
             loop.remove_column(tag)
 
 
-def read_buster_structure(mmcif):
-    doc = cif.read(str(mmcif))
-    # is this a Structure or a Document?
-    return doc
+def read_buster_structure(mmcif_file, seq_dict):
+    struc = gemmi.read_structure(str(mmcif_file))
+    adjust_chains_and_entities(struc, seq_dict)
+    return struc.make_mmcif_document()
+
+
+def read_refmac_structure(pdb_file, seq_dict):
+    struc = gemmi.read_pdb(str(pdb_file), ignore_ter=True)
+    struc.setup_entities()
+    adjust_chains_and_entities(struc, seq_dict)
+    return struc.make_mmcif_document()
+
+
+def adjust_chains_and_entities(struc, seq_dict):
+    """
+
+    :param struc: the gemmi Structure
+    :param seq_dict: dict keyed by chain name, values a tuple of (entity_name, entity_seq)
+    :return:
+    """
+
+    entities_dict = {}
+    for ety in struc.entities:
+        for chain_name in seq_dict:
+            t = seq_dict[chain_name]
+            if t[0] == ety.name:
+                entities_dict[ety.name] = ety
+                info('setting sequence of entity', ety.name, 'to', t[1])
+                ety.full_sequence = gemmi.expand_one_letter_sequence(t[1], gemmi.ResidueKind.AA)
+                break
+
+    for chain_name in seq_dict:
+        t = seq_dict[chain_name]
+        ety_name = t[0]
+        for chain in struc[0]:  # always only a single model
+            if chain_name == chain.name:
+                for subchain in chain.subchains():
+                    if subchain.check_polymer_type() == gemmi.PolymerType.PeptideL:
+                        subchain_id = subchain.subchain_id()
+                        # info('chain info', ety_name, chain.name, subchain_id, subchain.check_polymer_type())
+                        ety = entities_dict.get(ety_name)
+                        if not ety:
+                            error('entity/chain mismatch. Looking for', ety_name, 'among', entities_dict.keys())
+                            exit(1)
+                        # info('entity', ety.name, 'has subchains', ety.subchains)
+                        if not subchain_id in ety.subchains:
+                            info('adding subchain', subchain_id, 'to entity', ety.name)
+                            ety.subchains.append(subchain_id)  # this also removes it from its current entity
+                            # etys_to_keep.append(ety)
+                            # subchain_ids_to_remove.append(subchain_id)
+
+    etys_to_remove = []  # indexes of entities that have to be removed
+    for i, ety in enumerate(struc.entities):
+        if len(ety.subchains) == 0:
+            etys_to_remove.append(i)
+
+    if etys_to_remove:
+        etys_to_remove.sort(reverse=True)
+        for ety_idx in etys_to_remove:
+            info('deleting entity', ety_idx, struc.entities[ety_idx].name)
+            del struc.entities[ety_idx]
+
+    struc.setup_entities()
+    struc.add_entity_ids(overwrite=True)
+    struc.add_entity_types(overwrite=True)
+    # struc.assign_label_seq_id(force=True)
+    struc.assign_subchains(force=True)
 
 
 def read_phasing_software(xtal_dir):
@@ -781,12 +844,6 @@ def read_phasing_software(xtal_dir):
         LOG.warn('dimple log file not found:', str(dimple_log_file_path))
 
     return dimple_ver
-
-
-def read_refmac_structure(pdb):
-    struc = gemmi.read_pdb(str(pdb), ignore_ter=True)
-    struc.setup_entities()
-    return struc.make_mmcif_document()
 
 
 def create_pairs(data: dict, prefix: str, block: cif.Block):
