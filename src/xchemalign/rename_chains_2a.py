@@ -1,3 +1,23 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+# This is a hacky one-off script that handles renaming of some 2A protease structures where some structures are
+# homo-dimers, but the chain naming is inconsistent - some use chains A and B and some use A and C.
+# This script renames those that are A and C to become A and B, with chain B (usually the Zinc atom) being renamed
+# to chain C.
+# This script is specific for this case and not for general use.
+
+
 import argparse
 import glob
 from pathlib import Path
@@ -26,6 +46,7 @@ def run(visit_dir):
     print('DF:', name, df.shape)
 
     for index, row in df.iterrows():
+        xtal = row.get(utils.Constants.SOAKDB_XTAL_NAME)
         pdb = row.get(utils.Constants.SOAKDB_COL_PDB)
         cif = row.get(utils.Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST)
         pdb_handled = False
@@ -34,11 +55,11 @@ def run(visit_dir):
             before, key, after = pdb.partition('model_building/')
             if after:
                 pdb_p = mb_p / after
-                print(index, pdb_p)
                 if pdb_p.is_file():
+                    print(index, pdb_p)
                     struc = gemmi.read_pdb(str(pdb_p), ignore_ter=True)
                     struc.setup_entities()
-                    rename_chains(pdb_p, struc)
+                    rename_chains(xtal, pdb_p, struc)
                 # else:
                 #     print(pdb_p, 'not found')
                 pdb_handled = True
@@ -49,11 +70,11 @@ def run(visit_dir):
             before, key, after = cif.partition('model_building/')
             if after:
                 cif_p = mb_p / after
-                print(index, cif_p)
                 if cif_p.is_file():
+                    print(index, cif_p)
                     struc = gemmi.read_structure(str(cif_p))
                     struc.setup_entities()
-                    rename_chains(cif_p, struc)
+                    rename_chains(xtal, cif_p, struc)
                 # else:
                 #     print(cif_p, 'not found')
                 cif_handled = True
@@ -65,31 +86,49 @@ def run(visit_dir):
         print('handling ref', ref)
         struc = gemmi.read_pdb(ref, ignore_ter=True)
         struc.setup_entities()
-        rename_chains(Path(ref), struc)
+        rename_chains(ref, Path(ref), struc)
 
 
-def rename_chains(pth, struc):
+def rename_chains(xtal, pth, struc):
     model = struc[0]
     chain_b = None
     chain_c = None
     res_b = 0
     res_c = 0
+    pol_a = 0
+    pol_b = 0
+    pol_c = 0
     for chain in model:
-        if chain.name == 'B':
+        if chain.name == 'A':
+            pol_a = chain.get_polymer().length()
+            print('polymer A:', chain.get_polymer().length())
+        elif chain.name == 'B':
             chain_b = chain
             res_b = len(chain)
-        if chain.name == 'C':
+            pol_b = chain.get_polymer().length()
+            print('polymer B:', chain.get_polymer().length())
+        elif chain.name == 'C':
             chain_c = chain
             res_c = len(chain)
+            pol_c = chain.get_polymer().length()
+            print('polymer C:', chain.get_polymer().length())
 
     # assume that protein chains are long and hetatm ones are short
-    if res_b < 100 and res_c > 100:
+    if pol_a > 125 and pol_b > 125:
+        print(xtal, 'has expected A and B chains')
+    elif pol_c > 125 and pol_b > 0:
+        print('ERROR: chain B polymer length = {} and chain C polymer length = {}'.format(pol_b, pol_c))
+    elif pol_c > 125:
         dump_chains(model)
+
         pth.rename(pth.parent / (pth.name + '.orig'))
 
         chain_c.name = 'B'
         if chain_b:
             chain_b.name = 'C'
+
+        # this renames the subchains (asym id) to be consistent with the chain names
+        struc.assign_subchains(force=True)
 
         if str(pth).endswith('.pdb'):
             struc.write_pdb(str(pth))
