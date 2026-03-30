@@ -222,7 +222,7 @@ def process_input(
             if debug:
                 structure_cif_doc.write_file(str(xtal_out_path / 'original.cif'))
 
-            # #find and delete the _exptl loop as mmcifgen handles this
+            # find and delete the _exptl loop as mmcifgen handles this
             delete_pair_item(structure_cif_doc, '_exptl')
 
             merge_entity(xtal_name, structure_cif_block0, mmcif_gen_entity_tags, mmcif_gen_entity_values)
@@ -275,6 +275,7 @@ def process_input(
                     # otherwise add the item as it is
                     added_item = structure_cif_block0.add_item(item)
 
+            data_processing_log_file = None
             data_processing_prog = row.get(Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM)
             if data_processing_prog == 'dials':
                 data_processing_prog = 'xia2-dials'
@@ -292,11 +293,13 @@ def process_input(
                         if base_data_processing_logfile_p.is_file():
                             p = base_data_processing_logfile_p
                             info('processing stats from', data_processing_logfile_p.name)
+                            data_processing_log_file = p
                         elif data_processing_prog == 'autoproc' and data_processing_logfile.endswith('.log'):
                             # look for the aimless.log file
                             if aimless.is_file():
                                 p = aimless
                                 info('processing stats from aimless.log')
+                                data_processing_log_file = aimless
                             else:
                                 warn('no aimless.log file found')
                         else:
@@ -313,7 +316,7 @@ def process_input(
 
                     else:
                         info('processing stats from xia2.mmcif.bz2')
-                        # stats_item_software = None
+                        data_processing_log_file = stats_cif
                         stats_item_reflns_shell = None
                         stats_pair_reflns = OrderedDict()
                         stats_pair_diffrn = OrderedDict()
@@ -335,8 +338,12 @@ def process_input(
                                             stats_item_reflns_shell = item
 
                         if stats_pair_reflns:
+                            # completely weird gemmi quirk results in pairs being added to their old locations when
+                            # added individually, but not when added in one go
+                            d = {}
                             for k, v in stats_pair_reflns.items():
-                                structure_cif_block0.set_pair(k, v)
+                                d[k[8:]] = v
+                            structure_cif_block0.set_pairs('_reflns.', d)
                         if stats_item_reflns_shell:
                             structure_cif_block0.add_item(stats_item_reflns_shell)
 
@@ -385,6 +392,9 @@ def process_input(
                         info('copied ligand CIF', p)
                     else:
                         warn('ligand CIF file not found:', p)
+                if data_processing_log_file:
+                    p2 = shutil.copy2(data_processing_log_file, xtal_out_path, follow_symlinks=True)
+                    info('copied log file', data_processing_log_file)
 
             # handle the structure factors
             merge_sf.run(
@@ -415,16 +425,16 @@ def process_input(
                 tsv.write('\t'.join(values) + '\n')
 
 
-def add_sequences(xtal_name, seq_dict, cif_block):
-    # info('sequences for', xtal_name, 'is', seq_dict)
-    existing_loop_item = find_loop_item(cif_block, '_entity_poly')
-    if existing_loop_item:
-        existing_loop_item.erase()
-    new_loop = cif_block.init_loop(
-        '_entity_poly.', ['entity_id', 'type', 'pdbx_seq_one_letter_code', 'pdbx_strand_id']
-    )
-    for chain, entity_seq in seq_dict.items():
-        new_loop.add_row([entity_seq[0], 'polypeptide(L)', entity_seq[1], chain])
+# def add_sequences(xtal_name, seq_dict, cif_block):
+#     # info('sequences for', xtal_name, 'is', seq_dict)
+#     existing_loop_item = find_loop_item(cif_block, '_entity_poly')
+#     if existing_loop_item:
+#         existing_loop_item.erase()
+#     new_loop = cif_block.init_loop(
+#         '_entity_poly.', ['entity_id', 'type', 'pdbx_seq_one_letter_code', 'pdbx_strand_id']
+#     )
+#     for chain, entity_seq in seq_dict.items():
+#         new_loop.add_row([entity_seq[0], 'polypeptide(L)', entity_seq[1], chain])
 
 
 def add_software_loop(templates_dict, block, refinement_prog, data_processing_prog):
@@ -796,7 +806,9 @@ def adjust_chains_and_entities(struc, seq_dict):
                         # info('entity', ety.name, 'has subchains', ety.subchains)
                         if not subchain_id in ety.subchains:
                             info('adding subchain', subchain_id, 'to entity', ety.name)
-                            ety.subchains.append(subchain_id)  # this also removes it from its current entity
+                            subchains = ety.subchains
+                            subchains.append(subchain_id)  # this also removes it from its current entity
+                            ety.subchains = subchains
                             # etys_to_keep.append(ety)
                             # subchain_ids_to_remove.append(subchain_id)
 
