@@ -31,7 +31,16 @@ def write_mtz_to_cif_file(mtz_file, cif_file):
         f.write(s)
 
 
-def run(latest_mtz, free_mtz, event_maps, output, output_individual=False):
+def run(
+    latest_mtz,
+    free_mtz,
+    event_maps,
+    event_map_sources,
+    output,
+    latest_mtz_file: str,
+    free_mtz_file: str,
+    output_individual=False,
+):
     today = datetime.date.today()
     formatted_date = today.strftime("%Y-%m-%d")
 
@@ -55,7 +64,8 @@ def run(latest_mtz, free_mtz, event_maps, output, output_individual=False):
     mtz_blk.set_pair("_audit.creation_date", formatted_date)
     mtz_blk.set_pair("_audit.update_record", "Initial release")
     mtz_blk.set_pair("_diffrn.id", "1")
-    mtz_blk.set_pair("_diffrn.details", "data from final refinement with ligand, final.mtz")
+    mtz_blk.set_pair("_diffrn.details", "data from final refinement with ligand, " + latest_mtz_file)
+    wavelength = read_pair_value(mtz_blk, '_diffrn_radiation_wavelength.wavelength')
     doc_final.add_copied_block(mtz_blk)
 
     # handle the free_mtz data
@@ -64,22 +74,25 @@ def run(latest_mtz, free_mtz, event_maps, output, output_individual=False):
     mtz_blk = mtz_doc.sole_block()
     mtz_blk.name = "rxxxxAsf"
     mtz_blk.set_pair("_diffrn.id", "1")
-    mtz_blk.set_pair("_diffrn.details", "data from original reflections, data.mtz")
+    mtz_blk.set_pair("_diffrn.details", "data from original reflections, " + free_mtz_file)
     doc_final.add_copied_block(mtz_blk)
 
     # handle the event map data
     if event_maps:
-        for i, event_map in enumerate(event_maps):
+        i = 0
+        for event_map, event_map_source in zip(event_maps, event_map_sources):
             cif_s = read_ccp4(event_map)
             mtz_doc = cif.read_string(cif_s)
             mtz_blk = mtz_doc.sole_block()
             mtz_blk.name = "rxxxxBsf" + str(i)
             mtz_blk.set_pair("_diffrn.id", "1")
-            mtz_blk.set_pair("_diffrn.details", "data for ligand evidence map (PanDDA event map), event_map_1.mtz")
-            mtz_blk.set_pair("_diffrn_radiation_wavelength.id", "1")
-            mtz_blk.set_pair("_diffrn_radiation_wavelength.wavelength", "0.92209")
+            mtz_blk.set_pair("_diffrn.details", "data for ligand evidence map (PanDDA event map), " + event_map_source)
+            if wavelength:
+                mtz_blk.set_pair("_diffrn_radiation_wavelength.id", "1")
+                mtz_blk.set_pair("_diffrn_radiation_wavelength.wavelength", wavelength)
 
             doc_final.add_copied_block(mtz_blk)
+            i += 1
 
     doc_final.write_file(output)
 
@@ -116,6 +129,10 @@ def read_ccp4(file):
     return cif_s
 
 
+def read_pair_value(block, tag):
+    return block.find_value(tag)
+
+
 def main():
     parser = argparse.ArgumentParser(description="merge_sf")
 
@@ -128,7 +145,7 @@ def main():
 
     args = parser.parse_args()
 
-    run(args.latest_mtz, args.free_mtz, args.event_map, args.output)
+    # run(args.latest_mtz, args.free_mtz, args.event_map, args.output)
 
 
 if __name__ == "__main__":

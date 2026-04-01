@@ -137,7 +137,7 @@ def process_input(
     for index, row in df.iterrows():
         xtal_name = row[Constants.SOAKDB_XTAL_NAME]
         seq_dict = variants.get(xtal_name, default_seq)
-        info('sequences:', seq_dict)
+        # info('sequences:', seq_dict)
         cmpd_codes = []
         xtals_list.append(xtal_name)
         mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
@@ -182,13 +182,16 @@ def process_input(
             crystallographic_files = meta_data.get(Constants.META_XTAL_FILES)
             ligand_binding_events = crystallographic_files.get(Constants.META_BINDING_EVENT)
             ccp4_files = []
+            ccp4_sources = []
             if ligand_binding_events:
                 for ligand_binding_event in ligand_binding_events:
                     ccp4_filename = ligand_binding_event.get(Constants.META_FILE)
+                    source_filename = ligand_binding_event.get(Constants.META_SOURCE_FILE)
                     if not ccp4_filename:
                         info("no event map file for " + xtal_name)
                     else:
                         ccp4_files.append(str(collator_output_dir.parent / ligand_binding_event[Constants.META_FILE]))
+                        ccp4_sources.append('/' + str(Path(source_filename).relative_to(base_dir)))
 
             mtz_free_path = None
             if mtz_free:
@@ -231,6 +234,8 @@ def process_input(
             delete_pair_item(structure_cif_doc, '_struct')
             delete_pair_item(structure_cif_doc, '_struct_keywords')
             delete_pair_item(structure_cif_doc, '_pdbx_database_status')
+            delete_loop_item(structure_cif_doc, '_exptl')
+            delete_loop_item(structure_cif_doc, '_reflns')
 
             refine_item = find_loop_item(structure_cif_block0, '_refine')
             if refine_item:
@@ -397,11 +402,20 @@ def process_input(
                     info('copied log file', data_processing_log_file)
 
             # handle the structure factors
+            lig_bnd_evts = (
+                meta_collator.get(Constants.META_XTALS)
+                .get(xtal_name, {})
+                .get(Constants.META_XTAL_FILES, {})
+                .get(Constants.META_BINDING_EVENT)
+            )
             merge_sf.run(
                 str(base_dir / utils.make_path_relative(Path(mtz_latest))),
                 str(base_dir / utils.make_path_relative(mtz_free_path)),
                 ccp4_files,
+                ccp4_sources,
                 str(xtal_out_path / (xtal_name + '_sf.cif')),
+                mtz_latest,
+                str(mtz_free_path),
                 output_individual=debug,
             )
 
@@ -786,7 +800,7 @@ def adjust_chains_and_entities(struc, seq_dict):
             t = seq_dict[chain_name]
             if t[0] == ety.name:
                 entities_dict[ety.name] = ety
-                info('setting sequence of entity', ety.name, 'to', t[1])
+                info('setting sequence of entity', ety.name, 'to', abbreviate_sequence(t[1]))
                 ety.full_sequence = gemmi.expand_one_letter_sequence(t[1], gemmi.ResidueKind.AA)
                 break
 
@@ -904,6 +918,13 @@ def run(collator_dir, metadata_cif, output_dir, debug=False):
                 Path(output_dir),
                 debug=debug,
             )
+
+
+def abbreviate_sequence(seq):
+    if len(seq) > 25:
+        return seq[:10] + '...' + seq[-10:] + ' (' + str(len(seq)) + ' residues)'
+    else:
+        return seq
 
 
 def main():
