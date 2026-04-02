@@ -439,18 +439,6 @@ def process_input(
                 tsv.write('\t'.join(values) + '\n')
 
 
-# def add_sequences(xtal_name, seq_dict, cif_block):
-#     # info('sequences for', xtal_name, 'is', seq_dict)
-#     existing_loop_item = find_loop_item(cif_block, '_entity_poly')
-#     if existing_loop_item:
-#         existing_loop_item.erase()
-#     new_loop = cif_block.init_loop(
-#         '_entity_poly.', ['entity_id', 'type', 'pdbx_seq_one_letter_code', 'pdbx_strand_id']
-#     )
-#     for chain, entity_seq in seq_dict.items():
-#         new_loop.add_row([entity_seq[0], 'polypeptide(L)', entity_seq[1], chain])
-
-
 def add_software_loop(templates_dict, block, refinement_prog, data_processing_prog):
     loop = block.init_loop(
         '_software.',
@@ -463,7 +451,7 @@ def add_software_loop(templates_dict, block, refinement_prog, data_processing_pr
             'date',
             'location',
             'description',
-            'citation_id',
+            'pdbx_reference_DOI',
         ],
     )
 
@@ -944,7 +932,14 @@ def main():
     parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
     args = parser.parse_args()
-    LOG = utils.Logger(logfile=args.log_file, level=args.log_level)
+    if args.log_file:
+        logfile_p = Path(args.log_file)
+    else:
+        logfile_p = Path(args.output_dir) / 'pdb_depo.log'
+    if not logfile_p.parent.is_dir():
+        logfile_p.parent.mkdir(parents=True)
+
+    LOG = utils.Logger(logfile=str(logfile_p), level=args.log_level)
 
     utils.LOG = LOG
     scrape_processing_stats.LOG = LOG

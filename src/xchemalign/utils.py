@@ -211,7 +211,7 @@ class Logger:
     def __init__(self, logfile=None, console=sys.stderr, level=0):
         """
 
-        :param logfilename: The name of a file to log to. If none then messages are not written to a file
+        :param logfile: The name of a file to log to. If none then messages are not written to a file
         :param console: Whether to write messages to the console. The default is to write to sys.stderr, but you can
         specify sys.stdout or None instead.
         :param level: What types of message to log. 0 = everything, 1 = WARNING and ERROR, 2 = ERROR only
