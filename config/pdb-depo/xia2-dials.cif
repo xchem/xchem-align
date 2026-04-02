@@ -1,0 +1,22 @@
+data_software
+#
+loop_
+_software.pdbx_ordinal
+_software.name
+_software.classification
+_software.type
+_software.version
+_software.date
+_software.location
+_software.description
+_software.pdbx_reference_DOI
+1 xia2 'data reduction' package ? ? https://github.com/xia2/xia2 'An expert system to perform automated X-ray diffraction data processing' 10.1107/S0021889809045701
+2 DIALS 'data reduction' package ? ? https://github.com/dials/dials 'Data processing and integration within the DIALS software package' 10.1107/S2059798317017235
+3 xia2 'data scaling' package ? ? https://github.com/xia2/xia2 'An expert system to perform automated X-ray diffraction data processing' 10.1107/S0021889809045701
+4 DIALS 'data scaling' package ? ? https://github.com/dials/dials 'Data processing and integration within the DIALS software package' 10.1107/S2059798317017235
+5 DIMPLE phasing program ? ? https://github.com/ccp4/dimple 'Automated macromolecular crystallography pipeline for rapid refinement and ligand screening.' ?
+6 REFMAC phasing package ? ? https://www.ccp4.ac.uk/ 'An expert system to perform automated X-ray diffraction data processing' 10.1107/S0907444996012255
+7 DIMPLE 'model building' program ? ? https://github.com/ccp4/dimple 'Automated macromolecular crystallography pipeline for rapid refinement and ligand screening.' ?
+8 Coot 'model building' package ? ? https://github.com/pemsley/coot 'Coot is for macromolecular model building, model completion and validation, particularly suitable for protein modelling using X-ray data.' 10.1107/S0907444996012255
+9 gemmi 'data extraction' library ? ? https://github.com/project-gemmi/gemmi 'A Python library developed primarily for use in the field of macromolecular crystallography (MX)' 10.21105/joss.04200
+#
