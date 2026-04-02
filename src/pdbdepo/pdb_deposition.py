@@ -22,6 +22,8 @@ from collections import OrderedDict
 import gemmi
 from gemmi import cif
 
+from mmcif_gen.facilities import xchem
+
 from rdkit import rdBase
 from rdkit import Chem
 
@@ -46,6 +48,14 @@ def warn(*args, **kwargs):
 def error(*args, **kwargs):
     if LOG:
         LOG.error(*args, **kwargs)
+
+
+def run_mmcifgen(inv_id, soakdb_sqlite, metadata_csv, out_dir):
+    p = Path(out_dir)
+    if not p.exists():
+        p.mkdir(parents=True)
+
+    xchem.run(inv_id, soakdb_sqlite, metadata_csv, out_dir, 'xchem_operations.json')
 
 
 def generate_dimple_log_path(xtal_dir_path):
@@ -81,7 +91,7 @@ def process_input(
     base_dir: Path,
     input_path: Path,
     collator_output_dir: Path,
-    soakdb_file: Path,
+    soakdb_file_p: Path,
     input_config: dict,
     meta_collator: dict,
     mmcifgen_block,
@@ -130,10 +140,8 @@ def process_input(
 
     (mmcif_gen_entity_tags, mmcif_gen_entity_values) = read_mmcifgen_entity_data_and_erase(mmcifgen_block)
 
-    path_to_soakdb_file = base_dir / input_path / soakdb_file
-
-    info("reading soakdb file:", path_to_soakdb_file)
-    df = dbreader.read_pdb_depo(path_to_soakdb_file)
+    info("reading soakdb file:", soakdb_file_p)
+    df = dbreader.read_pdb_depo(soakdb_file_p)
     info("read {} rows".format(len(df)))
     for index, row in df.iterrows():
         xtal_name = row[Constants.SOAKDB_XTAL_NAME]
@@ -396,26 +404,18 @@ def process_input(
             structure_cif_doc.write_file(str(xtal_out_path / (xtal_name + '_struc.cif')))
 
             # include the ligand CIF file
-            if debug:
-                cif_file = row[Constants.SOAKDB_COL_CIF]
-                if cif_file:
-                    p = base_dir / utils.make_path_relative(Path(cif_file))
-                    if p.is_file():
-                        p2 = shutil.copy2(p, xtal_out_path / (xtal_name + '_lig.cif'), follow_symlinks=True)
-                        info('copied ligand CIF', p)
-                    else:
-                        warn('ligand CIF file not found:', p)
-                if data_processing_log_file:
-                    p2 = shutil.copy2(data_processing_log_file, xtal_out_path, follow_symlinks=True)
-                    info('copied log file', data_processing_log_file)
+            cif_file = row[Constants.SOAKDB_COL_CIF]
+            if cif_file:
+                p = base_dir / utils.make_path_relative(Path(cif_file))
+                if p.is_file():
+                    p2 = shutil.copy2(p, xtal_out_path / (xtal_name + '_lig.cif'), follow_symlinks=True)
+                    info('copied ligand CIF', p)
+                else:
+                    warn('ligand CIF file not found:', p)
+            if data_processing_log_file:
+                p2 = shutil.copy2(data_processing_log_file, xtal_out_path, follow_symlinks=True)
+                info('copied log file', data_processing_log_file)
 
-            # handle the structure factors
-            lig_bnd_evts = (
-                meta_collator.get(Constants.META_XTALS)
-                .get(xtal_name, {})
-                .get(Constants.META_XTAL_FILES, {})
-                .get(Constants.META_BINDING_EVENT)
-            )
             merge_sf.run(
                 str(base_dir / utils.make_path_relative(Path(mtz_latest))),
                 str(base_dir / utils.make_path_relative(mtz_free_path)),
@@ -559,7 +559,6 @@ def dict_to_tags_values(d: dict):
 
 def read_mmcifgen_entity_data_and_erase(mmcifgen_block):
     mmcifgen_entity_item = find_loop_item(mmcifgen_block, '_entity')
-    # mmcifgen_poly_item = find_loop_item(mmcifgen_block, '_entity_poly')
 
     mmcif_gen_entity_tags = None
     mmcif_gen_entity_values = None
@@ -819,8 +818,6 @@ def adjust_chains_and_entities(struc, seq_dict):
                             subchains = ety.subchains
                             subchains.append(subchain_id)  # this also removes it from its current entity
                             ety.subchains = subchains
-                            # etys_to_keep.append(ety)
-                            # subchain_ids_to_remove.append(subchain_id)
 
     etys_to_remove = []  # indexes of entities that have to be removed
     for i, ety in enumerate(struc.entities):
@@ -836,7 +833,6 @@ def adjust_chains_and_entities(struc, seq_dict):
     struc.setup_entities()
     struc.add_entity_ids(overwrite=True)
     struc.add_entity_types(overwrite=True)
-    # struc.assign_label_seq_id(force=True)
     struc.assign_subchains(force=True)
 
 
@@ -895,34 +891,46 @@ def read_cmpd_codes(filename):
     return d
 
 
-def run(collator_dir, metadata_cif, output_dir, compound_codes_csv=None, debug=False):
+def run(collator_dir, metadata_csv, output_dir, compound_codes_csv=None, debug=False):
     info('run on ' + str(datetime.datetime.now()))
     info('using RDKit version ' + rdBase.rdkitVersion)
     # info('using InCHI version ' + Chem.GetInchiVersion())
 
     cmpd_codes_dict = read_cmpd_codes(compound_codes_csv)
 
-    meta_doc = cif.read(metadata_cif)
-    meta_mmcifgen = meta_doc[0]
-
     collator_path = Path(collator_dir)
     config = utils.read_config_file(collator_path / 'config.yaml')
     meta_collator = utils.read_config_file(collator_path / 'meta_collator.yaml')
     base_dir = config.get(Constants.CONFIG_BASE_DIR)
+    base_dir_p = Path(base_dir)
     info('using base dir of', base_dir)
 
     inputs = utils.find_property(config, Constants.CONFIG_INPUTS)
     info("found {} inputs".format(len(inputs)))
-    for input in inputs:
+    for i, input in enumerate(inputs):
         if input[Constants.CONFIG_TYPE] == Constants.CONFIG_TYPE_MODEL_BUILDING:
-            soakdb_file = utils.find_soakdb_file(input)
             input_path = input[Constants.CONFIG_DIR]
+            soakdb_prop = utils.find_soakdb_file(input)
+            print('PROP', soakdb_prop)
+            soakdb_file_p = base_dir_p / input_path / soakdb_prop
+
+            print('SOAKDB P', str(soakdb_file_p))
+
+            # run mmcif-gen
+            input_name = 'input' + str(i + 1)
+            run_mmcifgen(input_name, str(soakdb_file_p), metadata_csv, output_dir)
+
+            output_p = Path(output_dir)
+
+            meta_doc = cif.read(str(output_p / (input_name + '_model.cif')))
+            meta_mmcifgen = meta_doc[0]
+
             info("running for input " + input_path)
             process_input(
-                Path(base_dir),
+                base_dir_p,
                 Path(input_path),
                 collator_path,
-                Path(soakdb_file),
+                soakdb_file_p,
                 input,
                 meta_collator,
                 meta_mmcifgen,
@@ -948,7 +956,7 @@ def main():
     parser = argparse.ArgumentParser(description="pdb deposition")
 
     parser.add_argument("-w", "--collator-dir", required=True, help="collator's output dir")
-    parser.add_argument("-m", "--metadata-cif", required=True, help="CIF file with common metadata (mmcif-gen)")
+    parser.add_argument("-m", "--metadata-csv", required=True, help="CSV file with common metadata (for mmcif-gen)")
     parser.add_argument("-c", "--compound-codes-csv", help="CSV file with compound codes for the title")
 
     parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
@@ -973,7 +981,7 @@ def main():
 
     run(
         args.collator_dir,
-        args.metadata_cif,
+        args.metadata_csv,
         args.output_dir,
         compound_codes_csv=args.compound_codes_csv,
         debug=args.debug,
