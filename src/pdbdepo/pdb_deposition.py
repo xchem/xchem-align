@@ -86,6 +86,7 @@ def process_input(
     meta_collator: dict,
     mmcifgen_block,
     output_dir: Path,
+    cmpd_codes_dict: dict = {},
     debug=False,
 ):
     software_templates = read_software_templates()
@@ -274,6 +275,13 @@ def process_input(
                             template = item.loop.values[1]
                             template = template.replace('$CompoundCode', cmpd_code)
                             template = template.replace('$CrystalName', xtal_name)
+                            cmpd_codes = cmpd_codes_dict.get(xtal_name)
+                            if cmpd_codes:
+                                for i, cmpd_code in enumerate(cmpd_codes):
+                                    template = template.replace('$ExternalCode' + str(i + 2), cmpd_code)
+                            # erase any non-substituted ExternalCodes
+                            for i in range(1, 9):
+                                template = template.replace('$ExternalCode' + str(i), '')
                             new_loop = structure_cif_block0.init_loop('', item.loop.tags)
                             new_loop.add_row([item.loop.values[0], template])
                 if to_add:
@@ -874,10 +882,25 @@ def create_loop(data: dict, prefix: str, block: cif.Block):
         loop.add_row(values)
 
 
-def run(collator_dir, metadata_cif, output_dir, debug=False):
+def read_cmpd_codes(filename):
+    d = {}
+    if filename:
+        with open(filename, 'rt') as cmpd_codes:
+            line = cmpd_codes.readline()  # header line
+            for line in cmpd_codes:
+                tokens = line.split(',')
+                trimmed = [t.strip() for t in tokens]
+                d[trimmed[0]] = trimmed[1:]
+    info('read compound codes for', len(d), 'crystals')
+    return d
+
+
+def run(collator_dir, metadata_cif, output_dir, compound_codes_csv=None, debug=False):
     info('run on ' + str(datetime.datetime.now()))
     info('using RDKit version ' + rdBase.rdkitVersion)
     # info('using InCHI version ' + Chem.GetInchiVersion())
+
+    cmpd_codes_dict = read_cmpd_codes(compound_codes_csv)
 
     meta_doc = cif.read(metadata_cif)
     meta_mmcifgen = meta_doc[0]
@@ -904,6 +927,7 @@ def run(collator_dir, metadata_cif, output_dir, debug=False):
                 meta_collator,
                 meta_mmcifgen,
                 Path(output_dir),
+                cmpd_codes_dict=cmpd_codes_dict,
                 debug=debug,
             )
 
@@ -925,9 +949,10 @@ def main():
 
     parser.add_argument("-w", "--collator-dir", required=True, help="collator's output dir")
     parser.add_argument("-m", "--metadata-cif", required=True, help="CIF file with common metadata (mmcif-gen)")
+    parser.add_argument("-c", "--compound-codes-csv", help="CSV file with compound codes for the title")
 
     parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
-    parser.add_argument("-v", "--debug", action="store_true", help="Include source files in output")
+    parser.add_argument("-d", "--debug", action="store_true", help="Include source files in output")
     parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
@@ -946,7 +971,13 @@ def main():
     merge_sf.LOG = LOG
     LOG.info("pdb_deposition: ", args)
 
-    run(args.collator_dir, args.metadata_cif, args.output_dir, debug=args.debug)
+    run(
+        args.collator_dir,
+        args.metadata_cif,
+        args.output_dir,
+        compound_codes_csv=args.compound_codes_csv,
+        debug=args.debug,
+    )
 
     LOG.report()
     LOG.close()
