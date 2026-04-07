@@ -450,6 +450,7 @@ def process_input(
 
 
 def add_software_loop(templates_dict, block, refinement_prog, data_processing_prog):
+    # TODO - get the tags from the templates rather than hardcoding them
     loop = block.init_loop(
         '_software.',
         [
