@@ -1435,17 +1435,17 @@ class Collator:
                                 pos = atom.pos
                                 poss.append([pos.x, pos.y, pos.z])
 
-                        arr = np.array(poss)
-                        mean = np.mean(arr, axis=0)
-                        ligand_coords[
-                            (
-                                str(model.num),
-                                chain.name,
-                                str(residue.seqid.num) + icode_to_string(residue.seqid.icode),
-                                altloc,
-                                residue.name,
-                            )
-                        ] = mean
+                            arr = np.array(poss)
+                            mean = np.mean(arr, axis=0)
+                            ligand_coords[
+                                (
+                                    str(model.num),
+                                    chain.name,
+                                    str(residue.seqid.num) + icode_to_string(residue.seqid.icode),
+                                    altloc,
+                                    residue.name,
+                                )
+                            ] = mean
 
         return ligand_coords
 
