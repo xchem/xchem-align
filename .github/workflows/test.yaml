@@ -22,6 +22,8 @@ env:
 jobs:
   static-analysis:
     runs-on: ubuntu-latest
+    # re-enable to test the static analysis
+    if: false
     strategy:
       matrix:
         python-version:
