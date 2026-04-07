@@ -1,8 +1,8 @@
+import itertools
 import numpy as np
 from loguru import logger
 import gemmi
-from rich import print as print
-import itertools
+from rich import print
 
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment.structure import _get_dataset_protein_chains
@@ -47,9 +47,17 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
     # Get the ref chain centroids
     ref_centroids = {}
     for chain in xtalform_protein_chains:
-        ref_centroids[chain] = get_chain_centroid(ref[0][chain])
-        assert ref_centroids[chain].size == 3
-
+        try:
+            ref_centroids[chain] = get_chain_centroid(ref[0][chain])
+        except Exception as e:
+            raise Exception(
+                'Error occured while trying to verify the crystalform chain placements are comparable\n'
+                f'Chain is: {chain}\n'
+                f'Chains in ref dataset are: {[x.name for x in ref[0]]}\n'
+                f'Residues in chain are: {len([x for x in ref[0][chain]])}\n'
+                f'Xtalform protein chains are: {xtalform_protein_chains}\n'
+                f'Residues in chain polymer are: {[x.name for x in ref[0][chain]]}\n'
+            )
     # Get the mov chain centroids
     mov_centroids = {}
     # Get an alignment based on the first chain (should get around indexing choice!)
@@ -96,23 +104,39 @@ def get_xtalform_chain_mapping(ref, mov, xtalform_protein_chains):
 
     # Assign each movin chain its closest ref chain
     assignments = {}
-    min_distances = {}
-    for ref_chain in xtalform_protein_chains:
-        closest_chain = min(
-            distances[ref_chain],
-            key=lambda x: distances[ref_chain][x],
-        )
-        min_distances[ref_chain] = distances[ref_chain][closest_chain]
-        assignments[ref_chain] = closest_chain
+    # min_distances = {}
+    # for ref_chain in xtalform_protein_chains:
+    #     closest_chain = min(
+    #         distances[ref_chain],
+    #         key=lambda x: distances[ref_chain][x],
+    #         )
+    #     min_distances[ref_chain] = distances[ref_chain][closest_chain]
+    #     assignments[ref_chain] = closest_chain
+
+    # Get total rmsd of each assignment scheme
+    possible_assignments = [
+        {_ref_chain: _mov_chain for _ref_chain, _mov_chain in zip(distances, _mov_chain_permutation)}
+        for _mov_chain_permutation in itertools.permutations(mov_centroids, len(mov_centroids))
+    ]
+
+    total_rmsds = []
+    for assignment in possible_assignments:
+        total_rmsd = sum([distances[_ref_chain][assignment[_ref_chain]] for _ref_chain in assignment])
+        total_rmsds.append(total_rmsd)
+
+    best_assignment, min_distances = None, None
+    for assignment, rmsd in zip(possible_assignments, total_rmsds):
+        if rmsd == min(total_rmsds):
+            best_assignment, min_distances = assignment, {
+                _ref_chain: distances[_ref_chain][assignment[_ref_chain]] for _ref_chain in assignment
+            }
 
     if len(set(assignments.values())) != len(set(assignments.keys())):
         raise Exception(
             f'ERROR! Chain assignment is {assignments}. No two chains should be modelled in the same symmetry position in the unit cell!'
         )
 
-    return assignments, min_distances, ref_centroids, mov_centroids
-
-    ...
+    return best_assignment, min_distances, ref_centroids, mov_centroids
 
 
 def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structures):
@@ -138,6 +162,7 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         xtalform_protein_chains = [
             _chain for xtalform_assembly in xtalform.assemblies.values() for _chain in xtalform_assembly.chains
         ]
+
         dataset_protein_chains = _get_dataset_protein_chains(structure)
 
         if set(dataset_protein_chains) != set(xtalform_protein_chains):
@@ -154,6 +179,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             raise Exception(
                 f'Error occured trying to map chains from xtalform {xtalform_id}\n'
                 f'Ref structure is: {xtalform.reference}\n'
+                f'Dataset protein chains: {dataset_protein_chains}\n'
+                f'Xtalform portein chains: {xtalform_protein_chains}\n'
             )
         # print(f'Chanin mapping: {chain_mapping}')
         # print(f'Min distances: {min_distances}')
@@ -168,8 +195,6 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
             continue
 
         if np.mean([x for x in min_distances.values()]) > 5:
-            print('Min distances is large!')
-            print(min_distances)
             continue
 
         # Get the deltas
@@ -257,7 +282,7 @@ def _assign_dataset(dataset, assemblies, xtalforms, structure, structures):
         )
         raise Exception(message)
 
-    if np.any(deltas > 1.1) | np.any(deltas < 0.9):
+    if np.any(deltas > 1.1) | np.any(deltas < 0.91):
         logger.info(f"No reference for dataset: {dataset.dtag}")
         logger.info(f"Deltas to closest unit cell are: {deltas}")
         logger.info(f"Structure path is: {dataset.pdb}")

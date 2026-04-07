@@ -8,11 +8,10 @@ def _get_dataset_protein_chains(structure):
     protein_chains = []
     for model in structure:
         for chain in model:
-            protein = False
-            for residue in chain:
-                if residue.name in constants.RESIDUE_NAMES:
-                    protein = True
-            if protein:
+            if any([(_residue.name in constants.RESIDUE_NAMES) for _residue in chain]):
+                # print(chain.name)
+                # print([_residue.name for _residue in chain])
+                # print([(_residue.name in constants.RESIDUE_NAMES) for _residue in chain])
                 protein_chains.append(chain.name)
 
     return protein_chains

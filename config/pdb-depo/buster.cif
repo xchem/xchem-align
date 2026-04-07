@@ -1,0 +1,14 @@
+data_software
+#
+loop_
+_software.pdbx_ordinal
+_software.name
+_software.classification
+_software.type
+_software.version
+_software.date
+_software.location
+_software.description
+_software.pdbx_reference_DOI
+1 BUSTER refinement program ? ? https://www.globalphasing.com/buster/ 'A refinement program' ?
+#
