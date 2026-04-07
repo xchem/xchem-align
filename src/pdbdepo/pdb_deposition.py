@@ -412,9 +412,11 @@ def process_input(
                     info('copied ligand CIF', p)
                 else:
                     warn('ligand CIF file not found:', p)
-            if data_processing_log_file:
-                p2 = shutil.copy2(data_processing_log_file, xtal_out_path, follow_symlinks=True)
-                info('copied log file', data_processing_log_file)
+
+            if debug:
+                if data_processing_log_file:
+                    p2 = shutil.copy2(data_processing_log_file, xtal_out_path, follow_symlinks=True)
+                    info('copied log file', data_processing_log_file)
 
             merge_sf.run(
                 str(base_dir / utils.make_path_relative(Path(mtz_latest))),
