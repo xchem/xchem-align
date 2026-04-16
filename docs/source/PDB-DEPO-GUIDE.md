@@ -55,15 +55,14 @@ or the column was not present) then the token is just removed from the title.
 Run as follows:
 
 ```
-python -m pdbdepo.pdb_deposition -w <path-to-xca-collator-output>/upload-current/upload_1 -o <output-dir> -m <path-to>/deposition-metadata.csv -c <path-to>/compound_codes.csv
+python -m pdbdepo.pdb_deposition -w <path-to-xca-collator-output>/upload-current/upload_1 -m <path-to>/deposition-metadata.csv -c <path-to>/compound_codes.csv
 ```
-It is recommended to use a directory named pdb-depo for the -o option.
 
 ## Output
 
-The output directory with contain:
+The resulting files are written to a `pdb_depo_files` directory within the collator output dir:
 
-1. `ligands.tab` containing the SMILES and InCHI for thee ligands
+1. `ligands.tab` containing the SMILES and InCHI for the ligands
 2. `pdb_dep.log` the log file (the location can be changed using the `-l` or `--log-file` option)
 3. A directory for each crystal containing `*_struc.cif` (the 3D model), `*_sf.cif` (the merged structure factors from)
    the MTZ latest, MTZ free and any PanDDAs event maps.

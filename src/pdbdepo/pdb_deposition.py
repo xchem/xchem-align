@@ -50,12 +50,8 @@ def error(*args, **kwargs):
         LOG.error(*args, **kwargs)
 
 
-def run_mmcifgen(inv_id, soakdb_sqlite, metadata_csv, out_dir):
-    p = Path(out_dir)
-    if not p.exists():
-        p.mkdir(parents=True)
-
-    xchem.run(inv_id, soakdb_sqlite, metadata_csv, out_dir, 'xchem_operations.json')
+def run_mmcifgen(inv_id, soakdb_sqlite, metadata_csv, out_dir_p):
+    xchem.run(inv_id, soakdb_sqlite, metadata_csv, out_dir_p, 'xchem_operations.json')
 
 
 def generate_dimple_log_path(xtal_dir_path):
@@ -894,14 +890,15 @@ def read_cmpd_codes(filename):
     return d
 
 
-def run(collator_dir, metadata_csv, output_dir, compound_codes_csv=None, debug=False):
+def run(collator_path, metadata_csv, compound_codes_csv=None, debug=False):
     info('run on ' + str(datetime.datetime.now()))
     info('using RDKit version ' + rdBase.rdkitVersion)
     # info('using InCHI version ' + Chem.GetInchiVersion())
 
     cmpd_codes_dict = read_cmpd_codes(compound_codes_csv)
 
-    collator_path = Path(collator_dir)
+    output_dir_p = collator_path / 'pdb_depo_files'
+
     config = utils.read_config_file(collator_path / 'config.yaml')
     meta_collator = utils.read_config_file(collator_path / 'meta_collator.yaml')
     base_dir = config.get(Constants.CONFIG_BASE_DIR)
@@ -914,18 +911,13 @@ def run(collator_dir, metadata_csv, output_dir, compound_codes_csv=None, debug=F
         if input[Constants.CONFIG_TYPE] == Constants.CONFIG_TYPE_MODEL_BUILDING:
             input_path = input[Constants.CONFIG_DIR]
             soakdb_prop = utils.find_soakdb_file(input)
-            print('PROP', soakdb_prop)
             soakdb_file_p = base_dir_p / input_path / soakdb_prop
-
-            print('SOAKDB P', str(soakdb_file_p))
 
             # run mmcif-gen
             input_name = 'input' + str(i + 1)
-            run_mmcifgen(input_name, str(soakdb_file_p), metadata_csv, output_dir)
+            run_mmcifgen(input_name, str(soakdb_file_p), metadata_csv, output_dir_p)
 
-            output_p = Path(output_dir)
-
-            meta_doc = cif.read(str(output_p / (input_name + '_model.cif')))
+            meta_doc = cif.read(str(output_dir_p / (input_name + '_model.cif')))
             meta_mmcifgen = meta_doc[0]
 
             info("running for input " + input_path)
@@ -937,7 +929,7 @@ def run(collator_dir, metadata_csv, output_dir, compound_codes_csv=None, debug=F
                 input,
                 meta_collator,
                 meta_mmcifgen,
-                Path(output_dir),
+                output_dir_p,
                 cmpd_codes_dict=cmpd_codes_dict,
                 debug=debug,
             )
@@ -952,7 +944,7 @@ def abbreviate_sequence(seq):
 
 def main():
     # Example:
-    #   python -m pdbdepo.pdb_deposition -w path_to_collator_output -o pdb_depo -m metadata.csv
+    #   python -m pdbdepo.pdb_deposition -w path_to_collator_output -m metadata.csv
 
     global LOG
 
@@ -961,20 +953,17 @@ def main():
     parser.add_argument("-w", "--collator-dir", required=True, help="collator's output dir")
     parser.add_argument("-m", "--metadata-csv", required=True, help="CSV file with common metadata (for mmcif-gen)")
     parser.add_argument("-c", "--compound-codes-csv", help="CSV file with compound codes for the title")
-
-    parser.add_argument("-o", "--output-dir", required=True, help="Output directory")
     parser.add_argument("-d", "--debug", action="store_true", help="Include source files in output")
-    parser.add_argument("-l", "--log-file", help="File to write logs to")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
     args = parser.parse_args()
-    if args.log_file:
-        logfile_p = Path(args.log_file)
-    else:
-        logfile_p = Path(args.output_dir) / 'pdb_depo.log'
-    if not logfile_p.parent.is_dir():
-        logfile_p.parent.mkdir(parents=True)
 
+    collator_dir_p = Path(args.collator_dir)
+    depo_dir_p = collator_dir_p / 'pdb_depo_files'
+    if not depo_dir_p.exists():
+        depo_dir_p.mkdir()
+
+    logfile_p = depo_dir_p / 'pdb_depo.log'
     LOG = utils.Logger(logfile=str(logfile_p), level=args.log_level)
 
     utils.LOG = LOG
@@ -983,9 +972,8 @@ def main():
     LOG.info("pdb_deposition: ", args)
 
     run(
-        args.collator_dir,
+        collator_dir_p,
         args.metadata_csv,
-        args.output_dir,
         compound_codes_csv=args.compound_codes_csv,
         debug=args.debug,
     )
