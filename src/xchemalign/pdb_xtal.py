@@ -165,7 +165,7 @@ class PDBXtal:
             else:
                 conect_to_keep += line
 
-        self.apo_file = self.output_dir / (self.filebase + "_apo.pdb")
+        self.apo_file = self.output_dir / (self.filebase + "_delig.pdb")
         with open(self.apo_file, "w") as f:
             f.write(str(lines))
 
@@ -186,10 +186,10 @@ class PDBXtal:
             self.log("apo file has not been created. Use pdb_apo().make_apo_file()")
             exit(1)
 
-        prot_file_name = self.output_dir / (self.filebase + "_apo-desolv.pdb")
+        prot_file_name = self.output_dir / (self.filebase + "_delig-desolv.pdb")
         prot_file = open(prot_file_name, "w")
         self.apo_desolv_file = prot_file_name
-        solv_file_name = self.output_dir / (self.filebase + "_apo-solv.pdb")
+        solv_file_name = self.output_dir / (self.filebase + "_delig-solv.pdb")
         solv_file = open(solv_file_name, "w")
         self.apo_solv_file = solv_file_name
 

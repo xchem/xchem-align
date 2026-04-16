@@ -952,7 +952,7 @@ def abbreviate_sequence(seq):
 
 def main():
     # Example:
-    #   python -m pdbdepo.pdb_deposition -w path_to_collator_output -o depo -l pdb_deo.log
+    #   python -m pdbdepo.pdb_deposition -w path_to_collator_output -o pdb_depo -m metadata.csv
 
     global LOG
 
