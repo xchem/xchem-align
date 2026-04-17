@@ -9,6 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 import argparse
 import bz2
@@ -50,8 +51,19 @@ def error(*args, **kwargs):
         LOG.error(*args, **kwargs)
 
 
+def find_repo_base():
+    repo_dir = os.environ.get(Constants.ENV_XCA_GIT_REPO)
+    if repo_dir:
+        if not Path(repo_dir).is_dir():
+            error("XCA_GIT_REPO environment variable is defined but the directory does not exist")
+    else:
+        repo_dir = "./"
+    return Path(repo_dir)
+
+
 def run_mmcifgen(inv_id, soakdb_sqlite, metadata_csv, out_dir_p):
-    xchem.run(inv_id, soakdb_sqlite, metadata_csv, out_dir_p, 'xchem_operations.json')
+    repo_path = find_repo_base()
+    xchem.run(inv_id, soakdb_sqlite, metadata_csv, out_dir_p, str(repo_path / 'xchem_operations.json'))
 
 
 def generate_dimple_log_path(xtal_dir_path):
@@ -74,7 +86,8 @@ def generate_collection_info_path(xtal_dir_path, xtal_name):
 
 def read_software_templates():
     d = {}
-    templates = glob.glob('config/pdb-depo/*.cif')
+    repo_path = find_repo_base()
+    templates = glob.glob(str(repo_path / 'config/pdb-depo/*.cif'))
     for t in templates:
         c = cif.read(t)
         n = t[t.rfind('/') + 1 : -4].lower()
