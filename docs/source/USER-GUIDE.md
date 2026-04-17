@@ -435,6 +435,8 @@ this:
 panddas_missing_ok: []
 ```
 
+---
+
 ## 3. Collating files
 
 Once all of the above has been set up, the next step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
@@ -450,6 +452,8 @@ Once complete create the `config.yaml` and `assemblies.yaml` as described above 
 Collator will now prepare your files ready for alignment.
 
 Warning: collation can take a long time, please be patient.
+
+---
 
 ## 4. Aligning everything
 
@@ -554,6 +558,8 @@ More information:
 
 **Note:** running jobs on the cluster may still take a long time—please be patient.
 
+---
+
 ## 5. Upload to Fragalysis
 
 **Staging vs production: there are two live versions of Fragalysis. "Staging" is used for testing and is in constant development, therefore it may be buggier and/or have new features with respect to "production" which is the stable and public deployment. You should test if your upload works in staging, and verify that the data has been uploaded correctly before uploading to production. Data in staging is "at risk" as we may have to wipe the data occassionally for development reasons.**
@@ -637,6 +643,8 @@ These must be named in sequence `upload_1`, `upload_2`, `upload_3` ...
 
 When complete tar gzip the relevant `upload_?` dir and load into Fragalysis as before.
 Fragalysis also only accepts uploads in the strict sequence described.
+
+---
 
 ## Debugging Errors
 
