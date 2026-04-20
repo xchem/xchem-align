@@ -1,4 +1,4 @@
-# XChem Align Developer Guide
+# XChemAlign Developer Guide
 
 Tools to generate data suitable for loading into [Fragalysis](https://fragalysis.diamond.ac.uk/).
 

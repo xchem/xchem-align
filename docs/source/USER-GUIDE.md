@@ -1,24 +1,30 @@
-# _XChemAlign_ User Guide
+# XChemAlign User Guide
 
-_XChemAlign_ is a small suite of tools for preparing PDB models for loading into [Fragalysis](https://fragalysis.diamond.ac.uk/).
+XChemAlign(XCA) is a small suite of tools for preparing PDB models for loading into [Fragalysis](https://fragalysis.diamond.ac.uk/) to assist and simplify analysis of ligand-bound crystallographic data:
 
 * It formalises sites and packing artefacts across crystal forms and conformations, aligning models, maps and artefacts to common origins for each binding site.
 * It handles model updates and multiple repeat experiments (e.g. to resolve stereochemistry).
 * It allows for fast release cycles through supporting incremental updates.
 * It assists efficient curation of auto-identified features, by running fast and on the minimal set of files in any given iteration.
 
-## Overview
+---
 
-There are a few steps involved.
+## Getting started
+
+XCA is typically run on the Diamond file system. If you have user access you can run this in a terminal either on site using a workstation, or remotely via NoMachine. To install and use NoMachine follw the [instructions here]{https://www.diamond.ac.uk/Users/Experiment-at-Diamond/IT-User-Guide/Not-at-DLS/Nomachine.html}.
+
+There are a few specific steps to get XCA up and running:
 1. [**Enable**](#enabling-the-xchemalign-environment) the XChemAlign environment
-2. [**Declare**](#declaring-things) a few things about your data in two structured files in `yaml`[^1]
 2. [**Declare**](#declaring-things) a few things about your data in two structured files in `yaml`[^1]
 3. [**Collate**](#collating-files) your files in a new (specific) directory structure
 4. [**Align**](#aligning-everything) all binding sites to common origins
 5. [**Release**](#upload-to-fragalysis) the data to Fragalysis
 6. [**Re-release**](#creating-subsequent-versions) additional data
 
-If you won't run this at Diamond, you will first have to set up your environment and copy over files. See the [instructions here](#non-diamond-instructions)
+If you won't be running this at Diamond, you will first have to set up your environment and copy over files. See the [instructions here](#non-diamond-instructions)
+If someone has told you to use the "staging" deployment of XCA, follow [the instructions in the "staging deployment" section](#staging-deployment).
+
+If you're having issues getting XCA to work, we have put together a list of common errors:
 
 ### Debugging common errors
 
@@ -28,13 +34,11 @@ If you won't run this at Diamond, you will first have to set up your environment
 * [Multiple Reference Structures](#missing-panddas-event-files-warning-when-no-event-maps-have-been-generated)
 * [Adding PDB Structures To The Alignment](#adding-pdb-structures-to-the-alignment)
 
-### Using the "staging" deployment of XCA
-
-If someone has told you to use the "staging" deployment of XCA, follow [the instructions in the "staging deployment" section](#staging-deployment).
+If You're still having problems you can get in touch with the team via [Slack](https://xchem-workspace.slack.com/archives/C02RCMA6S0Z)
 
 [^1]: "yet another markup language"
 
-##
+---
 
 ## 1. Enabling the XChemAlign environment
 
@@ -52,6 +56,7 @@ git config --global --add safe.directory /dls/science/groups/i04-1/software/xche
 source /dls/science/groups/i04-1/software/xchem-align/act
 conda activate /dls/science/groups/i04-1/software/xchem-align/env_xchem_align
 ```
+---
 
 ## 2. Declaring things
 
@@ -92,10 +97,13 @@ Your actions to set this up need to be:
 1. Create a working directory e.g. `mkdir xchem-align`
 2. cd into it (or use the `-d` arguments when you run `collator` and `aligner`)
 3. Run `collator` - it will notice that the working directory has not been initialised and will create the `upload-v?`
-   directory and the `upload-current` symbolic link, and dummy `config.yaml` and `assemblies.yaml` files.
-4. Edit the `config.yaml` and `assemblies.yaml` files (see below)
-5. Run collator again and it will recognise that everything is now present and will run
-6. Run aligner
+   directory and the `upload-current` symbolic link, and dummy `config.yaml` and `assemblies.yaml` files:
+
+```commandline
+python -m xchemalign.collator -d <your working dir>
+```
+
+If you are already in your working dir you can leave out `-d <your working dir>`.
 
 When running `collator` for the first time you will see something like this if the working directory needs to be
 initialised:
@@ -146,13 +154,13 @@ INFO: A new directory upload-v3 for data format version 3.0 has been created and
 After that just re-run your `collator` command and it will perform its work in the new directory it has created for the
 current version.
 
-Now we look into the `config.yaml` and `assemblies.yaml` files.
+### 2.2. The Config Yaml
 
-Working with YAML files can be difficult at first. Free tools such as [yamlchecker.com](https://yamlchecker.com) may help you learn and check the syntax.
-
-### 2.1. The Config Yaml
+Next we need to declare things using the `config.yaml` and `assemblies.yaml` files.
 
 The config yaml defines what data to collect for collation. This includes raw crystallographic data, PanDDA data and ligand information.
+
+Working with YAML files can be difficult at first. Free tools such as [yamlchecker.com](https://yamlchecker.com) may help you learn and check the syntax.
 
 ```yaml
 # DO NOT USE TABS FOR THE WHITESPACE!
@@ -490,9 +498,11 @@ this:
 panddas_missing_ok: []
 ```
 
+---
+
 ## 3. Collating files
 
-The first step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
+Once all of the above has been set up, the next step is to collate your data. This process analyses your crystallographic data, PanDDA events, and ligand files and automatically determines the links between them.
 
 ```commandline
 python -m xchemalign.collator -d <your working dir>
@@ -505,6 +515,8 @@ Once complete create the `config.yaml` and `assemblies.yaml` as described above 
 Collator will now prepare your files ready for alignment.
 
 Warning: collation can take a long time, please be patient.
+
+---
 
 ## 4. Aligning everything
 
@@ -609,6 +621,8 @@ More information:
 
 **Note:** running jobs on the cluster may still take a long time—please be patient.
 
+---
+
 ## 5. Upload to Fragalysis
 
 **Staging vs production: there are two live versions of Fragalysis. "Staging" is used for testing and is in constant development, therefore it may be buggier and/or have new features with respect to "production" which is the stable and public deployment. You should test if your upload works in staging, and verify that the data has been uploaded correctly before uploading to production. Data in staging is "at risk" as we may have to wipe the data occassionally for development reasons.**
@@ -672,8 +686,6 @@ The target access string will be the name of your proposal in UAS/ISpyB. Any Fed
 
 Attach the `.tgz` archive by clicking the 'Choose file' button. After clicking 'POST' you will see a URL which you can append to https://fragalysis.xchem.diamond.ac.uk/ (or https://fragalysis.diamond.ac.uk/ for production) to track the progress of the upload.
 
-
-
 ## 6. Creating subsequent versions
 
 When you have new or updated data you need to create a new version of the upload.
@@ -695,7 +707,9 @@ These must be named in sequence `upload_1`, `upload_2`, `upload_3` ...
 When complete tar gzip the relevant `upload_?` dir and load into Fragalysis as before.
 Fragalysis also only accepts uploads in the strict sequence described.
 
-## 3. Debugging Errors
+---
+
+## Debugging Errors
 
 ### Look at the logs
 
