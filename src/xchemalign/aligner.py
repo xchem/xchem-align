@@ -13,6 +13,7 @@
 import argparse
 import os
 import traceback
+import shutil
 import time
 from pathlib import Path
 
@@ -347,7 +348,7 @@ class Aligner:
             yaml.dump(collator_dict, stream, sort_keys=False, default_flow_style=None)
 
     def _copy_file_to_version_dir(self, file_path):
-        f = utils.copy2_safe(file_path, self.version_dir)
+        f = shutil.copy2(file_path, self.version_dir)
         if not f:
             self.logger.warn("Failed to copy file {} to {}".format(file_path, self.version_dir))
 
@@ -641,6 +642,7 @@ class Aligner:
             crystal_output[Constants.META_ALIGNED_FILES] = {}
             aligned_output = crystal_output[Constants.META_ALIGNED_FILES]
             dataset_output = updated_fs_model.alignments[dtag]
+
             # Build a lookup from (chain, res, altloc_string) -> event map dict entry so that
             # changes in the number of altconfs between versions don't cause a crash.
             event_map_lookup = {}
@@ -651,6 +653,7 @@ class Aligner:
                     str(entry.get(Constants.META_PROT_ALTLOC)),
                 )
                 event_map_lookup[key] = entry
+
             for chain_name, chain_output in dataset_output.items():
                 aligned_chain_output = aligned_output[chain_name] = {}
                 for ligand_residue, ligand_output in chain_output.items():
@@ -913,7 +916,7 @@ def main():
                 if logger.logfilename:
                     to_path = a.version_dir / "aligner.log"
                     print("copying log file", logger.logfilename, "to", to_path)
-                    f = utils.copy2_safe(logger.logfilename, to_path)
+                    f = shutil.copy2(logger.logfilename, to_path)
                     if not f:
                         print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
     except:
