@@ -1,6 +1,6 @@
 # XChem Align Release notes
 
-## 2.2.14 - 21-APR-2026
+## 2.3.1 - 21-APR-2026
 
 ### Highlights
 - First fully functional PDB Deposition module
