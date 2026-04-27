@@ -410,6 +410,9 @@ def process_input(
             if coordinates_pos is not None:
                 structure_cif_block0.move_item(coordinates_pos, item_count - 1)
 
+            for issue in validate_structure_cif_doc(structure_cif_doc, xtal_name):
+                warn('CIF validation:', issue)
+
             structure_cif_doc.write_file(str(xtal_out_path / (xtal_name + '_struc.cif')))
 
             # include the ligand CIF file
@@ -778,6 +781,129 @@ def prune_loop(loop, retain):
     for tag in loop.tags:
         if not tag.startswith(retain):
             loop.remove_column(tag)
+
+
+def validate_structure_cif_doc(doc: cif.Document, xtal_name: str = '') -> list[str]:
+    """Check a structure CIF document for inconsistencies before writing.
+
+    Returns a list of issue strings; an empty list means no problems found.
+    """
+    prefix = f'[{xtal_name}] ' if xtal_name else ''
+    issues = []
+
+    if not doc or len(doc) == 0:
+        issues.append(prefix + 'document is empty')
+        return issues
+
+    block = doc[0]
+
+    # 1. Required categories
+    for cat in ('_atom_site', '_refine', '_entity', '_software'):
+        if find_loop_item(block, cat) is None:
+            issues.append(prefix + f'required loop category {cat} not found')
+
+    for cat in ('_cell', '_symmetry'):
+        found = any(item.pair is not None and item.pair[0].startswith(cat + '.') for item in block)
+        if not found:
+            issues.append(prefix + f'required pair category {cat} not found')
+
+    # 2. Duplicate tags in any loop (catches naive concatenation bugs in append_loop_items)
+    for item in block:
+        if item.loop is not None:
+            tags = item.loop.tags
+            seen: set[str] = set()
+            dups = [t for t in tags if t in seen or seen.add(t)]  # type: ignore[func-returns-value]
+            if dups:
+                cat = tags[0].rsplit('.', 1)[0] if tags else '?'
+                issues.append(prefix + f'duplicate tags in {cat} loop: {sorted(set(dups))}')
+
+    # 3. _refine numeric range checks
+    refine_item = find_loop_item(block, '_refine')
+    if refine_item and refine_item.loop:
+        tags = refine_item.loop.tags
+        values = refine_item.loop.values
+        n = len(tags)
+        refine_row = {tags[i]: values[i] for i in range(min(n, len(values)))}
+
+        def _check_float(field, lo=None, hi=None):
+            val = refine_row.get(field)
+            if val is None or val in ('?', '.'):
+                issues.append(prefix + f'{field} is missing or unknown')
+                return None
+            try:
+                fval = float(val)
+            except ValueError:
+                issues.append(prefix + f'{field} is not a valid number: {val!r}')
+                return None
+            if lo is not None and fval < lo:
+                issues.append(prefix + f'{field}={fval} is below expected minimum {lo}')
+            if hi is not None and fval > hi:
+                issues.append(prefix + f'{field}={fval} is above expected maximum {hi}')
+            return fval
+
+        r_work = _check_float('_refine.ls_R_factor_R_work', 0.0, 1.0)
+        r_free = _check_float('_refine.ls_R_factor_R_free', 0.0, 1.0)
+        if r_work is not None and r_free is not None and r_free < r_work:
+            issues.append(prefix + f'ls_R_factor_R_free ({r_free}) < ls_R_factor_R_work ({r_work})')
+
+        res_high = _check_float('_refine.ls_d_res_high', 0.1)
+        res_low = _check_float('_refine.ls_d_res_low', 0.1)
+        if res_high is not None and res_low is not None and res_high >= res_low:
+            issues.append(
+                prefix
+                + f'ls_d_res_high ({res_high}) >= ls_d_res_low ({res_low}): high-resolution limit should be smaller'
+            )
+
+        _check_float('_refine.B_iso_mean', 0.0)
+
+    # 4. _struct.title unsubstituted placeholders
+    struct_item = find_loop_item(block, '_struct')
+    if struct_item and struct_item.loop:
+        for val in struct_item.loop.values:
+            if '$' in val:
+                issues.append(prefix + f'_struct.title contains unsubstituted placeholder: {val!r}')
+
+    # 5. Entity–atom_site consistency
+    entity_item = find_loop_item(block, '_entity')
+    atom_site_item = find_loop_item(block, '_atom_site')
+    if entity_item and entity_item.loop and atom_site_item and atom_site_item.loop:
+        ent_tags = entity_item.loop.tags
+        ent_values = entity_item.loop.values
+        as_tags = atom_site_item.loop.tags
+        as_values = atom_site_item.loop.values
+
+        entity_ids: set[str] = set()
+        if '_entity.id' in ent_tags:
+            idx = ent_tags.index('_entity.id')
+            n = len(ent_tags)
+            entity_ids = {ent_values[i] for i in range(idx, len(ent_values), n)}
+
+        if '_atom_site.label_entity_id' in as_tags:
+            idx = as_tags.index('_atom_site.label_entity_id')
+            n = len(as_tags)
+            atom_entity_ids = {as_values[i] for i in range(idx, len(as_values), n)}
+            undefined = atom_entity_ids - entity_ids
+            if undefined:
+                issues.append(prefix + f'_atom_site references entity IDs not defined in _entity: {sorted(undefined)}')
+
+    # 6. _software.pdbx_ordinal sequential
+    software_item = find_loop_item(block, '_software')
+    if software_item and software_item.loop:
+        sw_tags = software_item.loop.tags
+        sw_values = software_item.loop.values
+        if '_software.pdbx_ordinal' in sw_tags:
+            idx = sw_tags.index('_software.pdbx_ordinal')
+            n = len(sw_tags)
+            ordinals = []
+            for i in range(idx, len(sw_values), n):
+                try:
+                    ordinals.append(int(sw_values[i]))
+                except ValueError:
+                    issues.append(prefix + f'_software.pdbx_ordinal is not an integer: {sw_values[i]!r}')
+            if ordinals and ordinals != list(range(1, len(ordinals) + 1)):
+                issues.append(prefix + f'_software.pdbx_ordinal is not sequential starting at 1: {ordinals}')
+
+    return issues
 
 
 def read_buster_structure(mmcif_file, seq_dict):
