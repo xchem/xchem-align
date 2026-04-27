@@ -469,17 +469,25 @@ class XCADataUpload:
                         data=monitor,
                     )
                 except ConnectionError as exc:
+                    logger.error(exc)
                     raise ConnectionError('Connection closed by server') from exc
 
         if response.ok:
             try:
                 response_json = response.json()
                 # and once more
-            except JSONDecodeError as exc:
+            except requests.exceptions.JSONDecodeError as exc:
                 # I have occasionally observed it, but don't know how
                 # to force it for debugging
-                logger.error('Server response does not contain json payload')
-                raise JSONDecodeError from exc
+                # update: have I actually observed it? may have mixed up
+                # with the one below. Doesn't sound like ok response can
+                # throw errors
+                msg = 'Server response does not contain json payload'
+                logger.error(msg)
+                logger.error('Status code:', response.status_code)
+                logger.error('response headers:', response.headers)
+                logger.error('response text', response.text[:50])
+                raise ValueError(msg) from exc
 
             try:
                 response_status_url = response_json["task_status_url"]
@@ -495,12 +503,24 @@ class XCADataUpload:
         else:
             try:
                 response_json = response.json()
-            except JSONDecodeError as exc:
+            except requests.exceptions.JSONDecodeError as exc:
                 # try something else?
                 msg = 'Response body does not contain JSON payload'
                 logger.error(msg)
-                logger.error(response.text)
-                raise JSONDecodeError(msg) from exc
+                logger.error('Status code:', response.status_code)
+                if response.status_code == 500:
+                    logger.error('Server-side processing error')
+                elif response.status_code == 504:
+                    logger.log(
+                        'Timed out waiting for the server to respond. If the tarball'
+                        + ' was uploaded successfully, the server will continue to'
+                        + ' process it and you should see your target in Fragalysis'
+                        + ' shortly.',
+                        level=-1,
+                    )
+
+                raise ValueError(msg) from exc
+
             except Exception as exc:
                 # other errors, no idea what they might be
                 msg = "Upload failed: error {}, {}".format(response.status_code, response.reason)
@@ -575,6 +595,8 @@ class XCADataUpload:
                         'Uploaded file checksum does not match the calculated checksum, '
                         + f'file was likely corrupt during the transfer. Retrying {i + 1}',
                     )
+                except ValueError:
+                    return
             else:
                 raise RetryLimitReachedError(f'Upload retry limit ({self._retries}) reached, quitting')
 
