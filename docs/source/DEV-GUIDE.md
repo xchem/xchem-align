@@ -34,6 +34,10 @@ current health of your clone with: -
 
 ## Tools
 
+>   To run any tools in the project environment simply prefix the command with `uv run`,
+    which will create the environment if it does not exist, and wil synchronise
+    it with the existing project dependencies if it does.
+
 The main tools are implemented as the following Python modules:
 
 - Copier: xchemalign/copier.py
