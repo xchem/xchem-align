@@ -9,7 +9,7 @@ repos:
 
 # Standard pre-commit rules
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v6.0.0
   hooks:
   - id: check-case-conflict
   - id: check-docstring-first
@@ -22,16 +22,15 @@ repos:
     - --markdown-linebreak-ext=md
 # Black (uncompromising) Python code formatter
 - repo: https://github.com/psf/black
-  rev: 23.3.0
+  rev: 26.3.1
   hooks:
   - id: black
     args:
     - --skip-string-normalization
 # Pylint
 - repo: https://github.com/pycqa/pylint
-  rev: v2.17.4
+  rev: v4.0.5
   hooks:
   - id: pylint
     args:
-    # - xchemalign
     - "--ignore=src/ligand_neighbourhood_alignment/.*"

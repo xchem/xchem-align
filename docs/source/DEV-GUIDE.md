@@ -6,30 +6,17 @@ This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
 ## Prerequisites
 
-* **Python 3.10** or **Python 3.11**. 3.12 is NOT yet supported.
+* **uv**
 
 ## Getting started (to contribute)
 
 Project dependencies are defined in the `pyproject.toml` file.
 
-You will need to use Python 3.10 or 3.11 (a requirement of the `pyproject.toml` file).
-Python 3.12 cannot currently be used.
-
 If you prefer to use [conda] you can create a Python 3.10 environment using the
-`environment.yaml` in this project, otherwise, if you have Python 3.10 or 3.11,
-you can create an environment using the built-in `venv` module: -
+`environment.yaml` in this project, otherwise, if you have `uv`
+you can create an environment and install the dependencies with: -
 
-    python -m venv venv
-    source venv/bin/activate
-    pip install --upgrade pip
-
-Make sure you create the venv using Python 3.10 or 3.11 (e.g. change the first command to `python3.11 -m venv venv`
-if needed).
-
-From your clean virtual environment you can now install the run-time and development
-dependencies like this: -
-
-    pip install -e .[dev]
+    uv sync
 
 The project also relies on CI that is run in GitHub using the actions defined
 in the files you'll find in the `.github/workflows` directory.
@@ -38,12 +25,12 @@ We also require the use of the Git [pre-commit] framework.
 To get started review the pre-commit utility and then install
 the pre-commit hooks with the command: -
 
-    pre-commit install
+    uv run pre-commit install
 
 Now the project's rules will run on every commit, and you can check the
 current health of your clone with: -
 
-    pre-commit run --all-files
+    uv run pre-commit run --all-files
 
 ## Tools
 
@@ -92,8 +79,6 @@ refuse to load data from a non-tagged version of XCA.
 The procedure for rolling out to the staging environment is identical to for the production site described above,
 except that you do this in the `xchem-align-staging` directory. Ensure you checkout the required branch or tag before
 building the conda environment.
-
-
 
 ---
 
