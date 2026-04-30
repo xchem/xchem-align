@@ -71,7 +71,6 @@ class Input:
         code_prefix=None,
         code_prefix_tooltip=None,
         reference=False,
-        logger=None,
     ):
         self.base_path = base_path
         self.input_dir_path = input_dir_path
@@ -84,10 +83,7 @@ class Input:
         self.code_prefix = code_prefix
         self.code_prefix_tooltip = code_prefix_tooltip
         self.reference = reference
-        if logger:
-            self.logger = logger
-        else:
-            self.logger = utils.Logger()
+        self.logger = utils.get_singleton_logger()
 
     def get_input_dir_path(self, expand=True):
         if expand:
@@ -145,7 +141,7 @@ class Input:
 
 
 class Collator:
-    def __init__(self, working_dir, log_file=None, log_level=0, include_git_info=False, no_validate_configs=False):
+    def __init__(self, working_dir, include_git_info=False, no_validate_configs=False):
         self.errors = []
         self.warnings = []
 
@@ -155,10 +151,7 @@ class Collator:
         self.working_dir = Path(working_dir)
         self.output_path = self.working_dir / "upload-current"
 
-        if not log_file:
-            log_file = self.output_path / "collator.log"
-        self.logger = utils.Logger(logfile=log_file, level=log_level)
-        self.log_file = log_file
+        self.logger = utils.get_singleton_logger()
 
         self.config_file = self.output_path / "config.yaml"
         if not self.config_file.is_file():
@@ -230,7 +223,6 @@ class Collator:
                             excluded_datasets,
                             code_prefix=code_prefix,
                             code_prefix_tooltip=code_prefix_tooltip,
-                            logger=self.logger,
                         )
                     )
 
@@ -251,7 +243,6 @@ class Collator:
                             excluded_datasets,
                             code_prefix=code_prefix,
                             code_prefix_tooltip=code_prefix_tooltip,
-                            logger=self.logger,
                         )
                     )
                 else:
@@ -1535,22 +1526,22 @@ def main():
             s.run()
         exit(1)
 
-    logger = None
+    log_file = working_dir / "upload-current" / "collator.log"
+
+    logger = utils.create_singleton_logger(log_file, args.log_level)
+
     try:
         c = Collator(
             working_dir,
-            log_level=args.log_level,
             include_git_info=args.no_git_info,
             no_validate_configs=args.no_validate_configs,
         )
 
-        logger = c.logger
         if logger.errors:
             # config is invalid?
             exit(1)
 
         logger.info("collator: ", str(args))
-        utils.LOG = logger
 
         meta = c.validate()
 

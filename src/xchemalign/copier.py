@@ -547,10 +547,8 @@ def main():
     parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
     args = parser.parse_args()
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    logger = utils.create_singleton_logger(args.log_file, args.log_level)
     logger.info("copier: ", args)
-    utils.LOG = logger
-    pdb_deposition.LOG = logger
 
     config = utils.read_config_file(args.config_file)
 
