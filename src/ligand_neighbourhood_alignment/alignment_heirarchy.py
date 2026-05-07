@@ -352,6 +352,7 @@ def get_canonical_site_biochain(
     canonical_site_id,
     assemblies,
 ):
+    xtalform_site = None
     for xsid, _xtalform_site in xtalform_sites.items():
         _xtalform_id = _xtalform_site.xtalform_id
         if (

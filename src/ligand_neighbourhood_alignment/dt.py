@@ -1,13 +1,17 @@
+# Legacy module: contains parallel pydantic BaseModel and plain-class
+# implementations of the same data types (e.g. Datasource, PanDDA, Transform).
+# The plain classes intentionally shadow the pydantic ones lower in the file;
+# silence pylint's redefinition warning rather than churn the public API.
+# pylint: disable=function-redefined
 import json
 import os
 import re
 from pathlib import Path
-from typing import Generator
+from typing import Generator as _Generator
 import sys
 
 import pandas as pd
 import yaml
-from loguru import logger
 import gemmi
 import networkx as nx
 from loguru import logger
@@ -350,7 +354,7 @@ class ConformerSite(BaseModel):
 class ConformerSites(BaseModel):
     conformer_sites: dict[int, ConformerSite]
 
-    def iter(self) -> Generator[tuple[int, ConformerSite], None, None]:
+    def iter(self) -> _Generator[tuple[int, ConformerSite], None, None]:
         for cs_id, cs in self.conformer_sites.items():
             yield cs_id, cs
 
@@ -373,7 +377,7 @@ class CanonicalSite(BaseModel):
     reference_subsite_id: int
     reference_subsite: ConformerSite
 
-    def iter(self) -> Generator[tuple[int, ConformerSite], None, None]:
+    def iter(self) -> _Generator[tuple[int, ConformerSite], None, None]:
         for subsite_id, subsite in zip(self.subsite_ids, self.subsites):
             yield subsite_id, subsite
 
@@ -391,7 +395,7 @@ class CanonicalSites(BaseModel):
     reference_site: CanonicalSite
     reference_site_id: int
 
-    def iter(self) -> Generator[tuple[int, CanonicalSite], None, None]:
+    def iter(self) -> _Generator[tuple[int, CanonicalSite], None, None]:
         for site_id, site in zip(self.site_ids, self.sites):
             yield site_id, site
 

@@ -195,7 +195,7 @@ class Aligner:
 
         wd1 = utils._verify_working_dir(wd0)
         if not wd1:
-            self._log_error("Working dir %s" + str(wd0) + " is not valid")
+            self._log_error(f"Working dir {wd0} is not valid")
             exit(1)
 
         self.working_dir = wd1

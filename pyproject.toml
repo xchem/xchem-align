@@ -88,6 +88,11 @@ check_untyped_defs = true
 # temporarily ignore code from lna package
 # ignore-paths = ["src/ligand_neighbourhood_alignment/.*"]
 
+[tool.pylint.TYPECHECK]
+# C-extension packages whose attributes pylint cannot introspect statically.
+# Listing them here suppresses no-member / no-name-in-module on their members.
+ignored-modules = ["gemmi", "gemmi.cif", "rdkit", "rdkit.Chem", "rdkit.Geometry"]
+
 [tool.pylint.'MESSAGES CONTROL']
 disable = """
     c-extension-no-member,

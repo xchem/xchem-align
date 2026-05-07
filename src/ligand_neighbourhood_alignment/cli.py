@@ -1,3 +1,9 @@
+# Legacy CLI: imports reference modules that no longer exist in this package
+# (e.g. align_xmaps, generate_aligned_structures, data, get_ligand_neighbourhoods),
+# so this file does not import at runtime. Kept for historical reference only.
+# Suppress pylint diagnostics that flag the missing names rather than try to
+# resurrect modules that were intentionally moved/removed.
+# pylint: disable=no-name-in-module,no-member
 import json
 import os
 import sys
