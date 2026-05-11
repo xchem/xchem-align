@@ -678,7 +678,7 @@ def get_structure_from_chain_images(structure, artefact_chains):
     num_chains = len([x for x in new_structure[0]])
     assert num_chains == len(artefact_chains), f'Should have {len(artefact_chains)} but have {num_chains}'
 
-    return new_structure, images.append(image)
+    return new_structure, images
 
 
 def _align_artefacts(
