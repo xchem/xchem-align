@@ -710,7 +710,7 @@ def _align_artefacts(
         _structure,
         artefact_chains,
     )
-    print(f'Artefact chains: {moving_ligand_id[0]} : {artefact_chains} : {images}')
+    print(f'Artefact chains: {moving_ligand_id[0]} : {artefact_chains} : {images} : {len([chain for chain in artefact_structure[0]])}')
 
     # Align it with the same transform as was used for the non-artefact atoms
     transform = get_alignment_transform(
