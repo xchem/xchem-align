@@ -27,7 +27,7 @@ from ligand_neighbourhood_alignment import alignment_heirarchy
 from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
 
 
-def superpose_structure(transform, structure):
+def transform_structure(transform, structure):
     new_structure = structure.clone()
 
     for model in new_structure:
@@ -81,7 +81,7 @@ def align_structure(
 
     logger.debug(f"Transform from native frame to reference frame is: {gemmi_to_transform(running_transform)}")
 
-    _structure = superpose_structure(running_transform, _structure)
+    _structure = transform_structure(running_transform, _structure)
 
     # Write the fully aligned structure
     _structure.write_pdb(str(out_path))
@@ -429,32 +429,31 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
                             in local_water_chains[_chain.name]
                         ):
                             new_chain.add_residue(_residue.clone())
-                else:
-                    # Only add the chains that are part of the biological assemly the ligand
-                    # is modelled as part of
-                    if _chain.name in lig_assembly.chains:
-                        # If ligand drop other altlocs
-                        if (_chain.name, str(_residue.seqid.num) + icode_to_string(_residue.seqid.icode)) == (
-                            moving_ligand_id[1],
-                            moving_ligand_id[2],
-                        ):
-                            new_residue = _residue.clone()
-                            atoms_to_delete = set(
-                                [
-                                    (_atom.name, _atom.altloc)
-                                    for _atom in new_residue
-                                    if _atom.altloc != moving_ligand_id[3]
-                                ]
-                            )
-                            for _atom_name, _altloc in atoms_to_delete:
-                                new_residue.remove_atom(_atom_name, _altloc)
-                            # if len(atoms_to_delete) > 0:
-                            #     print([len(_residue), len(new_residue), moving_ligand_id[3], atoms_to_delete])
-                            #     exit()
-                            new_chain.add_residue(new_residue)
-                        else:
-                            # Don't include other ligands
-                            new_chain.add_residue(_residue.clone())
+                    continue
+
+                # If ligand drop other altlocs
+                current_lig_id = (_chain.name, str(_residue.seqid.num) + icode_to_string(_residue.seqid.icode))
+                if current_lig_id == (moving_ligand_id[1], moving_ligand_id[2],):
+                    new_residue = _residue.clone()
+                    atoms_to_delete = set(
+                        [
+                            (_atom.name, _atom.altloc)
+                            for _atom in new_residue
+                            if _atom.altloc != moving_ligand_id[3]
+                        ]
+                    )
+                    for _atom_name, _altloc in atoms_to_delete:
+                        new_residue.remove_atom(_atom_name, _altloc)
+
+                    new_chain.add_residue(new_residue)
+                    continue
+                
+                # Only add the chains that are part of the biological assemly the ligand
+                # is modelled as part of
+                if _chain.name in lig_assembly.chains:
+                    
+                    # Don't include other ligands
+                    new_chain.add_residue(_residue.clone())
 
             if len(new_chain) > 0:
                 new_chains.append(new_chain)
@@ -544,7 +543,7 @@ def _align_structure(
 
     logger.debug(f"Transform from native frame to reference frame is: {gemmi_to_transform(transform)}")
 
-    aligned_structure = superpose_structure(transform, reduced_structure)
+    aligned_structure = transform_structure(transform, reduced_structure)
 
     # Write the fully aligned structure
     aligned_structure.write_pdb(str(out_path))
@@ -562,7 +561,7 @@ def _align_reference_structure(
     # Site alignment transform
     logger.debug(f"Transform from native frame to reference frame is: {gemmi_to_transform(running_transform)}")
 
-    new_structure = superpose_structure(running_transform, _structure)
+    new_structure = transform_structure(running_transform, _structure)
 
     # Write the fully aligned structure
     new_structure.write_pdb(str(out_path))
@@ -657,6 +656,7 @@ def transform_chain(structure, chain_name, image):
 
 
 def get_structure_from_chain_images(structure, artefact_chains):
+    images = []
     # Get a clean template structure
     new_structure = get_structure_from_template(structure)
 
@@ -664,6 +664,7 @@ def get_structure_from_chain_images(structure, artefact_chains):
     new_chains = []
     chain_counts = {chain_name: 0 for chain_name, _ in artefact_chains}
     for (chain_name, image_name), image in artefact_chains.items():
+        images.append(image)
         transformed_chain = transform_chain(structure, chain_name, image)
         transformed_chain.name = f'{chain_name}{chain_counts[chain_name]}'
         new_chains.append(transformed_chain)
@@ -677,7 +678,7 @@ def get_structure_from_chain_images(structure, artefact_chains):
     num_chains = len([x for x in new_structure[0]])
     assert num_chains == len(artefact_chains), f'Should have {len(artefact_chains)} but have {num_chains}'
 
-    return new_structure
+    return new_structure, images.append(image)
 
 
 def _align_artefacts(
@@ -703,13 +704,13 @@ def _align_artefacts(
         for atom_id, atom in neighbourhood.artefact_atoms.items()
         if dt.transform_to_string(atom.image) != identity_transform_string
     }
-    # print(f'{moving_ligand_id[0]} : {artefact_chains}')
 
     # Build the artefact structure
-    artefact_structure = get_structure_from_chain_images(
+    artefact_structure, images = get_structure_from_chain_images(
         _structure,
         artefact_chains,
     )
+    print(f'Artefact chains: {moving_ligand_id[0]} : {artefact_chains} : {images}')
 
     # Align it with the same transform as was used for the non-artefact atoms
     transform = get_alignment_transform(
@@ -723,7 +724,7 @@ def _align_artefacts(
 
     logger.debug(f"Transform from native frame to reference frame is: {gemmi_to_transform(transform)}")
 
-    aligned_structure = superpose_structure(
+    aligned_structure = transform_structure(
         transform,
         artefact_structure,
     )
