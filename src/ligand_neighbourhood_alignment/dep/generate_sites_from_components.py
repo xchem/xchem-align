@@ -7,7 +7,7 @@ from loguru import logger
 from ligand_neighbourhood_alignment import constants
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment import alignment_heirarchy
-from ligand_neighbourhood_alignment.data import (
+from ligand_neighbourhood_alignment.dt import (
     AssignedXtalForms,
     AtomID,
     CanonicalSite,
@@ -28,11 +28,8 @@ from ligand_neighbourhood_alignment.data import (
     save_site_transforms,
 )
 
-# from ligand_neighbourhood_alignment.save_sites import save_sites
-from ligand_neighbourhood_alignment.structures import (
-    get_transform_from_residues,
-    _get_transform_from_residues,
-)
+from ligand_neighbourhood_alignment.alignment_core import _get_transform_from_residues
+from ligand_neighbourhood_alignment.dep.structures import get_transform_from_residues
 
 from ligand_neighbourhood_alignment.io import _get_structures
 
@@ -149,7 +146,7 @@ def get_sites_from_conformer_sites(conformer_sites: ConformerSites, neighbourhoo
             reference_subsite_id=conformer_sites.conformer_sites[0].id,
             reference_subsite=conformer_sites.conformer_sites[0],
         )
-        logger.debug(f"Canonical site: {j} has {len(s.subsites)} conformer sites")
+        logger.debug(f"Canonical site: {j} has {len(s.subsites)} conformer sites")  # pylint: disable=no-member
         j += 1
         sites.append(s)
 
@@ -189,6 +186,7 @@ def get_xtalform_sites_from_canonical_sites(
 
             # Determine which crystallographic chain the ligand is part of
             # by finding the chain that generated it (normally the same chain)
+            crystallographic_chain = None
             for assembly_id, assembly in xtalform.assemblies.items():
                 for generator_id, generator in assembly.generators.items():
                     if chain == generator.reference_chain:

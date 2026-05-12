@@ -1,8 +1,8 @@
 import gemmi
 from loguru import logger
 
-from ligand_neighbourhood_alignment.data import LigandNeighbourhood, ResidueID, SystemData, XtalForm
-from src.ligand_neighbourhood_alignment.alignment_core import match_atom
+from ligand_neighbourhood_alignment.dt import LigandNeighbourhood, ResidueID, SystemData, XtalForm
+from ligand_neighbourhood_alignment.alignment_core import match_atom
 
 
 def _get_transform():

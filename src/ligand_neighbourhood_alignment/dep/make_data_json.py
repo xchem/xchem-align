@@ -8,7 +8,7 @@ from loguru import logger
 
 from ligand_neighbourhood_alignment import constants
 from ligand_neighbourhood_alignment import dt
-from ligand_neighbourhood_alignment.data import (
+from ligand_neighbourhood_alignment.dt import (
     Dataset,
     DatasetID,
     LigandBindingEvent,

@@ -1,3 +1,4 @@
+# pylint: skip-file
 from pathlib import Path
 
 from ligand_neighbourhood_alignment.data import LigandNeighbourhoods

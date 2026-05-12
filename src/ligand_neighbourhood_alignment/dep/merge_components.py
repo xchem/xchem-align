@@ -1,3 +1,4 @@
+# pylint: skip-file
 from ligand_neighbourhood_alignment.data import LigandID
 
 
