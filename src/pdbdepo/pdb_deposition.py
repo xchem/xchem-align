@@ -781,9 +781,29 @@ def prune_loop(loop, retain):
 
 
 def read_buster_structure(mmcif_file, seq_dict):
+    # Workaround for https://github.com/project-gemmi/gemmi/issues/423:
+    # read_structure() + make_mmcif_document() silently drops several _refine fields
+    # (B_iso_mean, aniso_B, DPI values, correlation coefficients, etc.) because
+    # gemmi's mmCIF reader only parses a subset of _refine tags into RefinementInfo.
+    # Fix: capture the original pairs from the raw CIF and restore them afterwards,
+    # so the downstream pair-handling branch in process_input() sees complete data.
+    raw_doc = cif.read(str(mmcif_file))
+    raw_refine = {}
+    for item in raw_doc[0]:
+        if item.pair is not None and item.pair[0].startswith('_refine.'):
+            raw_refine[item.pair[0][len('_refine.') :]] = item.pair[1]
+
     struc = gemmi.read_structure(str(mmcif_file))
     adjust_chains_and_entities(struc, seq_dict)
-    return struc.make_mmcif_document()
+    doc = struc.make_mmcif_document()
+
+    if raw_refine:
+        refine_item = find_loop_item(doc[0], '_refine')
+        if refine_item:
+            refine_item.erase()
+        doc[0].set_pairs('_refine.', raw_refine)
+
+    return doc
 
 
 def read_refmac_structure(pdb_file, seq_dict):
