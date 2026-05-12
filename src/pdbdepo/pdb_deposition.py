@@ -782,26 +782,40 @@ def prune_loop(loop, retain):
 
 def read_buster_structure(mmcif_file, seq_dict):
     # Workaround for https://github.com/project-gemmi/gemmi/issues/423:
-    # read_structure() + make_mmcif_document() silently drops several _refine fields
-    # (B_iso_mean, aniso_B, DPI values, correlation coefficients, etc.) because
-    # gemmi's mmCIF reader only parses a subset of _refine tags into RefinementInfo.
-    # Fix: capture the original pairs from the raw CIF and restore them afterwards,
-    # so the downstream pair-handling branch in process_input() sees complete data.
+    # read_structure() + make_mmcif_document() silently drops all _refine* categories
+    # (_refine fields, _refine_analyze, _refine_ls_restr, _refine_ls_shell) because
+    # gemmi's mmCIF reader only parses a small subset of these into RefinementInfo.
+    # Fix: capture all _refine* data from the raw CIF and restore it afterwards.
     raw_doc = cif.read(str(mmcif_file))
-    raw_refine = {}
-    for item in raw_doc[0]:
-        if item.pair is not None and item.pair[0].startswith('_refine.'):
-            raw_refine[item.pair[0][len('_refine.') :]] = item.pair[1]
+    raw_block = raw_doc[0]
+    raw_refine_pairs = {}  # prefix -> {tag_suffix: value}
+    raw_refine_loops = []
+    for item in raw_block:
+        if item.pair is not None and item.pair[0].startswith('_refine'):
+            tag = item.pair[0]
+            dot = tag.index('.')
+            prefix = tag[: dot + 1]
+            if prefix not in raw_refine_pairs:
+                raw_refine_pairs[prefix] = {}
+            raw_refine_pairs[prefix][tag[dot + 1 :]] = item.pair[1]
+        elif item.loop is not None and item.loop.tags and item.loop.tags[0].startswith('_refine'):
+            raw_refine_loops.append(item)
 
     struc = gemmi.read_structure(str(mmcif_file))
     adjust_chains_and_entities(struc, seq_dict)
     doc = struc.make_mmcif_document()
 
-    if raw_refine:
-        refine_item = find_loop_item(doc[0], '_refine')
-        if refine_item:
-            refine_item.erase()
-        doc[0].set_pairs('_refine.', raw_refine)
+    if raw_refine_pairs or raw_refine_loops:
+        block = doc[0]
+        for item in block:
+            if item.pair is not None and item.pair[0].startswith('_refine'):
+                item.erase()
+            elif item.loop is not None and item.loop.tags and item.loop.tags[0].startswith('_refine'):
+                item.erase()
+        for prefix, pairs in raw_refine_pairs.items():
+            block.set_pairs(prefix, pairs)
+        for item in raw_refine_loops:
+            block.add_item(item)
 
     return doc
 
