@@ -3,6 +3,10 @@ assemblies:
         reference: Mpro-IBM0045
         biomol: A,B
         chains: A, A(-x,y,-z)
+    fake_monomer:
+        reference: Mpro-x0107_fake_monomers
+        biomol: A
+        chains: C
 crystalforms:
     xtalform1:
         reference: Mpro-IBM0045
@@ -16,3 +20,12 @@ crystalforms:
             1:
                 assembly: dimer
                 chains: A,B
+    xtalform3:
+        reference: Mpro-x0107_fake_monomers
+        assemblies:
+            1:
+                assembly: fake_monomer
+                chains: C
+            2:
+                assembly: fake_monomer
+                chains: D

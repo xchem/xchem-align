@@ -261,7 +261,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
     _structure, neighbourhood, moving_ligand_id, dataset_ligand_neighbourhood_ids, xtalform, xtalform_sites
 ):
     DEBUG = False
-    if moving_ligand_id[0] in ['6w7h', '6w8q']:
+    if moving_ligand_id[0] in ['6w7h', '6w8q', 'Mpro-x0107_fake_monomers']:
         print(f'Processing error dataset!')
         DEBUG = True
 
@@ -298,6 +298,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
     if DEBUG:
         print(f'SITE CHAIN: {moving_ligand_id} : {site_chain}')
         print(f'LIGAND ASSEMBLY: {moving_ligand_id} : {lig_assembly}')
+        print(f'LIGAND ASSEMBLY CHAINS: {lig_assembly.chains}')
 
     # Determine which waters are bound near the ligand, and at what positions
     ns = gemmi.NeighborSearch(new_structure[0], new_structure.cell, 10).populate(include_h=False)
@@ -458,11 +459,20 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
             if len(new_chain) > 0:
                 new_chains.append(new_chain)
 
+    for assembly_chain in chain_assemblies:
+        del new_structure[0][assembly_chain]
+
+
     for new_chain in new_chains:
-        del new_structure[0][new_chain.name]
+        try:
+            del new_structure[0][new_chain.name]
+        except Exception as e:
+            ...
         new_structure[0].add_chain(new_chain)
 
     if DEBUG:
+        print(f'NEW CHAIN NAMES: {[_chain.name for _chain in new_chains]}')
+        print(f'CHAIN NAMES IN NEW STRUCTURE: {[_chain.name for _chain in new_structure[0]]}')
         chain_ress = {_chain.name: len([x for x in _chain]) for _chain in new_structure[0]}
         print(f'CHAIN RESIUDES: {moving_ligand_id} : {chain_ress}')
 
@@ -696,6 +706,10 @@ def _align_artefacts(
     assembly_transform,
     xtalform_sites,
 ):
+    DEBUG = False
+    if moving_ligand_id[0] in ['6w7h', '6w8q', 'Mpro-x0107_fake_monomers', 'Mpro-x0107_interface_ligand']:
+        DEBUG = True
+
     # Get the artefact chains in the neighbourhood
     identity_transform = dt.Transform([0.0, 0.0, 0.0], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], [])
     identity_transform_string = dt.transform_to_string(identity_transform)
@@ -704,13 +718,54 @@ def _align_artefacts(
         for atom_id, atom in neighbourhood.artefact_atoms.items()
         if dt.transform_to_string(atom.image) != identity_transform_string
     }
+    # if DEBUG:
+    #     print(f'ARTEFACTS: ARTEFACT ATOM CHAINS: {artefact_chains}')
+
+    # Get the non-assembly chains in the neighbourhood
+    chain_assemblies = {
+        _chain: _assembly for _assembly_name, _assembly in xtalform.assemblies.items() for _chain in _assembly.chains
+    }
+    for xsid, _xtalform_site in xtalform_sites.items():
+        _xtalform_id = _xtalform_site.xtalform_id
+        if moving_ligand_id in _xtalform_site.members:
+            xtalform_site = _xtalform_site
+    site_chain = xtalform_site.crystallographic_chain
+    lig_assembly = chain_assemblies[site_chain]
+    lig_assembly_chains = lig_assembly.chains
+    identity_transform = dt.Transform([0.0, 0.0, 0.0], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], [])
+    identity_transform_string = dt.transform_to_string(identity_transform)
+    artefact_chains.update({
+        (atom_id[0], dt.transform_to_string(atom.image)): atom.image
+        for atom_id, atom in neighbourhood.atoms.items()
+        if atom_id[0] not in lig_assembly_chains
+    })
+    # if DEBUG:
+    #     print(f'ARTEFACTS: NON-ASSEMBLY ATOM CHAINS: {artefact_chains}')
+
+    if DEBUG:
+        print(f'# Processing error dataset: {moving_ligand_id[0]}!')
+        print(f'# Chain Assemblies: {chain_assemblies}')
+        print(f'# ARTEFACTS: NON-ASSEMBLY ATOM CHAINS: {artefact_chains}')
+        # print(f'Artefact chains: {moving_ligand_id[0]} : {artefact_chains} : {images} : {len([chain for chain in artefact_structure[0]])}')
+        print(f"# Lig assembly chains: {lig_assembly_chains}")
+        artefacts = {k: dt.transform_to_string(atom.image) for k, atom in neighbourhood.artefact_atoms.items()}
+        print(f'# Artefact atoms: {artefacts}')
+        non_assembly_atoms = {
+        (atom_id[0], dt.transform_to_string(atom.image)): atom.image
+        for atom_id, atom in neighbourhood.atoms.items()
+        if atom_id[0] not in lig_assembly_chains
+        }
+        print(f'# Non assembly atoms: {non_assembly_atoms}')
+
 
     # Build the artefact structure
     artefact_structure, images = get_structure_from_chain_images(
         _structure,
         artefact_chains,
     )
-    print(f'Artefact chains: {moving_ligand_id[0]} : {artefact_chains} : {images} : {len([chain for chain in artefact_structure[0]])}')
+
+
+
 
     # Align it with the same transform as was used for the non-artefact atoms
     transform = get_alignment_transform(

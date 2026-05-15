@@ -11,6 +11,8 @@ panddas_missing_ok:
   - Mpro-IBM0045_offset_res_change
   - Mpro-IBM0045_icode
   - Mpro-IBM0045_ligand_only_chain
+  - Mpro-x0107_fake_monomers
+  - Mpro-x0107_interface_ligand
 inputs:
   - dir: dls/labxchem/data/2020/lb27995-1
     type: model_building

@@ -208,13 +208,20 @@ def _get_ligand_neighbourhood(
 
             # Get transform that generates image from canon
             ftransform = ns.get_image_transformation(neighbour.image_idx)
+            ftransform.vec.fromlist(
+                [
+                    ftransform.vec[0] + nearest_image.pbc_shift[0], 
+                    ftransform.vec[1] + nearest_image.pbc_shift[1], 
+                    ftransform.vec[2] + nearest_image.pbc_shift[2],
+                ]
+                )
             atom_images[atom_id] = ftransform
 
             # Apply the canon -> image and image -> pbc image transforms
             fpos_trans = ftransform.apply(fpos)
-            fpos_trans.x = fpos_trans.x + nearest_image.pbc_shift[0]
-            fpos_trans.y = fpos_trans.y + nearest_image.pbc_shift[1]
-            fpos_trans.z = fpos_trans.z + nearest_image.pbc_shift[2]
+            # fpos_trans.x = fpos_trans.x + nearest_image.pbc_shift[0]
+            # fpos_trans.y = fpos_trans.y + nearest_image.pbc_shift[1]
+            # fpos_trans.z = fpos_trans.z + nearest_image.pbc_shift[2]
 
             pos = structure.cell.orthogonalize(fpos_trans)
 
