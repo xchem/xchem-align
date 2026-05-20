@@ -112,12 +112,8 @@ class Copier:
         panddas_file_paths: list[Path],
         ref_datasets: list[str],
         statuses: list,
-        logger=None,
     ):
-        if logger:
-            self.logger = logger
-        else:
-            self.logger = utils.Logger()
+        self.logger = utils.get_singleton_logger()
 
         self.base_path = base_path
         self.input_path = input_path
@@ -429,22 +425,22 @@ class Copier:
         return inputpath, outputpath
 
 
-def handle_inputs(base_dir, config, output_dir, logger):
+def handle_inputs(base_dir, config, output_dir):
     """
     Works through the inputs and copies their data
 
     :param base_dir:
-    :param inputs:
-    :param ref_datasets:
+    :param config:
     :param output_dir:
-    :param logger:
-    :return:
+    :return: None
     """
     soakdb_files = []
     panddas_files = []
     input_dirs_model_building = []
     input_dirs_manual = []
     excludes_manual = []
+
+    logger = utils.get_singleton_logger()
 
     inputs = config.get(Constants.CONFIG_INPUTS)
     if not inputs:
@@ -486,7 +482,6 @@ def handle_inputs(base_dir, config, output_dir, logger):
             [Path(p) for p in panddas_files[i]],
             ref_datasets,
             statuses,
-            logger=logger,
         )
         errors, warnings = c.validate()
         if errors:
@@ -547,10 +542,8 @@ def main():
     parser.add_argument("--log-level", type=int, default=0, help="Logging level (0=INFO, 1=WARN, 2=ERROR)")
 
     args = parser.parse_args()
-    logger = utils.Logger(logfile=args.log_file, level=args.log_level)
+    logger = utils.create_singleton_logger(args.log_file, args.log_level)
     logger.info("copier: ", args)
-    utils.LOG = logger
-    pdb_deposition.LOG = logger
 
     config = utils.read_config_file(args.config_file)
 
@@ -559,7 +552,7 @@ def main():
     else:
         base_dir = config.get(Constants.CONFIG_BASE_DIR)
 
-    handle_inputs(base_dir, config, args.output_dir, logger)
+    handle_inputs(base_dir, config, args.output_dir)
 
     logger.report()
     logger.close()

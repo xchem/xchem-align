@@ -20,7 +20,17 @@ from gemmi import cif
 
 from xchemalign import utils
 
-LOG = utils.Logger()
+
+def info(*args, **kwargs):
+    utils.log_info(*args, **kwargs)
+
+
+def warn(*args, **kwargs):
+    utils.log_warn(*args, **kwargs)
+
+
+def error(*args, **kwargs):
+    utils.log_error(*args, **kwargs)
 
 
 def write_mtz_to_cif_file(mtz_file, cif_file):
@@ -100,7 +110,7 @@ def run(
 def read_mtz(file):
     mtz = gemmi.read_mtz_file(file)
     mtz.title = "MMMM"
-    LOG.info("read mtz " + file)
+    info("read mtz " + file)
     to_cif = gemmi.MtzToCif()
     cif_s = to_cif.write_cif_to_string(mtz)
     return cif_s
@@ -112,7 +122,7 @@ def read_ccp4(file):
     RESOLUTION_LIMIT = 1.5
 
     map = gemmi.read_ccp4_map(file)
-    LOG.info("read ccp4 " + file)
+    info("read ccp4 " + file)
     sf = gemmi.transform_map_to_f_phi(map.grid, half_l=True)
     data = sf.prepare_asu_data(dmin=RESOLUTION_LIMIT)
 
@@ -141,9 +151,12 @@ def main():
     parser.add_argument("-e", "--event-map", required=True, help="Panddas event map file to merge")
     parser.add_argument("-o", "--output", required=True, help="Output CIF file")
 
+    parser.add_argument("--log-file", help="Log file")
     parser.add_argument("--log-level", type=int, default=0, help="Logging level")
 
     args = parser.parse_args()
+
+    LOG = utils.create_singleton_logger(args.log_file, args.log_level)
 
     # run(args.latest_mtz, args.free_mtz, args.event_map, args.output)
 
