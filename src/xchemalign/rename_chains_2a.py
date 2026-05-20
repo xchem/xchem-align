@@ -22,6 +22,7 @@ import argparse
 import glob
 from pathlib import Path
 import gemmi
+from gemmi import cif
 
 from xchemalign import dbreader
 from xchemalign import utils
@@ -121,6 +122,25 @@ def rename_chains(xtal, pth, struc):
     elif pol_c > 125:
         dump_chains(model)
 
+        # Read raw CIF before rename to preserve all _refine* data.
+        # Workaround for https://github.com/project-gemmi/gemmi/issues/423:
+        # make_mmcif_document() silently drops _refine_analyze, _refine_ls_restr,
+        # _refine_ls_shell and several _refine fields.
+        raw_refine_pairs = {}
+        raw_refine_loops = []
+        if str(pth).endswith('.cif'):
+            raw_block = cif.read(str(pth))[0]
+            for item in raw_block:
+                if item.pair is not None and item.pair[0].startswith('_refine'):
+                    tag = item.pair[0]
+                    dot = tag.index('.')
+                    prefix = tag[: dot + 1]
+                    if prefix not in raw_refine_pairs:
+                        raw_refine_pairs[prefix] = {}
+                    raw_refine_pairs[prefix][tag[dot + 1 :]] = item.pair[1]
+                elif item.loop is not None and item.loop.tags and item.loop.tags[0].startswith('_refine'):
+                    raw_refine_loops.append(item)
+
         pth.rename(pth.parent / (pth.name + '.orig'))
 
         chain_c.name = 'B'
@@ -134,6 +154,17 @@ def rename_chains(xtal, pth, struc):
             struc.write_pdb(str(pth))
         elif str(pth).endswith('.cif'):
             doc = struc.make_mmcif_document()
+            if raw_refine_pairs or raw_refine_loops:
+                block = doc[0]
+                for item in block:
+                    if item.pair is not None and item.pair[0].startswith('_refine'):
+                        item.erase()
+                    elif item.loop is not None and item.loop.tags and item.loop.tags[0].startswith('_refine'):
+                        item.erase()
+                for prefix, pairs in raw_refine_pairs.items():
+                    block.set_pairs(prefix, pairs)
+                for item in raw_refine_loops:
+                    block.add_item(item)
             doc.write_file(str(pth))
 
 

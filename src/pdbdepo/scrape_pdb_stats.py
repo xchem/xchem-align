@@ -8,7 +8,7 @@ from gemmi import cif
 from pdbdepo import pdb_deposition
 from xchemalign import utils
 
-LOG = utils.Logger()
+LOG = None
 
 
 def info(*args, **kwargs):
@@ -69,6 +69,10 @@ refine_hist_regexes = {
 
 
 def run(pdb_file, doc: cif.Document):
+    global LOG
+    if not LOG:
+        LOG = utils.get_singleton_logger()
+
     refine_ls_shell_matches = OrderedDict([('pdbx_refine_id', '1')])
     refine_ls_restr_matches = OrderedDict()
     refine_hist_matches = OrderedDict([('cycle_id', '1')])
@@ -147,8 +151,7 @@ def main():
 
     args = parser.parse_args()
 
-    LOG = utils.Logger(logfile=args.log_file, level=args.log_level)
-    utils.LOG = LOG
+    LOG = utils.create_singleton_logger(args.log_file, args.log_level)
     LOG.info("scrape_pdb_stats: ", args)
 
     doc = None

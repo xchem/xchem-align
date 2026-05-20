@@ -153,7 +153,7 @@ def get_datasets_from_crystals(
 
 
 class Aligner:
-    def __init__(self, dir, log_file=None, log_level=0, debug=False):
+    def __init__(self, dir, debug=False):
         self.num_alignments = 0
         self.errors = []
         self.warnings = []
@@ -163,9 +163,7 @@ class Aligner:
         # 2 lines below. needs a better solution
         self._find_version_dir(dir)  # sets self.working_dir and self.version_dir
         output_path = self.working_dir / "upload-current"
-        if not log_file:
-            log_file = output_path / 'aligner.log'
-        self.logger = utils.Logger(logfile=log_file, level=log_level)
+        self.logger = utils.get_singleton_logger()
         self.logger.info("Using", self.version_dir, "as current version dir")
         self.base_dir = self.version_dir.parent  # e.g. path/to
         self.aligned_dir = (
@@ -867,13 +865,15 @@ def main():
     args = parser.parse_args()
 
     if args.dir:
-        log = str(Path(args.dir).joinpath('aligner.log'))
+        working_dir = Path(args.dir)
     else:
-        log = 'aligner.log'
+        working_dir = Path.cwd()
 
-    a = Aligner(args.dir, log_file=log, log_level=args.log_level)
-    logger = a.logger
-    utils.LOG = logger
+    log_file = working_dir / "upload-current" / "aligner.log"
+
+    logger = utils.create_singleton_logger(log_file, args.log_level)
+
+    a = Aligner(args.dir)
 
     try:
         num_errors, num_warnings = a.validate()

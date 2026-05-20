@@ -8,22 +8,17 @@ from xchemalign import utils
 
 from pdbdepo import pdb_deposition
 
-LOG = utils.Logger()
-
 
 def info(*args, **kwargs):
-    if LOG:
-        LOG.info(*args, **kwargs)
+    utils.log_info(*args, **kwargs)
 
 
 def warn(*args, **kwargs):
-    if LOG:
-        LOG.warn(*args, **kwargs)
+    utils.log_warn(*args, **kwargs)
 
 
 def error(*args, **kwargs):
-    if LOG:
-        LOG.error(*args, **kwargs)
+    utils.log_error(*args, **kwargs)
 
 
 def find_summary_section(file, begin_patt):
@@ -212,8 +207,6 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
 
 
 def main():
-    global LOG
-
     parser = argparse.ArgumentParser(description="scrape_processing_stats")
 
     parser.add_argument("-f", "--file", required=True, help="Log file to parse")
@@ -226,8 +219,7 @@ def main():
 
     args = parser.parse_args()
 
-    LOG = utils.Logger(logfile=args.log_file, level=args.log_level)
-    utils.LOG = LOG
+    LOG = utils.create_singleton_logger(args.log_file, args.log_level)
     LOG.info("scrape_processing_stats: ", args)
 
     doc = None
