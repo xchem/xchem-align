@@ -57,7 +57,7 @@ AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", '')
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 
-logger = utils.LOG
+logger = utils.get_singleton_logger()
 
 
 def compile_stack_urls(url_prefix: str) -> dict[str, str]:
@@ -846,7 +846,7 @@ class FilesystemSource(DataSource):
         with TemporaryDirectory() as tempdir:
             compressible_tempdir = Path(tempdir).joinpath("inputs")
             try:
-                handle_inputs(base_dir, config, str(compressible_tempdir), logger)
+                handle_inputs(base_dir, config, str(compressible_tempdir))
             except Exception as exc:
                 logger.error(f"Error copying inputs: {exc.args}")
             compress_directory(compressible_tempdir, inputs_path)
