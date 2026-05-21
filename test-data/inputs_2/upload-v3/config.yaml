@@ -9,6 +9,7 @@ panddas_missing_ok:
   - Mpro-x0107_fake_P1
   - Mpro-x0107_fake_P1_conf_change
   - Mpro-i0130
+  - Mpro-IBM0045_ligand_only_chain
 inputs:
   - dir: dls/labxchem/data/2020/lb27995-1
     type: model_building

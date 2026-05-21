@@ -190,8 +190,8 @@ def _get_closest_xtalform(xtalforms: dict[str, dt.XtalForm], structure, structur
         all_mov_centroids[xtalform_id] = mov_centroids
 
         if not all([x == chain_mapping[x] for x in chain_mapping]):
-            print('Chain Mapping is degenerate!')
-            print(chain_mapping)
+            # print('Chain Mapping is degenerate!')
+            # print(chain_mapping)
             continue
 
         if np.mean([x for x in min_distances.values()]) > 5:

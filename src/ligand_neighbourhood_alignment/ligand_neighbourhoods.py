@@ -12,16 +12,24 @@ def _get_centroid_res(
     residues: list[tuple[str, str]],
     reference_neighbourhood: dt.Neighbourhood,
 ):
-    res_cas = {}
-    for _residue_id in residues:
-        for _atom_id, _atom in reference_neighbourhood.atoms.items():
-            if (_atom_id[0] == _residue_id[0]) & (_atom_id[1] == _residue_id[1]) & (_atom_id[2] == "CA"):
-                res_cas[_atom_id] = _atom
-    id_arr = [_atom_id for _atom_id in res_cas]
-    arr = np.array([[_atom.x, _atom.y, _atom.z] for _atom in res_cas.values()])
-    centroid = np.mean(arr, axis=0)
-    closest = np.argmin(np.linalg.norm(arr - centroid, axis=1))
-    closest_atom_id = id_arr[closest]
+    try:
+        res_cas = {}
+        for _residue_id in residues:
+            for _atom_id, _atom in reference_neighbourhood.atoms.items():
+                if (_atom_id[0] == _residue_id[0]) & (_atom_id[1] == _residue_id[1]) & (_atom_id[2] == "CA"):
+                    res_cas[_atom_id] = _atom
+        id_arr = [_atom_id for _atom_id in res_cas]
+        arr = np.array([[_atom.x, _atom.y, _atom.z] for _atom in res_cas.values()])
+        centroid = np.mean(arr, axis=0)
+        closest = np.argmin(np.linalg.norm(arr - centroid, axis=1))
+        closest_atom_id = id_arr[closest]
+    except Exception as e:
+        raise Exception(
+            'Failed to get centroid residue!\n'
+            'Res cas\n'
+            f'{res_cas}\n'
+            f'{reference_neighbourhood.atoms}\n'
+        )
 
     return (closest_atom_id[0], closest_atom_id[1])
 
@@ -200,13 +208,20 @@ def _get_ligand_neighbourhood(
 
             # Get transform that generates image from canon
             ftransform = ns.get_image_transformation(neighbour.image_idx)
+            ftransform.vec.fromlist(
+                [
+                    ftransform.vec[0] + nearest_image.pbc_shift[0], 
+                    ftransform.vec[1] + nearest_image.pbc_shift[1], 
+                    ftransform.vec[2] + nearest_image.pbc_shift[2],
+                ]
+                )
             atom_images[atom_id] = ftransform
 
             # Apply the canon -> image and image -> pbc image transforms
             fpos_trans = ftransform.apply(fpos)
-            fpos_trans.x = fpos_trans.x + nearest_image.pbc_shift[0]
-            fpos_trans.y = fpos_trans.y + nearest_image.pbc_shift[1]
-            fpos_trans.z = fpos_trans.z + nearest_image.pbc_shift[2]
+            # fpos_trans.x = fpos_trans.x + nearest_image.pbc_shift[0]
+            # fpos_trans.y = fpos_trans.y + nearest_image.pbc_shift[1]
+            # fpos_trans.z = fpos_trans.z + nearest_image.pbc_shift[2]
 
             pos = structure.cell.orthogonalize(fpos_trans)
 

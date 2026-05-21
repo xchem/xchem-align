@@ -73,6 +73,17 @@ def _chain_to_biochain(chain_name, xtalform: dt.XtalForm, assemblies: dict[str, 
     raise Exception(f'No biochain found for chain {chain_name}')
 
 
+def _chain_to_biochains(chain_name, xtalform: dt.XtalForm, assemblies: dict[str, dt.Assembly]) -> str:
+    biochains = []
+    for _xtal_assembly_name, _xtal_assembly in xtalform.assemblies.items():
+        for _j, _chain_name in enumerate(_xtal_assembly.chains):
+            if chain_name == _chain_name:
+                biochains.append( assemblies[_xtal_assembly.assembly].generators[_j].biomol)
+    if len(biochains) == 0:
+        raise Exception(f'No biochain found for chain {chain_name}')
+    else:
+        return biochains
+
 def _get_assembly_st(as1, as1_ref):
     # Setup new structure to add biochains to
     new_st = gemmi.Structure()
@@ -344,13 +355,11 @@ def dict_to_chain_to_assembly_transforms(dic):
     return obj
 
 
-def get_canonical_site_biochain(
+def get_canonical_site_crystallographic_chain(
     site_reference_ligand_id,
     site_reference_ligand_xtalform_id,
-    site_reference_ligand_xtalform,
     xtalform_sites,
     canonical_site_id,
-    assemblies,
 ):
     for xsid, _xtalform_site in xtalform_sites.items():
         _xtalform_id = _xtalform_site.xtalform_id
@@ -361,6 +370,22 @@ def get_canonical_site_biochain(
         ):
             xtalform_site = _xtalform_site
     site_chain = xtalform_site.crystallographic_chain
+    return site_chain
+
+def get_canonical_site_biochain(
+    site_reference_ligand_id,
+    site_reference_ligand_xtalform_id,
+    site_reference_ligand_xtalform,
+    xtalform_sites,
+    canonical_site_id,
+    assemblies,
+):
+    site_chain = get_canonical_site_crystallographic_chain(
+        site_reference_ligand_id,
+        site_reference_ligand_xtalform_id,
+        xtalform_sites,
+        canonical_site_id,
+        )
     canonical_site_biochain = _chain_to_biochain(site_chain, site_reference_ligand_xtalform, assemblies)
 
     return canonical_site_biochain, site_reference_ligand_xtalform
