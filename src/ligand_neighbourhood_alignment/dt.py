@@ -10,11 +10,11 @@ import yaml
 from loguru import logger
 import gemmi
 import networkx as nx
-from loguru import logger
 from pydantic import BaseModel, field_validator
 
 from ligand_neighbourhood_alignment import constants
 
+# pylint: disable=function-redefined
 
 logger.remove()  # for someone not familiar with the lib, whats going on here?
 logger.add(sys.stdout, level="INFO")
@@ -1223,7 +1223,7 @@ class LigandBindingEvent:
 #         ...
 
 
-class Generator:
+class SymopGenerator:
     def __init__(self, biomol: str, chain: str, triplet: str):
         self.biomol: str = biomol
         self.chain: str = chain
@@ -1231,7 +1231,7 @@ class Generator:
 
 
 class Assembly:
-    def __init__(self, reference: str, generators: list[Generator]):
+    def __init__(self, reference: str, generators: list[SymopGenerator]):
         self.reference = reference
         self.generators = generators
 
@@ -1255,7 +1255,7 @@ class Assembly:
                 xyz = "x,y,z"
             else:
                 xyz = chain_match[2][1:-1]
-            generators.append(Generator(biomol_match, chain_match[1], xyz))
+            generators.append(SymopGenerator(biomol_match, chain_match[1], xyz))
 
         return Assembly(reference, generators)
 

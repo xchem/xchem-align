@@ -31,14 +31,7 @@ import gemmi
 from ligand_neighbourhood_alignment import dt
 
 from ligand_neighbourhood_alignment import constants
-from ligand_neighbourhood_alignment.align_xmaps import _align_xmaps
-
-from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import _get_ligand_neighbourhood
-
-
-# from ligand_neighbourhood_alignment.get_system_sites import get_system_sites
-from ligand_neighbourhood_alignment.build_alignment_graph import build_alignment_graph
-from ligand_neighbourhood_alignment.data import (  # save_xtalforms,
+from ligand_neighbourhood_alignment.dt import (  # save_xtalforms,
     Assemblies,
     AssignedXtalForms,
     CanonicalSites,
@@ -54,6 +47,7 @@ from ligand_neighbourhood_alignment.data import (  # save_xtalforms,
     Options,
     Output,
     PanDDA,
+    read_xmap,
     SiteTransforms,
     SystemData,
     Transforms,
@@ -73,30 +67,21 @@ from ligand_neighbourhood_alignment.data import (  # save_xtalforms,
     save_data,
     save_output,
 )
-from ligand_neighbourhood_alignment.generate_aligned_structures import _align_structures_from_sites
-from ligand_neighbourhood_alignment.generate_sites_from_components import (  # get_xtalform_sites_from_canonical_sites,
-    _generate_sites_from_components,
-    get_components,
-    get_conformer_sites_from_components,
-    get_site_transforms,
-    get_sites_from_conformer_sites,
-    get_structures,
-    get_subsite_transforms,
-    _update_conformer_site_transforms,
-    _update_canonical_site_transforms,
-    _update_reference_structure_transforms,
-)
-from ligand_neighbourhood_alignment.get_alignability import get_alignability, _update_ligand_neighbourhood_transforms
-from ligand_neighbourhood_alignment.get_graph import get_graph
-from ligand_neighbourhood_alignment.get_ligand_neighbourhoods import get_ligand_neighbourhoods
-from ligand_neighbourhood_alignment.make_data_json import (
+from ligand_neighbourhood_alignment.dep.generate_sites_from_components import _update_conformer_site_transforms
+from ligand_neighbourhood_alignment.dep.make_data_json import (
     get_ligand_binding_events_from_panddas,
     get_ligand_binding_events_from_structure,
-    make_data_json_from_pandda_dir,
 )
-from ligand_neighbourhood_alignment.generate_aligned_structures import _align_structure, _align_reference_structure
-from ligand_neighbourhood_alignment.align_xmaps import read_xmap, read_xmap_from_mtz, __align_xmap
+from ligand_neighbourhood_alignment.forced_alignments import _update_reference_structure_transforms
+from ligand_neighbourhood_alignment.ligand_neighbourhoods import (
+    _get_ligand_neighbourhood,
+    _update_ligand_neighbourhood_transforms,
+)
+from ligand_neighbourhood_alignment.map_alignment import __align_xmap, read_xmap_from_mtz
+from ligand_neighbourhood_alignment.structure_alignment import _align_structure, _align_reference_structure
 from ligand_neighbourhood_alignment import alignment_heirarchy
+from ligand_neighbourhood_alignment.alignment_landmarks import assembly_landmarks_to_dict
+from ligand_neighbourhood_alignment.io import save_yaml
 
 
 logger.remove()  # for someone not familiar with the lib, whats going on here?
@@ -1291,8 +1276,8 @@ def _update(
 
     # Get the assembly alignment hierarchy
     hierarchy, biochain_priorities = alignment_heirarchy._derive_alignment_heirarchy(assemblies)
-    alignment_heirarchy.save_yaml(fs_model.hierarchy, hierarchy, lambda x: x)
-    alignment_heirarchy.save_yaml(fs_model.biochain_priorities, biochain_priorities, lambda x: x)
+    save_yaml(fs_model.hierarchy, hierarchy, lambda x: x)
+    save_yaml(fs_model.biochain_priorities, biochain_priorities, lambda x: x)
 
     # Get the assembly hierarchy transforms
     for assembly_name, assembly in assemblies.items():
@@ -1301,9 +1286,7 @@ def _update(
             continue
         as_st = alignment_heirarchy._get_assembly_st(assembly, structures[assembly.reference])
         assembly_landmarks[assembly_name] = alignment_heirarchy.structure_to_landmarks(as_st)
-    alignment_heirarchy.save_yaml(
-        fs_model.assembly_landmarks, assembly_landmarks, alignment_heirarchy.assembly_landmarks_to_dict
-    )
+    save_yaml(fs_model.assembly_landmarks, assembly_landmarks, assembly_landmarks_to_dict)
 
     for assembly_name, assembly in assemblies.items():
         # Do not update if already have assembly transform!
@@ -1314,7 +1297,7 @@ def _update(
             assembly_name,
             assembly_landmarks,
         )
-    alignment_heirarchy.save_yaml(fs_model.assembly_transforms, assembly_transforms, lambda x: x)
+    save_yaml(fs_model.assembly_transforms, assembly_transforms, lambda x: x)
 
     # Assign datasets
     new_dataset_assignments = {}
@@ -1379,7 +1362,7 @@ def _update(
                 print(f'Exception in dataset: {dtag}, in xtalform {dataset_assignments[dtag]}')
                 raise e
     logger.info(f'Got {len(chain_to_assembly_transforms)} chain to assembly transforms')
-    alignment_heirarchy.save_yaml(
+    save_yaml(
         fs_model.chain_to_assembly,
         chain_to_assembly_transforms,
         alignment_heirarchy.chain_to_assembly_transforms_to_dict,
@@ -1701,17 +1684,11 @@ def _update(
                                     reference_ligand_id,
                                     moving_ligand_id,
                                     xmap,
-                                    conformer_site_transforms,
-                                    conformer_site_id,
-                                    # canonical_site_transforms,
-                                    canonical_site_id,
                                     aligned_event_map_path,
                                     ligand_neighbourhood_output.aligned_event_maps_crystallographic[canonical_site_id],
                                     aligned_res,
-                                    chain_to_assembly_transform=chain_to_assembly_transforms[
-                                        (conformer_site.reference_ligand_id[0], site_chain)
-                                    ],
-                                    assembly_transform=assembly_transforms[
+                                    chain_to_assembly_transforms[(conformer_site.reference_ligand_id[0], site_chain)],
+                                    assembly_transforms[
                                         xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
                                         .assemblies[
                                             alignment_heirarchy._chain_to_xtalform_assembly(
@@ -1733,17 +1710,11 @@ def _update(
                                     reference_ligand_id,
                                     moving_ligand_id,
                                     xmap,
-                                    conformer_site_transforms,
-                                    conformer_site_id,
-                                    # canonical_site_transforms,
-                                    canonical_site_id,
                                     ligand_neighbourhood_output.aligned_xmaps[canonical_site_id],
                                     ligand_neighbourhood_output.aligned_xmaps_crystallographic[canonical_site_id],
                                     aligned_res,
-                                    chain_to_assembly_transform=chain_to_assembly_transforms[
-                                        (conformer_site.reference_ligand_id[0], site_chain)
-                                    ],
-                                    assembly_transform=assembly_transforms[
+                                    chain_to_assembly_transforms[(conformer_site.reference_ligand_id[0], site_chain)],
+                                    assembly_transforms[
                                         xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
                                         .assemblies[
                                             alignment_heirarchy._chain_to_xtalform_assembly(
@@ -1763,17 +1734,11 @@ def _update(
                                     reference_ligand_id,
                                     moving_ligand_id,
                                     xmap,
-                                    conformer_site_transforms,
-                                    conformer_site_id,
-                                    # canonical_site_transforms,
-                                    canonical_site_id,
                                     ligand_neighbourhood_output.aligned_diff_maps[canonical_site_id],
                                     ligand_neighbourhood_output.aligned_diff_maps_crystallographic[canonical_site_id],
                                     aligned_res,
-                                    chain_to_assembly_transform=chain_to_assembly_transforms[
-                                        (conformer_site.reference_ligand_id[0], site_chain)
-                                    ],
-                                    assembly_transform=assembly_transforms[
+                                    chain_to_assembly_transforms[(conformer_site.reference_ligand_id[0], site_chain)],
+                                    assembly_transforms[
                                         xtalforms[dataset_assignments[conformer_site.reference_ligand_id[0]]]
                                         .assemblies[
                                             alignment_heirarchy._chain_to_xtalform_assembly(

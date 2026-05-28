@@ -1,3 +1,4 @@
+# pylint: skip-file
 import gemmi
 
 from ligand_neighbourhood_alignment.data import (

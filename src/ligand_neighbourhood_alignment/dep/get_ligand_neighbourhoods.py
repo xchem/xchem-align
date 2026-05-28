@@ -1,3 +1,4 @@
+# pylint: skip-file
 import gemmi
 from loguru import logger
 

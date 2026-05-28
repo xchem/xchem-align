@@ -361,6 +361,7 @@ def get_canonical_site_crystallographic_chain(
     xtalform_sites,
     canonical_site_id,
 ):
+    xtalform_site = None
     for xsid, _xtalform_site in xtalform_sites.items():
         _xtalform_id = _xtalform_site.xtalform_id
         if (

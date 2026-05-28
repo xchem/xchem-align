@@ -1,3 +1,4 @@
+# pylint: skip-file
 import gemmi
 import numpy as np
 from loguru import logger

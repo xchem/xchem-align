@@ -114,6 +114,7 @@ def _drop_non_binding_chains_and_symmetrize_waters(
     }
 
     # Get the assembly the ligand is modelled as part of
+    xtalform_site = None
     for xsid, _xtalform_site in xtalform_sites.items():
         _xtalform_id = _xtalform_site.xtalform_id
         if moving_ligand_id in _xtalform_site.members:
@@ -289,6 +290,7 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
         print(f'CHAIN ASSEMBLY: {moving_ligand_id} : {chain_assemblies}')
 
     # Get the assembly the ligand is modelled as part of
+    xtalform_site = None
     for xsid, _xtalform_site in xtalform_sites.items():
         _xtalform_id = _xtalform_site.xtalform_id
         if moving_ligand_id in _xtalform_site.members:
