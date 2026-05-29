@@ -1510,8 +1510,10 @@ def main():
 
     if args.dir:
         working_dir = Path(args.dir)
+        log_file = working_dir / "upload-current" / "collator.log"
     else:
         working_dir = Path.cwd()
+        log_file = working_dir / "collator.log"
 
     wd = utils._verify_working_dir(working_dir)
 
@@ -1525,8 +1527,6 @@ def main():
             s = setup.Setup(args.dir)
             s.run()
         exit(1)
-
-    log_file = working_dir / "upload-current" / "collator.log"
 
     logger = utils.create_singleton_logger(log_file, args.log_level)
 

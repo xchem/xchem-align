@@ -866,10 +866,10 @@ def main():
 
     if args.dir:
         working_dir = Path(args.dir)
+        log_file = working_dir / "upload-current" / "aligner.log"
     else:
         working_dir = Path.cwd()
-
-    log_file = working_dir / "upload-current" / "aligner.log"
+        log_file = working_dir / "aligner.log"
 
     logger = utils.create_singleton_logger(log_file, args.log_level)
 
