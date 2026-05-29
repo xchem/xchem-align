@@ -39,7 +39,7 @@ def test_collator_upload_1(
 def test_aligner_upload_1(constants, upload_1_dir):
     log = str(Path(constants.TEST_DIR) / "aligner.log")
 
-    a = Aligner(constants.TEST_DIR, log_file=log, log_level=0)
+    a = Aligner(constants.TEST_DIR, )
     logger = a.logger
     utils.LOG = logger
 
@@ -97,7 +97,7 @@ def test_collator_upload_2(constants, config_2_file, upload_2_dir, uploads_dir, 
 def test_aligner_upload_2(constants):
     log = str(Path(constants.TEST_DIR) / "aligner.log")
 
-    a = Aligner(constants.TEST_DIR, log_file=log, log_level=0)
+    a = Aligner(constants.TEST_DIR, )
     logger = a.logger
     utils.LOG = logger
 

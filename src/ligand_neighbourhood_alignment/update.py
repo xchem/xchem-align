@@ -231,6 +231,7 @@ def perform_all_alignments(
                     .assembly
                 ],
             )
+        if (datasets[dtag].mtz != "None") and (datasets[dtag].mtz is not None):
             mtz_path = datasets[dtag].mtz
             if mtz_path and mtz_path != "None":
                 xmap = read_xmap_from_mtz(mtz_path, "2Fo-Fc")
