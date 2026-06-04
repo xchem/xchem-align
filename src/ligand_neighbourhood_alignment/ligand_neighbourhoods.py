@@ -25,10 +25,7 @@ def _get_centroid_res(
         closest_atom_id = id_arr[closest]
     except Exception as e:
         raise Exception(
-            'Failed to get centroid residue!\n'
-            'Res cas\n'
-            f'{res_cas}\n'
-            f'{reference_neighbourhood.atoms}\n'
+            'Failed to get centroid residue!\n' 'Res cas\n' f'{res_cas}\n' f'{reference_neighbourhood.atoms}\n'
         )
 
     return (closest_atom_id[0], closest_atom_id[1])
@@ -210,11 +207,11 @@ def _get_ligand_neighbourhood(
             ftransform = ns.get_image_transformation(neighbour.image_idx)
             ftransform.vec.fromlist(
                 [
-                    ftransform.vec[0] + nearest_image.pbc_shift[0], 
-                    ftransform.vec[1] + nearest_image.pbc_shift[1], 
+                    ftransform.vec[0] + nearest_image.pbc_shift[0],
+                    ftransform.vec[1] + nearest_image.pbc_shift[1],
                     ftransform.vec[2] + nearest_image.pbc_shift[2],
                 ]
-                )
+            )
             atom_images[atom_id] = ftransform
 
             # Apply the canon -> image and image -> pbc image transforms

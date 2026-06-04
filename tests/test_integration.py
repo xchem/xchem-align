@@ -39,7 +39,9 @@ def test_collator_upload_1(
 def test_aligner_upload_1(constants, upload_1_dir):
     log = str(Path(constants.TEST_DIR) / "aligner.log")
 
-    a = Aligner(constants.TEST_DIR, )
+    a = Aligner(
+        constants.TEST_DIR,
+    )
     logger = a.logger
     utils.LOG = logger
 
@@ -57,14 +59,15 @@ def test_aligner_upload_1(constants, upload_1_dir):
     assert 'D' in meta[Constants.META_XTALS]["Mpro-IBM0078"][Constants.META_ALIGNED_FILES]['A']['1101']
 
     # Make sure Mpro-IBM0045_ligand_only_chain only has one ligand conf in each pdb
-    alignments = meta[Constants.META_XTALS]["Mpro-IBM0045_ligand_only_chain"][Constants.META_ALIGNED_FILES]['E']['1101']['C']['1']
+    alignments = meta[Constants.META_XTALS]["Mpro-IBM0045_ligand_only_chain"][Constants.META_ALIGNED_FILES]['E'][
+        '1101'
+    ]['C']['1']
     for alignment_id, alignment_files in alignments.items():
         st_path = alignment_files['structure']
         st = gemmi.read_structure(str(Path('test-data') / 'outputs' / 'upload-current' / st_path))
         ligand_res = st[0]['E']['1101'][0]
         altlocs = (atom.altloc for atom in ligand_res)
         assert len(set(altlocs)) == 1
-        
 
 
 @pytest.mark.order(after="test_aligner_upload_1")
@@ -97,7 +100,9 @@ def test_collator_upload_2(constants, config_2_file, upload_2_dir, uploads_dir, 
 def test_aligner_upload_2(constants):
     log = str(Path(constants.TEST_DIR) / "aligner.log")
 
-    a = Aligner(constants.TEST_DIR, )
+    a = Aligner(
+        constants.TEST_DIR,
+    )
     logger = a.logger
     utils.LOG = logger
 

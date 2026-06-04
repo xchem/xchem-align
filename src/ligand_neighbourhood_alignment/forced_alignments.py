@@ -51,27 +51,28 @@ def _update_reference_structure_transforms(
         for chain in xtalform_chains
     }
     reference_structure_biochains_inv = {
-        biochain: chain 
-        for chain, biochains 
-        in reference_structure_biochains.items()
-        for biochain in biochains
-        }
+        biochain: chain for chain, biochains in reference_structure_biochains.items() for biochain in biochains
+    }
 
-    canonical_site_reference_assemblies = set([xtalform_assembly.assembly for xtalform_assembly in site_reference_ligand_xtalform.assemblies.values()])
-    reference_assemblies = set([xtalform_assembly.assembly for xtalform_assembly in reference_structure_xtalform.assemblies.values()])
+    canonical_site_reference_assemblies = set(
+        [xtalform_assembly.assembly for xtalform_assembly in site_reference_ligand_xtalform.assemblies.values()]
+    )
+    reference_assemblies = set(
+        [xtalform_assembly.assembly for xtalform_assembly in reference_structure_xtalform.assemblies.values()]
+    )
     canonical_site_crystalographic_chain = alignment_heirarchy.get_canonical_site_crystallographic_chain(
-            site_reference_ligand_id,
-            site_reference_ligand_xtalform_id,
-            xtalform_sites,
-            canonical_site_id,
-        )
+        site_reference_ligand_id,
+        site_reference_ligand_xtalform_id,
+        xtalform_sites,
+        canonical_site_id,
+    )
     canonical_site_assemby = site_reference_ligand_xtalform.assemblies[
         alignment_heirarchy._chain_to_xtalform_assembly(
-            canonical_site_crystalographic_chain, 
+            canonical_site_crystalographic_chain,
             site_reference_ligand_xtalform,
         )
-        ].assembly
-    
+    ].assembly
+
     # print(f'No assembly overlap between {canonical_site.reference_conformer_site_id} and {key}')
     # print(f'Reference assemblies: {reference_assemblies}')
     # print(f'Canonical site assembly: {canonical_site_assemby}')
@@ -81,7 +82,6 @@ def _update_reference_structure_transforms(
     # print(f'Reference structure xtalform chains: {xtalform_chains}')
     # print(f'Reference structure biochains: {reference_structure_biochains}')
     # print(f'Reference structure biochains inverse: {reference_structure_biochains_inv}')
-
 
     # Skip if the assemblies aren't shared!
     if canonical_site_assemby not in reference_assemblies:
@@ -114,7 +114,7 @@ def _update_reference_structure_transforms(
     #     print(f'Biochain-to-reference chain: {reference_structure_biochains_inv}')
     #     print(f'Reference site ligand: {site_reference_ligand_id}')
     #     raise Exception
-    
+
     # Calculate the transform from the residue mapping
     transform = alignment_core.align_on_residues(
         residue_mapping=residue_mapping,

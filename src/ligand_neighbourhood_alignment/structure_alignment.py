@@ -436,25 +436,23 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
 
                 # If ligand drop other altlocs
                 current_lig_id = (_chain.name, str(_residue.seqid.num) + icode_to_string(_residue.seqid.icode))
-                if current_lig_id == (moving_ligand_id[1], moving_ligand_id[2],):
+                if current_lig_id == (
+                    moving_ligand_id[1],
+                    moving_ligand_id[2],
+                ):
                     new_residue = _residue.clone()
                     atoms_to_delete = set(
-                        [
-                            (_atom.name, _atom.altloc)
-                            for _atom in new_residue
-                            if _atom.altloc != moving_ligand_id[3]
-                        ]
+                        [(_atom.name, _atom.altloc) for _atom in new_residue if _atom.altloc != moving_ligand_id[3]]
                     )
                     for _atom_name, _altloc in atoms_to_delete:
                         new_residue.remove_atom(_atom_name, _altloc)
 
                     new_chain.add_residue(new_residue)
                     continue
-                
+
                 # Only add the chains that are part of the biological assemly the ligand
                 # is modelled as part of
                 if _chain.name in lig_assembly.chains:
-                    
                     # Don't include other ligands
                     new_chain.add_residue(_residue.clone())
 
@@ -463,7 +461,6 @@ def _drop_non_assembly_chains_and_symmetrize_waters(
 
     for assembly_chain in chain_assemblies:
         del new_structure[0][assembly_chain]
-
 
     for new_chain in new_chains:
         try:
@@ -736,11 +733,13 @@ def _align_artefacts(
     lig_assembly_chains = lig_assembly.chains
     identity_transform = dt.Transform([0.0, 0.0, 0.0], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], [])
     identity_transform_string = dt.transform_to_string(identity_transform)
-    artefact_chains.update({
-        (atom_id[0], dt.transform_to_string(atom.image)): atom.image
-        for atom_id, atom in neighbourhood.atoms.items()
-        if atom_id[0] not in lig_assembly_chains
-    })
+    artefact_chains.update(
+        {
+            (atom_id[0], dt.transform_to_string(atom.image)): atom.image
+            for atom_id, atom in neighbourhood.atoms.items()
+            if atom_id[0] not in lig_assembly_chains
+        }
+    )
     # if DEBUG:
     #     print(f'ARTEFACTS: NON-ASSEMBLY ATOM CHAINS: {artefact_chains}')
 
@@ -753,21 +752,17 @@ def _align_artefacts(
         artefacts = {k: dt.transform_to_string(atom.image) for k, atom in neighbourhood.artefact_atoms.items()}
         print(f'# Artefact atoms: {artefacts}')
         non_assembly_atoms = {
-        (atom_id[0], dt.transform_to_string(atom.image)): atom.image
-        for atom_id, atom in neighbourhood.atoms.items()
-        if atom_id[0] not in lig_assembly_chains
+            (atom_id[0], dt.transform_to_string(atom.image)): atom.image
+            for atom_id, atom in neighbourhood.atoms.items()
+            if atom_id[0] not in lig_assembly_chains
         }
         print(f'# Non assembly atoms: {non_assembly_atoms}')
-
 
     # Build the artefact structure
     artefact_structure, images = get_structure_from_chain_images(
         _structure,
         artefact_chains,
     )
-
-
-
 
     # Align it with the same transform as was used for the non-artefact atoms
     transform = get_alignment_transform(

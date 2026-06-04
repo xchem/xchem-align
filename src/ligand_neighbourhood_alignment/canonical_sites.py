@@ -36,14 +36,16 @@ def _update_canonical_sites(
     # If not matched to any existing canonical site create a new one
     if not matched:
         try:
-            centroid_res = _get_centroid_res(conformer_site.residues, neighbourhoods[conformer_site.reference_ligand_id])
+            centroid_res = _get_centroid_res(
+                conformer_site.residues, neighbourhoods[conformer_site.reference_ligand_id]
+            )
         except Exception as e:
             raise Exception(
                 'Failure to get centroid residue for canonical site!\n'
                 f'{conformer_site_id}\n'
                 f'{conformer_site.residues}\n'
-                )
-    
+            )
+
         canonical_site = dt.CanonicalSite(
             [
                 conformer_site_id,
