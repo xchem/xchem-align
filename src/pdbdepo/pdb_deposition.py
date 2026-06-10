@@ -13,6 +13,7 @@ import os
 
 import argparse
 import bz2
+import csv
 import datetime
 import glob
 import re
@@ -1086,10 +1087,10 @@ def read_fragalysis_csv(filename):
     """
     d = {}
     if filename:
-        with open(filename, 'rt') as f:
-            f.readline()  # skip header
-            for line in f:
-                tokens = line.split(',')
+        with open(filename, 'rt', newline='') as f:
+            reader = csv.reader(f)
+            next(reader)  # skip header
+            for tokens in reader:
                 if len(tokens) >= 3:
                     pose_code = tokens[0].strip()
                     crystal_name = tokens[2].strip()
