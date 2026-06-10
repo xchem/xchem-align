@@ -308,10 +308,10 @@ def process_input(
                         nrows = len(item.loop.values) // ncols
                         new_loop = structure_cif_block0.init_loop('', item.loop.tags)
                         for r in range(nrows):
-                            row = [
+                            loop_row = [
                                 item.loop.values[r * ncols + c].replace('$PoseID', pose_id_str) for c in range(ncols)
                             ]
-                            new_loop.add_row(row)
+                            new_loop.add_row(loop_row)
                 elif item.pair is not None and '$PoseID' in item.pair[1]:
                     structure_cif_block0.set_pair(item.pair[0], item.pair[1].replace('$PoseID', pose_id_str))
                     to_add = False
