@@ -1,39 +1,66 @@
-# PDB deposition User Guide
+# PDB Deposition User Guide
 
-The `pdb_deposition` tool generates data suitable for deposition to the Protein Databank through PDBe.
-Entries that have a `RefinementOutcome` status in soakDB of `5 - Deposition ready` are processed, generating CIF files
-suitable for deposition.
+The `pdb_deposition` tool generates CIF files suitable for deposition to the Protein Data Bank via PDBe.
+It processes all crystals that have a `RefinementOutcome` status of `5 - Deposition ready` in SoakDB,
+producing per-crystal structure CIF and structure-factor CIF files enriched with common metadata.
 
 ## Environment
 
 You need a standard XCA environment in which to run this.
 See the [User guide](USER-GUIDE.md) for details.
 
-## Sequence and Entity information
+## Sequence and entity information
 
-These must be defined, as descriibed in the [Sequence information section](USER-GUIDE.md#sequence-information) of the
-User Guide.
+Protein sequence and entity information must be defined as described in the
+[Sequence information section](USER-GUIDE.md#sequence-information) of the User Guide.
 
-## Common metadata
+## Common metadata (`-m` / `--metadata-csv`)
 
-You need to create a `deposition-metadata.csv` file containing common information that applies to all crystals that
-are processed. This includes information such as authors, institutions etc.
-Use an existing file as a starting point for this.
+You must supply a `deposition-metadata.csv` file containing information that applies to all crystals:
+authors, institutions, grant details, crystal growth conditions, experimental method, etc.
+Use an existing file as a starting point.
 
-## MMCIF title field
+The file uses an mmcif-gen template format where each row defines one CIF field.
+Columns are: category, item, headers, required, info, and one or more value columns.
 
-The `deposition-metadata.csv` file has a `_struct,title` line that allows the `_struct` property to be defined.
-The value is a template that is expanded with values know to the `pdb_depo` process. A example would be:
+### Token substitution
+
+Several fields in the template support placeholder tokens that are expanded per-crystal at run time.
+Tokens may appear in any field value, including `_struct.title` and `_struct_keywords.text`.
+
+| Token | Replaced with |
+|---|---|
+| `$CompoundCode` | The compound code from SoakDB for this crystal |
+| `$CrystalName` | The crystal name from SoakDB |
+| `$ExternalCode2`…`$ExternalCode9` | Values from the compound-codes CSV (see below) |
+| `$PoseID` | Comma-separated pose codes from the Fragalysis download CSV (see below) |
+
+Any `$ExternalCode` token that cannot be substituted (no entry in the file, or column absent) is
+removed from the output rather than left as a literal token.
+
+### Example title template
+
 ```
 _struct,title,,,,Crystal structure of Lysozyme in complex with $CompoundCode ($CrystalName) (Compound ID $ExternalCode3),,,,,,,,,,
 ,,,,,,,,,,,,,,,
 ```
 
-The 6th item is the template. The `$CompoundCode` and `$CrystalName` tokens are replace with `CompoundCode` and `CrystalName`
-values from SoakDB for the specific crystal.
+### Example keywords template
 
-The `$ExternalCoden` token (when n is an integer between 1 and 9 inclusive) are values that can be defined in a CSV file
-that looks like this:
+```
+_struct_keywords,text,,,,Diamond Light Source, I04-1, ASAP Discovery Consortium, $PoseID,,,,,,,,,,
+```
+
+## Compound codes CSV (`-c` / `--compound-codes-csv`)
+
+An optional CSV file that supplies additional external identifiers for the `$ExternalCode` tokens.
+
+- The **first column** must contain the crystal name.
+- A **header row** must be present.
+- The integer `n` in `$ExternalCoden` selects the **n-th column** (1-indexed), so `$ExternalCode3`
+  takes the value from the third column.
+
+Example:
 
 ```
 CrystalName,CompoundCode,OpenBindId
@@ -42,29 +69,52 @@ Zika_NS5A-x0501,Z52214433,OB-00000150
 Zika_NS5A-x0354,Z275165822,OB-00000163
 ```
 
-- The first column MUST contain the crystal name.
-- A header line MUST be present describing the columns.
-- The integer value in the token is used to specify which column to use for the value e.g. in the example above,
-`$ExternalCode3` refers to the 3rd column, the OpenBindId.
+## Fragalysis CSV (`-f` / `--fragalysis-csv`)
 
-If any `$ExternalCoden` with n between 1 and 9 are not substituted (e.g. there was no record in the file for that crystal
-or the column was not present) then the token is just removed from the title.
+An optional CSV file downloaded from Fragalysis that provides pose codes for the `$PoseID` token.
+This is the `metadata.csv` from a Fragalysis dataset download.
+
+- **Column 1** — pose code (e.g. `A71EV2A-x0836a`)
+- **Column 3** — crystal / experiment code that matches the SoakDB crystal name (e.g. `A71EV2A-x0836`)
+
+When a crystal has more than one pose, all codes are written comma-separated:
+
+```
+A71EV2A-x0836a, A71EV2A-x0836b
+```
+
+If a crystal has no entry in this file, `$PoseID` is replaced with an empty string.
 
 ## Running pdb_deposition
 
-Run as follows:
+```
+python -m pdbdepo.pdb_deposition \
+    -w <path-to-collator-output>/upload-current/upload_1 \
+    -m <path-to>/deposition-metadata.csv \
+    -c <path-to>/compound_codes.csv \
+    -f <path-to>/fragalysis-download/metadata.csv
+```
 
-```
-python -m pdbdepo.pdb_deposition -w <path-to-xca-collator-output>/upload-current/upload_1 -m <path-to>/deposition-metadata.csv -c <path-to>/compound_codes.csv
-```
+### All arguments
+
+| Argument | Required | Description |
+|---|---|---|
+| `-w` / `--collator-dir` | Yes | Path to the collator output directory (the `upload_N` dir containing `config.yaml` and `meta_collator.yaml`) |
+| `-m` / `--metadata-csv` | Yes | Path to the common metadata CSV used by mmcif-gen |
+| `-c` / `--compound-codes-csv` | No | Path to the compound codes CSV supplying `$ExternalCode` values |
+| `-f` / `--fragalysis-csv` | No | Path to the Fragalysis download `metadata.csv` supplying `$PoseID` values |
+| `-d` / `--debug` | No | Copy source input files into the output directory alongside the generated CIF files |
+| `--log-level` | No | Logging verbosity: `0` = INFO (default), `1` = WARN, `2` = ERROR |
 
 ## Output
 
-The resulting files are written to a `pdb_depo_files` directory within the collator output dir:
+All output is written to a `pdb_depo_files/` directory inside the collator output dir:
 
-1. `ligands.tab` containing the SMILES and InCHI for the ligands
-2. `pdb_dep.log` the log file (the location can be changed using the `-l` or `--log-file` option)
-3. A directory for each crystal containing `*_struc.cif` (the 3D model), `*_sf.cif` (the merged structure factors from)
-   the MTZ latest, MTZ free and any PanDDAs event maps.
+1. `pdb_depo.log` — log file for the run
+2. `ligands.tab` — SMILES and InChI strings for all processed ligands
+3. One subdirectory per crystal, each containing:
+   - `<crystal>_struc.cif` — the 3D model CIF, ready for PDBe deposition
+   - `<crystal>_sf.cif` — merged structure factors (from MTZ latest, MTZ free, and any PanDDA event maps)
 
-If you specify the `-d` or `--debug` option the files that are used to generate those files are also copied to this directory.
+When `-d` / `--debug` is specified, the intermediate source files used to build those outputs are
+also copied into each crystal's subdirectory.
