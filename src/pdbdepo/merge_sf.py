@@ -72,9 +72,9 @@ def run(
     mtz_blk.name = "rxxxxsf"
     mtz_blk.set_pair("_audit.revision_id", "1_0")
     mtz_blk.set_pair("_audit.creation_date", formatted_date)
-    mtz_blk.set_pair("_audit.update_record", "Initial release")
+    mtz_blk.set_pair("_audit.update_record", '"Initial release"')
     mtz_blk.set_pair("_diffrn.id", "1")
-    mtz_blk.set_pair("_diffrn.details", "data from final refinement with ligand, " + latest_mtz_file)
+    mtz_blk.set_pair("_diffrn.details", '"data from final refinement with ligand ' + latest_mtz_file + '"')
     wavelength = read_pair_value(mtz_blk, '_diffrn_radiation_wavelength.wavelength')
     doc_final.add_copied_block(mtz_blk)
 
@@ -84,7 +84,7 @@ def run(
     mtz_blk = mtz_doc.sole_block()
     mtz_blk.name = "rxxxxAsf"
     mtz_blk.set_pair("_diffrn.id", "1")
-    mtz_blk.set_pair("_diffrn.details", "data from original reflections, " + free_mtz_file)
+    mtz_blk.set_pair("_diffrn.details", '"data from original reflections ' + free_mtz_file + '"')
     doc_final.add_copied_block(mtz_blk)
 
     # handle the event map data
@@ -96,7 +96,9 @@ def run(
             mtz_blk = mtz_doc.sole_block()
             mtz_blk.name = "rxxxxBsf" + str(i)
             mtz_blk.set_pair("_diffrn.id", "1")
-            mtz_blk.set_pair("_diffrn.details", "data for ligand evidence map (PanDDA event map), " + event_map_source)
+            mtz_blk.set_pair(
+                "_diffrn.details", '"data for ligand evidence map (PanDDA event map) ' + event_map_source + '"'
+            )
             if wavelength:
                 mtz_blk.set_pair("_diffrn_radiation_wavelength.id", "1")
                 mtz_blk.set_pair("_diffrn_radiation_wavelength.wavelength", wavelength)
