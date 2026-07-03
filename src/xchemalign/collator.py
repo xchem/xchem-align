@@ -141,12 +141,13 @@ class Input:
 
 
 class Collator:
-    def __init__(self, working_dir, include_git_info=False, no_validate_configs=False):
+    def __init__(self, working_dir, include_git_info=False, no_validate_configs=False, force_superseded=False):
         self.errors = []
         self.warnings = []
 
         self.include_git_info = include_git_info
         self.no_validate_configs = no_validate_configs
+        self.force_superseded = force_superseded
 
         self.working_dir = Path(working_dir)
         self.output_path = self.working_dir / "upload-current"
@@ -933,8 +934,8 @@ class Collator:
                         # do any chain renaming here
                         digest = utils.gen_sha256(pdb_input)
                         old_digest = historical_xtal_data.get(Constants.META_XTAL_PDB, {}).get(Constants.META_SHA256)
-                        if digest != old_digest:
-                            # PDB is new or changed
+                        if digest != old_digest or self.force_superseded:
+                            # PDB is new or changed (or being force-superseded)
                             if old_digest is not None:
                                 self.logger.info("PDB file for {} has changed".format(xtal_name))
                             pdb_name = xtal_name + ".pdb"
@@ -951,7 +952,7 @@ class Collator:
                             old_digest = historical_xtal_data.get(Constants.META_XTAL_MTZ, {}).get(
                                 Constants.META_SHA256
                             )
-                            if digest != old_digest:
+                            if digest != old_digest or self.force_superseded:
                                 if old_digest is not None:
                                     self.logger.info("MTZ file for {} has changed".format(xtal_name))
                                 mtz_name = xtal_name + ".mtz"
@@ -974,7 +975,7 @@ class Collator:
                             old_digest = historical_xtal_data.get(Constants.META_XTAL_CIF, {}).get(
                                 Constants.META_SHA256
                             )
-                            if digest != old_digest:
+                            if digest != old_digest or self.force_superseded:
                                 if old_digest is not None:
                                     self.logger.info("CIF file for {} has changed".format(xtal_name))
                                 cif_name = xtal_name + ".cif"
@@ -1037,7 +1038,7 @@ class Collator:
                                 hist_data = hist_event_maps.get(ligand_key)
                                 # Track whether the event map actually is new by data
                                 if hist_data:
-                                    if digest == hist_data.get(Constants.META_SHA256):
+                                    if digest == hist_data.get(Constants.META_SHA256) and not self.force_superseded:
                                         identical_historical_event_maps[ligand_key] = True
                                         self.logger.info(
                                             "Event map {} for {} is unchanged".format(ligand_key, xtal_name)
@@ -1323,6 +1324,11 @@ class Collator:
         # get any user defined overrides
         overrides = self.config.get(Constants.CONFIG_OVERRIDES, {})
 
+        if self.force_superseded:
+            self.logger.info(
+                "--force-superseded is set: crystals that would be 'unchanged' will be forced to 'superseded'"
+            )
+
         count = 0
         for metad in self.meta_history:
             count += 1
@@ -1383,6 +1389,8 @@ class Collator:
         old_sha256 = old_pdb_data[Constants.META_SHA256]
         new_sha256 = new_pdb_data[Constants.META_SHA256]
         if old_sha256 == new_sha256:
+            if self.force_superseded:
+                return Constants.META_STATUS_SUPERSEDED
             return Constants.META_STATUS_UNCHANGED
         else:
             return Constants.META_STATUS_SUPERSEDED
@@ -1505,6 +1513,13 @@ def main():
         action="store_true",
         help="Don't validate config.yaml and assemblies.yaml against their schemas",
     )
+    parser.add_argument(
+        "-f",
+        "--force-superseded",
+        action="store_true",
+        help="Force all otherwise-unchanged crystals to 'superseded' status so they are "
+        "re-processed and included in the next upload (use when non-PDB inputs changed)",
+    )
 
     args = parser.parse_args()
 
@@ -1535,6 +1550,7 @@ def main():
             working_dir,
             include_git_info=args.no_git_info,
             no_validate_configs=args.no_validate_configs,
+            force_superseded=args.force_superseded,
         )
 
         if logger.errors:
