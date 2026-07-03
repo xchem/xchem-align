@@ -437,6 +437,23 @@ covalent: true
 There was previously a mechanism to manually override the status of any crystal. This feature has now been removed.
 Instead you should set the status is soakDB to `7 - Analysed & Rejected`.
 
+#### Forcing structures into an upload
+
+By default the collator decides each crystal's status by comparing the SHA256 of its PDB file against the previous
+version: if the PDB is unchanged the crystal is marked `unchanged` and is left out of the next upload (it keeps its
+previous version in Fragalysis and is not re-aligned).
+
+Sometimes something that matters changes without the PDB file changing — for example an edit to `assemblies.yaml`. In
+that situation you can force all otherwise-`unchanged` crystals to `superseded` status for a single run so that they are
+re-processed and included in the next upload:
+
+```
+python -m xchemalign.collator -d <working_dir> --force-superseded
+```
+
+This flag applies only to the run in which it is given. Crystals that are `new` remain `new`, and crystals that have
+been rejected in soakDB remain `deprecated`.
+
 ### 2.3. The assemblies YAML
 
 This file specifies both the biological *assemblies* and *crystalforms* relative to some reference PDBs.
