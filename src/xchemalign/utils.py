@@ -192,14 +192,11 @@ BOND_TYPES = {
     'single': Chem.rdchem.BondType.SINGLE,
     'double': Chem.rdchem.BondType.DOUBLE,
     'triple': Chem.rdchem.BondType.TRIPLE,
-    'SINGLE': Chem.rdchem.BondType.SINGLE,
-    'DOUBLE': Chem.rdchem.BondType.DOUBLE,
-    'TRIPLE': Chem.rdchem.BondType.TRIPLE,
     'aromatic': Chem.rdchem.BondType.AROMATIC,
     'deloc': Chem.rdchem.BondType.SINGLE,
-    'SING': Chem.rdchem.BondType.SINGLE,
-    'DOUB': Chem.rdchem.BondType.DOUBLE,
-    'TRIP': Chem.rdchem.BondType.TRIPLE,
+    'sing': Chem.rdchem.BondType.SINGLE,
+    'doub': Chem.rdchem.BondType.DOUBLE,
+    'trip': Chem.rdchem.BondType.TRIPLE,
 }
 
 
@@ -520,7 +517,7 @@ def gen_mols_from_cif(cif_file):
                 mol.AddBond(
                     atoms[strip_quotes(a1)].GetIntProp('idx'),
                     atoms[strip_quotes(a2)].GetIntProp('idx'),
-                    BOND_TYPES[bt],
+                    BOND_TYPES[bt.lower()],
                 )
         except:
             print('CIF file')
