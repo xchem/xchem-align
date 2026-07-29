@@ -28,6 +28,7 @@ dependencies = [
     'requests-toolbelt == 1.0.0',
     # for pdb deposition
     'mmcif-gen == 1.2.2',
+    'beautifulsoup4 == 4.14.3',
     # from lna
     'loguru == 0.7.3',
     'pydantic==2.6.0',

@@ -10,6 +10,7 @@ src/xchemalign.egg-info/
 src/xchemalign/_version.py
 test-data/outputs
 test-data/outputs/upload_*
+!test-data/processing_stats/*.log
 *.ipynb
 venv*
 .vscode
