@@ -59,10 +59,10 @@ There is an environment at Diamond where users run the XChem align code on their
 This can be found on the Diamond file system at `/dls/science/groups/i04-1/software/xchem-align`.
 To roll out a new version of this:
 
-1. Check that the repos are up to date on the `master` (XCA) and `main` (LNA) branches.
+1. Check that the repo is up to date on the `master` branch.
 2. Test locally
 3. Tag the XCA repo and push the tag: `git tag 1.2.3` and `git push origin 1.2.3` (using the appropriate tag number)
-4. ssh to Diamond and move into the `/dls/science/groups/i04-1/software/xchem-align` dir
+4. ssh to Diamond. Then ssh to wilson. Then run `srun --nodes=1 --ntasks=4 --partition=cs05r --pty bash`  and move into the `/dls/science/groups/i04-1/software/xchem-align` dir
 5. `git pull` - update the repo
 6. `git tag` - check you have the expected tag
 7. `rm -rf env_xchem_align` - remove the old conda environment
