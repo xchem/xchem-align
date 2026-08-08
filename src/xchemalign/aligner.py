@@ -896,8 +896,24 @@ def main():
                     f = shutil.copy2(logger.logfilename, to_path)
                     if not f:
                         print("Failed to copy log file {} to {}".format(logger.logfilename, to_path))
+    except MemoryError:
+        tb = traceback.format_exc()
+        if args.dir:
+            wd = args.dir
+        else:
+            wd = Path.cwd()
+        logger.error(
+            "Memory error occurred when running aligner.\n"
+            + "Possibly this can be addressed by running on the IRIS Slurm cluster where more memory is available.\n"
+            + "See https://xchem-align.readthedocs.io/en/latest/USER-GUIDE.html#using-the-slurm-cluster for details.\n"
+            + tb
+            + "\nOtherwise please send this information to the XCA developers:\nLog file: "
+            + str(logger.logfilename)
+            + "\nWorking dir location: "
+            + str(wd)
+        )
     except:
-        # uncaught exception
+        # other uncaught exception
         tb = traceback.format_exc()
         if args.dir:
             wd = args.dir
