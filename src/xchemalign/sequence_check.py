@@ -145,7 +145,7 @@ def collect_candidates(sequences_config, default_seq, variants):
     if not sequences_config or default_seq is None:
         return candidates
 
-    candidates[sequences_config.get(Constants.CONFIG_DEFAULT, 'default.fa')] = default_seq
+    candidates[sequences_config.get(Constants.CONFIG_DEFAULT, Constants.DEFAULT_SEQUENCES_FILE)] = default_seq
     for variant in sequences_config.get(Constants.CONFIG_VARIANTS) or []:
         name = variant.get(Constants.CONFIG_SEQUENCE)
         for xtal in variant.get(Constants.CONFIG_CRYSTALS) or []:
