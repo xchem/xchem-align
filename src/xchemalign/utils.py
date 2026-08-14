@@ -47,6 +47,8 @@ class Constants:
     VERSION_DIR_PREFIX = "upload_"
     DEFAULT_SOAKDB_PATH = "processing/database/soakDBDataFile.sqlite"
     DEFAULT_MODEL_BUILDING_DIR = "processing/analysis/model_building"
+    DEFAULT_SEQUENCES_DIR = "processing/analysis/sequences"
+    DEFAULT_SEQUENCES_FILE = "default.fa"
     CONFIG_INPUTS = "inputs"
     CONFIG_TYPE = "type"
     CONFIG_DIR = "dir"
@@ -667,6 +669,30 @@ def collect_manual_files(manual_input_path: Path):
     return data
 
 
+def sequence_file_paths(input_yaml):
+    """
+    The FASTA files declared for an input, as paths relative to the input's dir. The copier uses this to
+    know what to copy; read_sequences() resolves the same paths when it reads them, so the two agree on
+    where the files live.
+
+    :param input_yaml: the input section of config.yaml
+    :return: list of paths relative to the input's dir, empty if the input declares no sequences
+    """
+    sequences = input_yaml.get(Constants.CONFIG_SEQUENCES)
+    if not sequences:
+        return []
+
+    seq_dir = Path(sequences.get(Constants.CONFIG_DIR, Constants.DEFAULT_SEQUENCES_DIR))
+    paths = [seq_dir / sequences.get(Constants.CONFIG_DEFAULT, Constants.DEFAULT_SEQUENCES_FILE)]
+    for variant in sequences.get(Constants.CONFIG_VARIANTS) or []:
+        name = variant.get(Constants.CONFIG_SEQUENCE)
+        if name:
+            p = seq_dir / name
+            if p not in paths:
+                paths.append(p)
+    return paths
+
+
 def read_sequences(base_p, input_yaml, fatal=True):
     """
     Read the sequence definitions for an input.
@@ -692,8 +718,8 @@ def read_sequences(base_p, input_yaml, fatal=True):
             log.warn('sequences definitions not found in config.yaml for input', dir1)
         return None, xtal_to_seq
 
-    dir2 = sequences.get(Constants.CONFIG_DIR, 'processing/analysis/sequences')
-    seq_default = sequences.get(Constants.CONFIG_DEFAULT, 'default.fa')
+    dir2 = sequences.get(Constants.CONFIG_DIR, Constants.DEFAULT_SEQUENCES_DIR)
+    seq_default = sequences.get(Constants.CONFIG_DEFAULT, Constants.DEFAULT_SEQUENCES_FILE)
     p = base_p / dir1 / dir2 / seq_default
     chain_seqs_default = read_fasta(p, fatal=fatal)
     if chain_seqs_default is None:
