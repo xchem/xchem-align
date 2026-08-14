@@ -80,6 +80,19 @@ def generate_collection_info_path(xtal_dir_path, xtal_name):
         return None
 
 
+# ISPYB/SynchWeb records two Diamond beamlines under internal names that the wwPDB mmCIF
+# dictionary does not accept. See https://github.com/m2ms/fragalysis-frontend/issues/2329
+BEAMLINE_RENAMES = {
+    'I02-1': 'VMXm',
+    'I02-2': 'VMXi',
+}
+
+# Enumeration of _diffrn_source.type from mmcif_pdbx_v50.dic, Diamond entries only
+WWPDB_DIAMOND_BEAMLINES = {'I02', 'I03', 'I04', 'I04-1', 'I23', 'I24', 'VMXi', 'VMXm'}
+
+DIAMOND_BEAMLINE_PREFIX = 'DIAMOND BEAMLINE '
+
+
 def read_software_templates():
     d = {}
     repo_path = find_repo_base()
@@ -465,6 +478,9 @@ def process_input(
             if coordinates_pos is not None:
                 structure_cif_block0.move_item(coordinates_pos, item_count - 1)
 
+            for change in rename_beamlines(structure_cif_block0):
+                info('renamed beamline:', change)
+
             for issue in validate_structure_cif_doc(structure_cif_doc, xtal_name):
                 warn('CIF validation:', issue)
 
@@ -724,6 +740,43 @@ def read_pairs(block, prefix, erase: bool):
     return d
 
 
+def rename_beamlines(block: cif.Block) -> list[str]:
+    """Rewrite Diamond's internal beamline names in _diffrn_source to their wwPDB equivalents.
+
+    ISPYB (SynchWeb) calls VMXi "I02-2" and VMXm "I02-1", but the wwPDB mmCIF dictionary only
+    accepts the public names. Both _diffrn_source.pdbx_synchrotron_beamline (e.g. "I02-2") and
+    _diffrn_source.type (e.g. "DIAMOND BEAMLINE I02-2") carry the name, so both are rewritten.
+
+    Returns a list of "old -> new" strings describing what was changed.
+    """
+    # find_values() handles both the loop and the pair form, and unlike loop.values it can be
+    # assigned to in place (loop.values returns a copy, so writing to it silently does nothing)
+    changes = []
+
+    beamline_col = block.find_values('_diffrn_source.pdbx_synchrotron_beamline')
+    if beamline_col:
+        for i, raw in enumerate(beamline_col):
+            old = cif.as_string(raw)
+            new = BEAMLINE_RENAMES.get(old)
+            if new:
+                beamline_col[i] = cif.quote(new)
+                changes.append('_diffrn_source.pdbx_synchrotron_beamline ' + old + ' -> ' + new)
+
+    type_col = block.find_values('_diffrn_source.type')
+    if type_col:
+        for i, raw in enumerate(type_col):
+            old = cif.as_string(raw)
+            if old.startswith(DIAMOND_BEAMLINE_PREFIX):
+                # match the name exactly, never as a substring: I02 is itself a valid beamline
+                new_name = BEAMLINE_RENAMES.get(old[len(DIAMOND_BEAMLINE_PREFIX) :])
+                if new_name:
+                    new = DIAMOND_BEAMLINE_PREFIX + new_name
+                    type_col[i] = cif.quote(new)
+                    changes.append('_diffrn_source.type ' + old + ' -> ' + new)
+
+    return changes
+
+
 def build_loop(block: cif.Block, tags1, values1, tags2, values2):
     """Create a single-row loop in block by concatenating two tag/value lists.
 
@@ -855,6 +908,16 @@ def validate_structure_cif_doc(doc: cif.Document, xtal_name: str = '') -> list[s
                     issues.append(prefix + f'_software.pdbx_ordinal is not an integer: {sw_values[i]!r}')
             if ordinals and ordinals != list(range(1, len(ordinals) + 1)):
                 issues.append(prefix + f'_software.pdbx_ordinal is not sequential starting at 1: {ordinals}')
+
+    # 7. Diamond beamline names must be ones the wwPDB dictionary accepts
+    type_col = block.find_values('_diffrn_source.type')
+    if type_col:
+        for raw in type_col:
+            val = cif.as_string(raw)
+            if val.startswith(DIAMOND_BEAMLINE_PREFIX):
+                name = val[len(DIAMOND_BEAMLINE_PREFIX) :]
+                if name not in WWPDB_DIAMOND_BEAMLINES:
+                    issues.append(prefix + f'_diffrn_source.type is not a wwPDB beamline name: {val!r}')
 
     return issues
 
