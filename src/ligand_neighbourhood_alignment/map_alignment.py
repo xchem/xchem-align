@@ -386,7 +386,7 @@ def _write_xmap_from_ccp4(ccp4, path):
 
 def _write_cut_xmap(new_xmap, aligned_res, crystallographic_output_path):
     new_st = gemmi.Structure()
-    new_model = gemmi.Model("0")
+    new_model = gemmi.Model(0)
     new_st.add_model(new_model)
     chain = gemmi.Chain("A")
 

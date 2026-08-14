@@ -55,7 +55,7 @@ def structure_to_landmarks(st):
 
 def _landmark_to_structure(lm):
     st = gemmi.Structure()
-    model = gemmi.Model("0")
+    model = gemmi.Model(0)
     st.add_model(model)
 
     used_chains = []
