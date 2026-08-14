@@ -350,6 +350,10 @@ def process_input(
             data_processing_prog = row.get(Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM)
             if data_processing_prog == 'dials':
                 data_processing_prog = 'xia2-dials'
+            elif data_processing_prog and data_processing_prog.startswith('xia2.multiplex'):
+                # value seen in the wild is "xia2.multiplex sample_group" (a free-text suffix
+                # identifying the multi-crystal grouping is appended after the program name)
+                data_processing_prog = 'xia2-multiplex'
             if data_processing_prog and data_processing_prog != 'None':
                 data_processing_prog = data_processing_prog.lower()
                 info('data processing was done with ' + data_processing_prog)

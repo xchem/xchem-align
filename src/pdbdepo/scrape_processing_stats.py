@@ -2,6 +2,7 @@ import argparse
 import re
 from pathlib import Path
 import gemmi
+from bs4 import BeautifulSoup
 from gemmi import cif
 
 from xchemalign import utils
@@ -176,6 +177,98 @@ def handle_xia_3dii(file):
     return handle_text_file(file, d_xia_3dii)
 
 
+# maps the row label in the xia2.multiplex HTML report's "Overall" table to the reflns key.
+# the "Resolution" and "Completeness" rows need bespoke handling (range splitting / '%' stripping)
+# so are not included here.
+_XIA2_MULTIPLEX_ROW_KEYS = {
+    'Observations': KEY_REFLNS_NUM_MEASURED,
+    'Unique reflections': KEY_REFLNS_NUM_OBSERVED,
+    'Multiplicity': KEY_REFLNS_PDBX_REDUNDANCY,
+    'Mean I/σ(I)': KEY_REFLNS_NETI_OVER_SIGMA,
+    'Rmerge': KEY_REFLNS_PDBX_RMERGE_I_OBS,
+    'Rmeas': KEY_REFLNS_PDBX_RRIM_I_ALL,
+    'Rpim': KEY_REFLNS_PDBX_RPIM_I_ALL,
+    'CC½': KEY_REFLNS_PDBX_CC_HALF,
+}
+
+
+def _find_xia2_multiplex_overall_table(soup, panel_id='collapse_overall_All_data'):
+    """Find the "Overall" stats table for the combined ("All data") dataset.
+
+    Returns a dict of row label -> [Overall, Low resolution, High resolution] cell text,
+    or None if the panel/table couldn't be found.
+    """
+    panel = soup.find(id=panel_id)
+    if panel is None:
+        return None
+    table = panel.find('table')
+    if table is None:
+        return None
+    data = {}
+    for row in table.find_all('tr')[1:]:  # first row is the column header
+        cells = row.find_all(['th', 'td'])
+        if not cells:
+            continue
+        data[cells[0].get_text(strip=True)] = [c.get_text(strip=True) for c in cells[1:]]
+    return data
+
+
+def handle_xia2_multiplex(file):
+    """Parse the xia2.multiplex HTML report (not a plain-text log, unlike the other processing
+    programs), pulling stats from the "Overall" summary table of the combined "All data" dataset.
+    """
+    reflns = {KEY_REFLNS_ENTRY_ID: 'UNNAMED', KEY_REFLNS_DIFFRN_ID: 1, KEY_REFLNS_PDBX_ORDINAL: 1}
+    shell = {KEY_REFLNS_DIFFRN_ID: (1, 1), KEY_REFLNS_PDBX_ORDINAL: (1, 2)}
+
+    if file is None:
+        error('Log file not defined')
+        return reflns, shell
+    elif not Path(file).is_file():
+        error('Log file ' + str(file) + ' not present')
+        return reflns, shell
+
+    with open(file, 'rt', encoding='utf-8') as f:
+        soup = BeautifulSoup(f, 'html.parser')
+
+    table_data = _find_xia2_multiplex_overall_table(soup)
+    if table_data is None:
+        warn('could not find "Overall" stats table in xia2.multiplex report ' + str(file))
+        return reflns, shell
+
+    resolution = table_data.get('Resolution (Å)')
+    if resolution is None or len(resolution) != 3:
+        warn('key ' + KEY_REFLNS_RESO_LOW + '/' + KEY_REFLNS_RESO_HIGH + ' not found for reflns')
+    else:
+        overall_low, overall_high = (v.strip() for v in resolution[0].split('-'))
+        low_shell_low, low_shell_high = (v.strip() for v in resolution[1].split('-'))
+        high_shell_low, high_shell_high = (v.strip() for v in resolution[2].split('-'))
+        reflns[KEY_REFLNS_RESO_LOW] = overall_low
+        reflns[KEY_REFLNS_RESO_HIGH] = overall_high
+        # first row is outer (high resolution) shell, second is inner (low resolution) shell
+        shell[_replace_shell_key(KEY_REFLNS_RESO_LOW)] = (high_shell_low, low_shell_low)
+        shell[_replace_shell_key(KEY_REFLNS_RESO_HIGH)] = (high_shell_high, low_shell_high)
+
+    for label, key in _XIA2_MULTIPLEX_ROW_KEYS.items():
+        values = table_data.get(label)
+        if values is None or len(values) != 3:
+            warn('key ' + key + ' not found for reflns')
+            continue
+        reflns[key] = values[0]
+        shell[_replace_shell_key(key)] = (values[2], values[1])
+
+    completeness = table_data.get('Completeness')
+    if completeness is None or len(completeness) != 3:
+        warn('key ' + KEY_REFLNS_POSSIBLE_OBS + ' not found for reflns')
+    else:
+        reflns[KEY_REFLNS_POSSIBLE_OBS] = completeness[0].rstrip('%')
+        shell[_replace_shell_key(KEY_REFLNS_POSSIBLE_OBS)] = (
+            completeness[2].rstrip('%'),
+            completeness[1].rstrip('%'),
+        )
+
+    return reflns, shell
+
+
 def handle_file(file, type, doc: cif.Document, outputfile: str):
     if type == 'autoproc':
         reflns, shell = handle_autoproc(file)
@@ -183,6 +276,8 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
         reflns, shell = handle_autoproc_staraniso(file)
     elif type == 'xia_3dii':
         reflns, shell = handle_xia_3dii(file)
+    elif type == 'xia2-multiplex':
+        reflns, shell = handle_xia2_multiplex(file)
     else:
         info('Unsupported type: ' + type)
         return None

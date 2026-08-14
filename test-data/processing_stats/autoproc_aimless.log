@@ -1,0 +1,24 @@
+# Real excerpt from an autoPROC aimless.log (A71EV2A-x0836, lb32627-66), trimmed to the
+# summary section that handle_autoproc()/handle_text_file() scans for.
+Summary data for        Project: lb32627v225 Crystal: xA71EV2Ax08361 Dataset: 1
+
+                                           Overall  InnerShell  OuterShell
+Low resolution limit                       46.38     46.38      1.41
+High resolution limit                       1.34      4.24      1.34
+
+Rmerge  (within I+/I-)                     0.162     0.054     2.339
+Rmerge  (all I+ and I-)                    0.173     0.057     2.543
+Rmeas (within I+/I-)                       0.189     0.063     2.727
+Rmeas (all I+ & I-)                        0.186     0.061     2.737
+Rpim (within I+/I-)                        0.097     0.032     1.397
+Rpim (all I+ & I-)                         0.068     0.022     1.005
+Rmerge in top intensity bin                0.053        -         -
+Total number of observations              210486      7398     27769
+Total number unique                        28848      1019      3860
+Mean((I)/sd(I))                              6.5      23.5       0.7
+Mn(I) half-set correlation CC(1/2)         0.997     0.998     0.376
+Completeness                                92.5      99.4      85.4
+Multiplicity                                 7.3       7.3       7.2
+Mean(Chi^2)                                 0.75      0.73      0.62
+
+Anomalous completeness                      91.5      99.7      84.0
