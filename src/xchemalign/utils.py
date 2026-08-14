@@ -667,66 +667,98 @@ def collect_manual_files(manual_input_path: Path):
     return data
 
 
-def read_sequences(base_p, input_yaml):
+def read_sequences(base_p, input_yaml, fatal=True):
+    """
+    Read the sequence definitions for an input.
+
+    :param base_p: the base dir the input's dir is relative to
+    :param input_yaml: the input section of config.yaml
+    :param fatal: if True a missing sequences section or FASTA file terminates the process, if False it is
+        reported as a warning and (None, {}) is returned. The collator uses fatal=False as sequences are
+        optional there, pdb_deposition needs them so uses the default.
+    :return: tuple of (default chain->(entity, seq) dict, dict of crystal name -> that crystal's variant dict)
+    """
+    log = get_singleton_logger()
     dir1 = input_yaml.get(Constants.CONFIG_DIR)
     sequences = input_yaml.get(Constants.CONFIG_SEQUENCES)
     xtal_to_seq = {}
-    chain_seqs_default = None
-    if not sequences and input_yaml.get(Constants.CONFIG_TYPE) == Constants.CONFIG_TYPE_MODEL_BUILDING:
-        LOG.error('sequences definitions not found in config.yaml for input', input_yaml.get(Constants.CONFIG_DIR))
-        exit(1)
-    else:
-        dir2 = sequences.get(Constants.CONFIG_DIR, 'processing/analysis/sequences')
-        seq_default = sequences.get(Constants.CONFIG_DEFAULT, 'default.fa')
-        p = base_p / dir1 / dir2 / seq_default
-        chain_seqs_default = read_fasta(p)
-        LOG.info('read default sequence', p, 'containing chains', ' '.join(chain_seqs_default.keys()))
-        variants = sequences.get(Constants.CONFIG_VARIANTS)
+    if not sequences:
+        # note: sequences are only ever defined for model_building inputs, the config schema forbids them
+        # on manual ones, so there is nothing to read and nothing to complain about in that case
+        if input_yaml.get(Constants.CONFIG_TYPE) == Constants.CONFIG_TYPE_MODEL_BUILDING:
+            if fatal:
+                log.error('sequences definitions not found in config.yaml for input', dir1)
+                exit(1)
+            log.warn('sequences definitions not found in config.yaml for input', dir1)
+        return None, xtal_to_seq
 
-        if variants:
-            for variant in variants:
-                seq = variant.get(Constants.CONFIG_SEQUENCE)
-                p = base_p / dir1 / dir2 / seq
-                chain_seqs_variant = read_fasta(p)
-                xtals = variant.get(Constants.CONFIG_CRYSTALS)
-                for xtal in xtals:
-                    xtal_to_seq[xtal] = chain_seqs_variant
-                LOG.info(
-                    'read variant sequence',
-                    p,
-                    'containing chains',
-                    ' '.join(chain_seqs_variant.keys()),
-                    'for crystals',
-                    ' '.join(xtals),
-                )
+    dir2 = sequences.get(Constants.CONFIG_DIR, 'processing/analysis/sequences')
+    seq_default = sequences.get(Constants.CONFIG_DEFAULT, 'default.fa')
+    p = base_p / dir1 / dir2 / seq_default
+    chain_seqs_default = read_fasta(p, fatal=fatal)
+    if chain_seqs_default is None:
+        return None, xtal_to_seq
+    log.info('read default sequence', p, 'containing chains', ' '.join(chain_seqs_default.keys()))
+    variants = sequences.get(Constants.CONFIG_VARIANTS)
+
+    if variants:
+        for variant in variants:
+            seq = variant.get(Constants.CONFIG_SEQUENCE)
+            p = base_p / dir1 / dir2 / seq
+            chain_seqs_variant = read_fasta(p, fatal=fatal)
+            if chain_seqs_variant is None:
+                continue
+            xtals = variant.get(Constants.CONFIG_CRYSTALS)
+            for xtal in xtals:
+                xtal_to_seq[xtal] = chain_seqs_variant
+            log.info(
+                'read variant sequence',
+                p,
+                'containing chains',
+                ' '.join(chain_seqs_variant.keys()),
+                'for crystals',
+                ' '.join(xtals),
+            )
 
     return chain_seqs_default, xtal_to_seq
 
 
-def read_fasta(seq_p):
+def read_fasta(seq_p, fatal=True):
+    """
+    Read a FASTA file whose titles define the entity and its chains e.g. '> A AB' means entity A
+    present as chains A and B.
+
+    :param seq_p: path of the FASTA file
+    :param fatal: if True a missing file terminates the process, if False it is reported as a warning
+        and None is returned
+    :return: dict keyed by chain name, values a tuple of (entity name, one letter sequence)
+    """
     data = {}
-    if seq_p.is_file():
-        with open(seq_p, 'rt') as f:
-            entity_name = None
-            chain_names = []
-            chain_seq = None
-            for line in f:
-                match = re.search(r'>\s*([A-Z])\s*([A-Z]+)', line)
-                if match:
-                    if chain_names:
-                        for chain_name in chain_names:
-                            data[chain_name] = (entity_name, chain_seq)
-                    entity_name = match.group(1)
-                    chain_names = list(match.group(2))
-                    entity_seq = ''
-                else:
-                    entity_seq += line.strip()
-            if chain_names:
+    if not seq_p.is_file():
+        log = get_singleton_logger()
+        if fatal:
+            log.error('sequence file', str(seq_p), 'not found')
+            exit(1)
+        log.warn('sequence file', str(seq_p), 'not found')
+        return None
+
+    with open(seq_p, 'rt') as f:
+        entity_name = None
+        chain_names = []
+        entity_seq = ''
+        for line in f:
+            match = re.search(r'>\s*([A-Z])\s*([A-Z]+)', line)
+            if match:
+                # flush the record that has just ended before starting the new one
                 for chain_name in chain_names:
                     data[chain_name] = (entity_name, entity_seq)
-    else:
-        LOG.error('sequence file', str(seq_p), 'not found')
-        exit(1)
+                entity_name = match.group(1)
+                chain_names = list(match.group(2))
+                entity_seq = ''
+            else:
+                entity_seq += line.strip()
+        for chain_name in chain_names:
+            data[chain_name] = (entity_name, entity_seq)
 
     return data
 

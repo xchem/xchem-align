@@ -29,7 +29,7 @@ from mmcif_gen.facilities import xchem
 from rdkit import rdBase
 from rdkit import Chem
 
-from xchemalign import dbreader, utils
+from xchemalign import dbreader, sequence_check, utils
 from xchemalign.utils import Constants
 from pdbdepo import merge_sf
 from pdbdepo import scrape_processing_stats
@@ -169,6 +169,65 @@ def merge_mmcifgen_into_structure(
             structure_block.add_item(item)
 
 
+def validate_sequences(base_dir: Path, df, input_config: dict, default_seq, variants):
+    """
+    Check every structure against the sequence declared for it before anything is written.
+
+    A wrong sequence blocks deposition at the wwPDB, so this is fatal. It runs as a pass over all the
+    crystals rather than inline so that the user gets the complete list of what to fix in one go, and
+    so that no partial output is left behind.
+
+    :param base_dir: the base dir that the soakdb file paths are relative to
+    :param df: the soakdb dataframe
+    :param input_config: the input section of config.yaml
+    :param default_seq: the default chain->(entity, seq) dict
+    :param variants: dict of crystal name -> that crystal's variant dict
+    """
+    candidates = sequence_check.collect_candidates(input_config.get(Constants.CONFIG_SEQUENCES), default_seq, variants)
+    num_bad = 0
+
+    for index, row in df.iterrows():
+        xtal_name = row[Constants.SOAKDB_XTAL_NAME]
+        seq_dict = variants.get(xtal_name, default_seq)
+        if not seq_dict:
+            continue
+
+        mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
+        pdb = row.get(Constants.SOAKDB_COL_PDB)
+        if mmcif is None or mmcif == 'None':
+            model_p = base_dir / utils.make_path_relative(Path(pdb)) if pdb else None
+            struc = sequence_check.read_structure(pdb_file=model_p) if model_p else None
+        else:
+            struc = sequence_check.read_structure(mmcif_file=base_dir / utils.make_path_relative(Path(mmcif)))
+        if struc is None:
+            continue
+
+        issues = sequence_check.check_sequences(struc, seq_dict)
+        if issues:
+            num_bad += 1
+            for issue in issues:
+                error('sequence mismatch for', xtal_name + ':', issue)
+            match = sequence_check.suggest_sequence(struc, candidates)
+            if match:
+                error(
+                    xtal_name,
+                    'matches',
+                    match + ' - add it to the corresponding sequences.variants section of config.yaml',
+                )
+
+    if num_bad:
+        error(
+            'the sequences declared in config.yaml do not match',
+            num_bad,
+            'of the',
+            len(df),
+            'structures. These would be rejected by the wwPDB, so no deposition files have been written.',
+        )
+        exit(1)
+
+    info('sequences of all', len(df), 'structures match those declared in config.yaml')
+
+
 def process_input(
     base_dir: Path,
     input_path: Path,
@@ -226,6 +285,9 @@ def process_input(
     info("reading soakdb file:", soakdb_file_p)
     df = dbreader.read_pdb_depo(soakdb_file_p)
     info("read {} rows".format(len(df)))
+
+    validate_sequences(base_dir, df, input_config, default_seq, variants)
+
     for index, row in df.iterrows():
         xtal_name = row[Constants.SOAKDB_XTAL_NAME]
         seq_dict = variants.get(xtal_name, default_seq)
