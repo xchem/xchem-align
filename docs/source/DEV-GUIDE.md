@@ -93,6 +93,56 @@ The procedure for rolling out to the staging environment is identical to for the
 except that you do this in the `xchem-align-staging` directory. Ensure you checkout the required branch or tag before
 building the conda environment.
 
+### Troubleshooting the conda environment
+
+#### `JSONDecodeError` when collecting package metadata
+
+If `conda env create` fails while *Collecting package metadata (repodata.json)* with a traceback ending in
+something like:
+
+    conda.gateways.repodata.Response304ContentUnchanged
+    ...
+    json.decoder.JSONDecodeError: Unterminated string starting at: line 1 column 97806901
+
+then conda's cached copy of the channel metadata is truncated. The server answered `304 Not Modified`
+("your cached copy is current"), so conda fell back to reading the local cache and found it incomplete.
+Retrying does not help, as the server keeps answering `304` and conda keeps reading the same broken file.
+
+Clear the cache and try again:
+
+    conda clean --index-cache
+    conda env create -f environment.yaml -p env_xchem_align
+
+#### Check your channels if it keeps happening
+
+`environment.yaml` asks for `conda-forge`, but a bare channel name is resolved through your `~/.condarc`,
+so it may not be fetching from where you expect. Check with:
+
+    conda config --show-sources
+
+and confirm the resolved URLs with:
+
+    conda info | grep -A2 'channel URLs'
+
+`conda-forge` should resolve to `https://conda.anaconda.org/conda-forge`. A `custom_multichannels`,
+`custom_channels` or `channel_alias` entry redirecting it to a geographically distant mirror makes the
+~100 MB metadata download slow and prone to being truncated, which is what causes the error above. Remove
+the offending key, e.g.:
+
+    conda config --remove-key custom_multichannels
+
+leaving a `~/.condarc` of just:
+
+    channel_priority: strict
+    channels:
+      - conda-forge
+
+Note that the rollout is done inside an `srun` job (step 4 above), so a download interrupted by a job
+limit will also leave a truncated cache behind.
+
+Do not add Anaconda's `defaults` channel to work around channel problems. Anaconda's terms require a paid
+licence for organisations of Diamond's size, and `conda-forge` alone provides everything `environment.yaml`
+needs.
 
 
 ---
