@@ -8,6 +8,7 @@ from pdbdepo.pdb_deposition import (
     merge_mmcifgen_into_structure,
     read_cmpd_codes,
     read_fragalysis_csv,
+    rename_beamlines,
     substitute_tokens,
 )
 
@@ -272,3 +273,104 @@ def test_merge_mmcifgen_no_pose_ids_for_crystal():
     )
     idx = kw_item.loop.tags.index('_struct_keywords.text')
     assert '$PoseID' not in kw_item.loop.values[idx]
+
+
+# ---------------------------------------------------------------------------
+# rename_beamlines — CIF-level tests (in-memory gemmi objects)
+# ---------------------------------------------------------------------------
+
+
+def _make_diffrn_source_block(*beamlines):
+    """Return a block with a _diffrn_source loop, one row per beamline name given."""
+    doc = cif.Document()
+    block = doc.add_new_block('TEST')
+    loop = block.init_loop(
+        '',
+        [
+            '_diffrn_source.source',
+            '_diffrn_source.type',
+            '_diffrn_source.pdbx_synchrotron_site',
+            '_diffrn_source.pdbx_synchrotron_beamline',
+            '_diffrn_source.diffrn_id',
+        ],
+    )
+    for i, beamline in enumerate(beamlines):
+        loop.add_row(['SYNCHROTRON', cif.quote('DIAMOND BEAMLINE ' + beamline), 'DIAMOND', beamline, str(i + 1)])
+    return doc, block
+
+
+def _beamline_values(block):
+    """Return (type, pdbx_synchrotron_beamline) unquoted values, one tuple per row."""
+    types = block.find_values('_diffrn_source.type')
+    beamlines = block.find_values('_diffrn_source.pdbx_synchrotron_beamline')
+    return [(types.str(i), beamlines.str(i)) for i in range(len(types))]
+
+
+def test_rename_beamlines_i02_2_to_vmxi():
+    doc, block = _make_diffrn_source_block('I02-2')
+
+    changes = rename_beamlines(block)
+
+    assert _beamline_values(block) == [('DIAMOND BEAMLINE VMXi', 'VMXi')]
+    assert len(changes) == 2
+
+
+def test_rename_beamlines_i02_1_to_vmxm():
+    doc, block = _make_diffrn_source_block('I02-1')
+
+    rename_beamlines(block)
+
+    assert _beamline_values(block) == [('DIAMOND BEAMLINE VMXm', 'VMXm')]
+
+
+@pytest.mark.parametrize('beamline', ['I02', 'I03', 'I04', 'I04-1', 'I23', 'I24', 'VMXi', 'VMXm'])
+def test_rename_beamlines_leaves_wwpdb_names_untouched(beamline):
+    """Names already in the wwPDB enumeration must pass through unchanged — notably I02, which
+    must not be caught by the I02-1/I02-2 rules."""
+    doc, block = _make_diffrn_source_block(beamline)
+
+    changes = rename_beamlines(block)
+
+    assert changes == []
+    assert _beamline_values(block) == [('DIAMOND BEAMLINE ' + beamline, beamline)]
+
+
+def test_rename_beamlines_no_diffrn_source():
+    """A block with no _diffrn_source at all is a no-op, not an error."""
+    block = _make_struct_block()
+
+    assert rename_beamlines(block) == []
+
+
+def test_rename_beamlines_pair_form():
+    """_diffrn_source written as pairs rather than a loop is renamed too."""
+    doc = cif.Document()
+    block = doc.add_new_block('TEST')
+    block.set_pair('_diffrn_source.type', cif.quote('DIAMOND BEAMLINE I02-2'))
+    block.set_pair('_diffrn_source.pdbx_synchrotron_beamline', 'I02-2')
+
+    rename_beamlines(block)
+
+    assert _beamline_values(block) == [('DIAMOND BEAMLINE VMXi', 'VMXi')]
+
+
+def test_rename_beamlines_multi_row_only_renames_matching():
+    doc, block = _make_diffrn_source_block('I04-1', 'I02-2')
+
+    rename_beamlines(block)
+
+    assert _beamline_values(block) == [
+        ('DIAMOND BEAMLINE I04-1', 'I04-1'),
+        ('DIAMOND BEAMLINE VMXi', 'VMXi'),
+    ]
+
+
+def test_rename_beamlines_preserves_quoting():
+    """The rewritten values must be requoted: the type string has spaces, the bare name does not."""
+    doc, block = _make_diffrn_source_block('I02-2')
+
+    rename_beamlines(block)
+
+    written = doc.as_string()
+    assert "'DIAMOND BEAMLINE VMXi' DIAMOND VMXi" in written
+    assert 'I02-2' not in written

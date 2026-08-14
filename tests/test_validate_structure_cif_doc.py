@@ -176,3 +176,36 @@ def test_software_ordinal_non_sequential_reported():
     loop.add_row(['CCP4', '3'])  # gap — should be 2
     issues = validate_structure_cif_doc(doc)
     assert any('ordinal' in i for i in issues)
+
+
+# ---------------------------------------------------------------------------
+# Diamond beamline names (check 7)
+# ---------------------------------------------------------------------------
+
+
+def _doc_with_beamline(beamline):
+    """Build a minimal valid doc carrying a _diffrn_source loop for the given beamline."""
+    doc = _minimal_valid_doc()
+    loop = doc[0].init_loop(
+        '',
+        ['_diffrn_source.type', '_diffrn_source.pdbx_synchrotron_beamline', '_diffrn_source.diffrn_id'],
+    )
+    loop.add_row([cif.quote('DIAMOND BEAMLINE ' + beamline), beamline, '1'])
+    return doc
+
+
+def test_ispyb_beamline_name_reported():
+    issues = validate_structure_cif_doc(_doc_with_beamline('I02-2'))
+    assert len(issues) == 1
+    assert '_diffrn_source.type' in issues[0]
+    assert 'I02-2' in issues[0]
+
+
+def test_wwpdb_beamline_name_accepted():
+    assert validate_structure_cif_doc(_doc_with_beamline('VMXi')) == []
+    assert validate_structure_cif_doc(_doc_with_beamline('I04-1')) == []
+
+
+def test_missing_diffrn_source_not_reported():
+    """_diffrn_source is optional as far as this check is concerned."""
+    assert validate_structure_cif_doc(_minimal_valid_doc()) == []
