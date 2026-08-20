@@ -29,7 +29,7 @@ from mmcif_gen.facilities import xchem
 from rdkit import rdBase
 from rdkit import Chem
 
-from xchemalign import dbreader, utils
+from xchemalign import dbreader, sequence_check, utils
 from xchemalign.utils import Constants
 from pdbdepo import merge_sf
 from pdbdepo import scrape_processing_stats
@@ -78,6 +78,19 @@ def generate_collection_info_path(xtal_dir_path, xtal_name):
     else:
         warn('Collection info CIF file not found: ' + str(collection_info_path))
         return None
+
+
+# ISPYB/SynchWeb records two Diamond beamlines under internal names that the wwPDB mmCIF
+# dictionary does not accept. See https://github.com/m2ms/fragalysis-frontend/issues/2329
+BEAMLINE_RENAMES = {
+    'I02-1': 'VMXm',
+    'I02-2': 'VMXi',
+}
+
+# Enumeration of _diffrn_source.type from mmcif_pdbx_v50.dic, Diamond entries only
+WWPDB_DIAMOND_BEAMLINES = {'I02', 'I03', 'I04', 'I04-1', 'I23', 'I24', 'VMXi', 'VMXm'}
+
+DIAMOND_BEAMLINE_PREFIX = 'DIAMOND BEAMLINE '
 
 
 def read_software_templates():
@@ -156,6 +169,65 @@ def merge_mmcifgen_into_structure(
             structure_block.add_item(item)
 
 
+def validate_sequences(base_dir: Path, df, input_config: dict, default_seq, variants):
+    """
+    Check every structure against the sequence declared for it before anything is written.
+
+    A wrong sequence blocks deposition at the wwPDB, so this is fatal. It runs as a pass over all the
+    crystals rather than inline so that the user gets the complete list of what to fix in one go, and
+    so that no partial output is left behind.
+
+    :param base_dir: the base dir that the soakdb file paths are relative to
+    :param df: the soakdb dataframe
+    :param input_config: the input section of config.yaml
+    :param default_seq: the default chain->(entity, seq) dict
+    :param variants: dict of crystal name -> that crystal's variant dict
+    """
+    candidates = sequence_check.collect_candidates(input_config.get(Constants.CONFIG_SEQUENCES), default_seq, variants)
+    num_bad = 0
+
+    for index, row in df.iterrows():
+        xtal_name = row[Constants.SOAKDB_XTAL_NAME]
+        seq_dict = variants.get(xtal_name, default_seq)
+        if not seq_dict:
+            continue
+
+        mmcif = row[Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST]
+        pdb = row.get(Constants.SOAKDB_COL_PDB)
+        if mmcif is None or mmcif == 'None':
+            model_p = base_dir / utils.make_path_relative(Path(pdb)) if pdb else None
+            struc = sequence_check.read_structure(pdb_file=model_p) if model_p else None
+        else:
+            struc = sequence_check.read_structure(mmcif_file=base_dir / utils.make_path_relative(Path(mmcif)))
+        if struc is None:
+            continue
+
+        issues = sequence_check.check_sequences(struc, seq_dict)
+        if issues:
+            num_bad += 1
+            for issue in issues:
+                error('sequence mismatch for', xtal_name + ':', issue)
+            match = sequence_check.suggest_sequence(struc, candidates)
+            if match:
+                error(
+                    xtal_name,
+                    'matches',
+                    match + ' - add it to the corresponding sequences.variants section of config.yaml',
+                )
+
+    if num_bad:
+        error(
+            'the sequences declared in config.yaml do not match',
+            num_bad,
+            'of the',
+            len(df),
+            'structures. These would be rejected by the wwPDB, so no deposition files have been written.',
+        )
+        exit(1)
+
+    info('sequences of all', len(df), 'structures match those declared in config.yaml')
+
+
 def process_input(
     base_dir: Path,
     input_path: Path,
@@ -213,6 +285,9 @@ def process_input(
     info("reading soakdb file:", soakdb_file_p)
     df = dbreader.read_pdb_depo(soakdb_file_p)
     info("read {} rows".format(len(df)))
+
+    validate_sequences(base_dir, df, input_config, default_seq, variants)
+
     for index, row in df.iterrows():
         xtal_name = row[Constants.SOAKDB_XTAL_NAME]
         seq_dict = variants.get(xtal_name, default_seq)
@@ -350,6 +425,10 @@ def process_input(
             data_processing_prog = row.get(Constants.SOAKDB_COL_DATA_PROCESSING_PROGRAM)
             if data_processing_prog == 'dials':
                 data_processing_prog = 'xia2-dials'
+            elif data_processing_prog and data_processing_prog.startswith('xia2.multiplex'):
+                # value seen in the wild is "xia2.multiplex sample_group" (a free-text suffix
+                # identifying the multi-crystal grouping is appended after the program name)
+                data_processing_prog = 'xia2-multiplex'
             if data_processing_prog and data_processing_prog != 'None':
                 data_processing_prog = data_processing_prog.lower()
                 info('data processing was done with ' + data_processing_prog)
@@ -460,6 +539,9 @@ def process_input(
                 item_count += 1
             if coordinates_pos is not None:
                 structure_cif_block0.move_item(coordinates_pos, item_count - 1)
+
+            for change in rename_beamlines(structure_cif_block0):
+                info('renamed beamline:', change)
 
             for issue in validate_structure_cif_doc(structure_cif_doc, xtal_name):
                 warn('CIF validation:', issue)
@@ -720,6 +802,43 @@ def read_pairs(block, prefix, erase: bool):
     return d
 
 
+def rename_beamlines(block: cif.Block) -> list[str]:
+    """Rewrite Diamond's internal beamline names in _diffrn_source to their wwPDB equivalents.
+
+    ISPYB (SynchWeb) calls VMXi "I02-2" and VMXm "I02-1", but the wwPDB mmCIF dictionary only
+    accepts the public names. Both _diffrn_source.pdbx_synchrotron_beamline (e.g. "I02-2") and
+    _diffrn_source.type (e.g. "DIAMOND BEAMLINE I02-2") carry the name, so both are rewritten.
+
+    Returns a list of "old -> new" strings describing what was changed.
+    """
+    # find_values() handles both the loop and the pair form, and unlike loop.values it can be
+    # assigned to in place (loop.values returns a copy, so writing to it silently does nothing)
+    changes = []
+
+    beamline_col = block.find_values('_diffrn_source.pdbx_synchrotron_beamline')
+    if beamline_col:
+        for i, raw in enumerate(beamline_col):
+            old = cif.as_string(raw)
+            new = BEAMLINE_RENAMES.get(old)
+            if new:
+                beamline_col[i] = cif.quote(new)
+                changes.append('_diffrn_source.pdbx_synchrotron_beamline ' + old + ' -> ' + new)
+
+    type_col = block.find_values('_diffrn_source.type')
+    if type_col:
+        for i, raw in enumerate(type_col):
+            old = cif.as_string(raw)
+            if old.startswith(DIAMOND_BEAMLINE_PREFIX):
+                # match the name exactly, never as a substring: I02 is itself a valid beamline
+                new_name = BEAMLINE_RENAMES.get(old[len(DIAMOND_BEAMLINE_PREFIX) :])
+                if new_name:
+                    new = DIAMOND_BEAMLINE_PREFIX + new_name
+                    type_col[i] = cif.quote(new)
+                    changes.append('_diffrn_source.type ' + old + ' -> ' + new)
+
+    return changes
+
+
 def build_loop(block: cif.Block, tags1, values1, tags2, values2):
     """Create a single-row loop in block by concatenating two tag/value lists.
 
@@ -851,6 +970,16 @@ def validate_structure_cif_doc(doc: cif.Document, xtal_name: str = '') -> list[s
                     issues.append(prefix + f'_software.pdbx_ordinal is not an integer: {sw_values[i]!r}')
             if ordinals and ordinals != list(range(1, len(ordinals) + 1)):
                 issues.append(prefix + f'_software.pdbx_ordinal is not sequential starting at 1: {ordinals}')
+
+    # 7. Diamond beamline names must be ones the wwPDB dictionary accepts
+    type_col = block.find_values('_diffrn_source.type')
+    if type_col:
+        for raw in type_col:
+            val = cif.as_string(raw)
+            if val.startswith(DIAMOND_BEAMLINE_PREFIX):
+                name = val[len(DIAMOND_BEAMLINE_PREFIX) :]
+                if name not in WWPDB_DIAMOND_BEAMLINES:
+                    issues.append(prefix + f'_diffrn_source.type is not a wwPDB beamline name: {val!r}')
 
     return issues
 

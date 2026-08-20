@@ -1,0 +1,24 @@
+# Real excerpt from an xia2 3dii/aimless-style processing log (A71EV2A-x3585, lb32627-66),
+# trimmed to the summary section that handle_xia_3dii()/handle_text_file() scans for.
+Summary data for        Project: lb32627v409 Crystal: xA71EV2Ax35851 Dataset: 1
+
+                                           Overall  InnerShell  OuterShell
+Low resolution limit                       47.74     47.74      1.69
+High resolution limit                       1.60      5.07      1.60
+
+Rmerge  (within I+/I-)                     0.174     0.056     3.053
+Rmerge  (all I+ and I-)                    0.183     0.060     3.316
+Rmeas (within I+/I-)                       0.206     0.068     3.629
+Rmeas (all I+ & I-)                        0.199     0.066     3.595
+Rpim (within I+/I-)                        0.109     0.038     1.943
+Rpim (all I+ & I-)                         0.076     0.028     1.376
+Rmerge in top intensity bin                0.065        -         -
+Total number of observations              147405      4553     20846
+Total number unique                        21643       721      3131
+Mean((I)/sd(I))                              4.6      15.1       0.5
+Mn(I) half-set correlation CC(1/2)         0.984     0.965     0.410
+Completeness                               100.0      99.8     100.0
+Multiplicity                                 6.8       6.3       6.7
+Mean(Chi^2)                                 0.70      0.44      0.54
+
+Anomalous completeness                      99.8      99.8      99.9

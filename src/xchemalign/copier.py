@@ -112,6 +112,7 @@ class Copier:
         panddas_file_paths: list[Path],
         ref_datasets: list[str],
         statuses: list,
+        sequence_file_paths: list[Path] | None = None,
     ):
         self.logger = utils.get_singleton_logger()
 
@@ -120,6 +121,8 @@ class Copier:
         self.output_path = output_path
         self.soakdb_file_path = soakdb_file_path
         self.panddas_file_paths = panddas_file_paths
+        # FASTA files declared by the input's sequences section, relative to input_path
+        self.sequence_file_paths = sequence_file_paths if sequence_file_paths else []
         self.ref_datasets = ref_datasets
         self.statuses = statuses
         self.errors = []
@@ -167,6 +170,8 @@ class Copier:
         if not f:
             self.logger.error("Failed to copy soakdb file {} to {}. Can't continue".format(dbfile, dbfile_out))
             sys.exit(1)
+
+        self.copy_sequence_files()
 
         self.logger.info("reading soakdb file", dbfile_out)
         if self.statuses:
@@ -287,6 +292,35 @@ class Copier:
         num_ccp4 = self.copy_panddas(datasets, copied_csv)
 
         self.logger.info("Copied {} structure, {} csv, {} ccp4 files".format(num_files, num_csv, num_ccp4))
+
+    def copy_sequence_files(self):
+        """
+        Copy the FASTA files named by the input's sequences section. pdb_deposition cannot run without
+        them, and the collator uses them to check the models against the declared sequences.
+
+        A missing file is a warning, not an error, in line with every other file the copier handles apart
+        from the soakdb file. The sequences are not needed until deposition, which fails hard if they are
+        wrong or absent, so there is no reason to abort a long copy over one here.
+
+        :return: the number of files copied
+        """
+        num_files = 0
+        for seq_path in self.sequence_file_paths:
+            inputpath = self.input_path / seq_path
+            inputpath_long = self.base_path / inputpath
+            if not self.copier.file_exists(inputpath_long):
+                self._log_warning("sequence file {} not found".format(inputpath_long))
+                continue
+
+            outputpath = self.output_path / inputpath
+            outputpath.parent.mkdir(exist_ok=True, parents=True)
+            if self.copier.do_copy(inputpath_long, outputpath):
+                self.logger.info("copied sequence file", str(inputpath_long))
+                num_files += 1
+            else:
+                self._log_warning("failed to copy sequence file {} to {}".format(inputpath_long, outputpath))
+
+        return num_files
 
     def copy_file_and_log(self, xtal_name, col_name, col_value, xtal_dir_path):
         if col_value:
@@ -436,6 +470,7 @@ def handle_inputs(base_dir, config, output_dir):
     """
     soakdb_files = []
     panddas_files = []
+    sequence_files = []
     input_dirs_model_building = []
     input_dirs_manual = []
     excludes_manual = []
@@ -458,8 +493,9 @@ def handle_inputs(base_dir, config, output_dir):
             excludes_manual.append(input.get(Constants.CONFIG_EXCLUDE, []))
         else:
             input_dirs_model_building.append(input.get(Constants.CONFIG_DIR))
-            soakdb_files.append(input.get(Constants.CONFIG_SOAKDB, 'processing/database/soakDBDataFile.sqlite'))
+            soakdb_files.append(input.get(Constants.CONFIG_SOAKDB, Constants.DEFAULT_SOAKDB_PATH))
             panddas_files.append(input.get(utils.Constants.CONFIG_PANDDAS_EVENT_FILES, []))
+            sequence_files.append(utils.sequence_file_paths(input))
 
     logger.info('Using model building input dirs:', input_dirs_model_building)
     logger.info('Using manual input dirs:', input_dirs_manual)
@@ -468,8 +504,14 @@ def handle_inputs(base_dir, config, output_dir):
 
     for i, input_dir in enumerate(input_dirs_model_building):
         msg = (
-            "Running model_building copier. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, panddas={}".format(
-                base_dir, input_dir, output_dir, soakdb_files[i], ", ".join(panddas_files[i])
+            "Running model_building copier. base_dir={}, input_dir={} output_dir={}, soakdbfile={}, "
+            "panddas={}, sequences={}".format(
+                base_dir,
+                input_dir,
+                output_dir,
+                soakdb_files[i],
+                ", ".join(panddas_files[i]),
+                ", ".join(str(p) for p in sequence_files[i]),
             )
         )
         logger.info(msg)
@@ -482,6 +524,7 @@ def handle_inputs(base_dir, config, output_dir):
             [Path(p) for p in panddas_files[i]],
             ref_datasets,
             statuses,
+            sequence_file_paths=sequence_files[i],
         )
         errors, warnings = c.validate()
         if errors:
@@ -530,6 +573,8 @@ def main():
     # Data processing logfile  DataProcessingPathToLogfile column from soakDB (though symlink sometimes broken)
     # xia2.mmcif.bz2           In directory containing Data processing logfile
     # soakDBDataFile.sqlite    From config.yaml or <visit_dir>/processing/database/soakDBDataFile.sqlite
+    # Sequence FASTA files     The sequences.default and each sequences.variants[].sequence of the input,
+    #                          found under the input's sequences.dir (default processing/analysis/sequences)
 
     parser = argparse.ArgumentParser(description="copier")
 

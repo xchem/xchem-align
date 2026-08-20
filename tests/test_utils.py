@@ -1,4 +1,129 @@
+from pathlib import Path
+
 from xchemalign import utils
+from xchemalign.utils import Constants
+
+
+def write_fasta(tmp_path, name, contents):
+    p = tmp_path / name
+    p.write_text(contents)
+    return p
+
+
+def test_read_fasta_single_entity(tmp_path):
+    p = write_fasta(tmp_path, 'default.fa', '> A A\nACDEFGHIK\n')
+    assert utils.read_fasta(p) == {'A': ('A', 'ACDEFGHIK')}
+
+
+def test_read_fasta_one_entity_two_chains(tmp_path):
+    p = write_fasta(tmp_path, '2-chain.fa', '> A AB\nACDEF\nGHIK\n')
+    assert utils.read_fasta(p) == {'A': ('A', 'ACDEFGHIK'), 'B': ('A', 'ACDEFGHIK')}
+
+
+def test_read_fasta_keeps_the_sequence_of_every_entity(tmp_path):
+    # the heterodimer example from the user guide: each record must keep its own sequence
+    p = write_fasta(tmp_path, 'hetero.fa', '> A A\nACDEFGHIK\n> B B\nMNPQRSTVW\n')
+    assert utils.read_fasta(p) == {'A': ('A', 'ACDEFGHIK'), 'B': ('B', 'MNPQRSTVW')}
+
+
+def test_read_fasta_missing_file_is_not_fatal_when_asked(tmp_path):
+    assert utils.read_fasta(tmp_path / 'nope.fa', fatal=False) is None
+
+
+def test_read_sequences_without_a_sequences_section(tmp_path):
+    input_yaml = {Constants.CONFIG_DIR: 'some/dir', Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MANUAL}
+    assert utils.read_sequences(tmp_path, input_yaml) == (None, {})
+
+
+def test_read_sequences_with_a_missing_fasta_is_not_fatal_when_asked(tmp_path):
+    input_yaml = {
+        Constants.CONFIG_DIR: 'some/dir',
+        Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MODEL_BUILDING,
+        Constants.CONFIG_SEQUENCES: {Constants.CONFIG_DEFAULT: 'default.fa'},
+    }
+    assert utils.read_sequences(tmp_path, input_yaml, fatal=False) == (None, {})
+
+
+def test_read_sequences_reads_the_default_and_the_variants(tmp_path):
+    seq_dir = tmp_path / 'some/dir/sequences'
+    seq_dir.mkdir(parents=True)
+    write_fasta(seq_dir, 'default.fa', '> A A\nACDEFGHIK\n')
+    write_fasta(seq_dir, '2-chain.fa', '> A AB\nACDEFGHIK\n')
+    input_yaml = {
+        Constants.CONFIG_DIR: 'some/dir',
+        Constants.CONFIG_TYPE: Constants.CONFIG_TYPE_MODEL_BUILDING,
+        Constants.CONFIG_SEQUENCES: {
+            Constants.CONFIG_DIR: 'sequences',
+            Constants.CONFIG_DEFAULT: 'default.fa',
+            Constants.CONFIG_VARIANTS: [
+                {Constants.CONFIG_SEQUENCE: '2-chain.fa', Constants.CONFIG_CRYSTALS: ['xtal-1', 'xtal-2']}
+            ],
+        },
+    }
+    default_seq, variants = utils.read_sequences(tmp_path, input_yaml)
+    assert default_seq == {'A': ('A', 'ACDEFGHIK')}
+    assert sorted(variants) == ['xtal-1', 'xtal-2']
+    assert sorted(variants['xtal-1']) == ['A', 'B']
+
+
+def test_sequence_file_paths_defaults():
+    # sequences.dir and sequences.default both omitted, so the documented defaults apply
+    input_yaml = {
+        Constants.CONFIG_DIR: 'some/dir',
+        Constants.CONFIG_SEQUENCES: {
+            Constants.CONFIG_VARIANTS: [
+                {Constants.CONFIG_SEQUENCE: '2-chain.fa', Constants.CONFIG_CRYSTALS: ['xtal-1']}
+            ]
+        },
+    }
+    assert [str(p) for p in utils.sequence_file_paths(input_yaml)] == [
+        'processing/analysis/sequences/default.fa',
+        'processing/analysis/sequences/2-chain.fa',
+    ]
+
+
+def test_sequence_file_paths_with_an_empty_sequences_section():
+    # an empty section means the same as no section, matching read_sequences
+    input_yaml = {Constants.CONFIG_DIR: 'some/dir', Constants.CONFIG_SEQUENCES: {}}
+    assert utils.sequence_file_paths(input_yaml) == []
+    assert utils.read_sequences(Path('/nonexistent'), input_yaml, fatal=False) == (None, {})
+
+
+def test_sequence_file_paths_with_variants():
+    input_yaml = {
+        Constants.CONFIG_DIR: 'some/dir',
+        Constants.CONFIG_SEQUENCES: {
+            Constants.CONFIG_DIR: 'processing/sequences',
+            Constants.CONFIG_DEFAULT: 'default.fa',
+            Constants.CONFIG_VARIANTS: [
+                {Constants.CONFIG_SEQUENCE: '2-chain.fa', Constants.CONFIG_CRYSTALS: ['xtal-1']},
+                {Constants.CONFIG_SEQUENCE: '3-chain.fa', Constants.CONFIG_CRYSTALS: ['xtal-2']},
+            ],
+        },
+    }
+    assert [str(p) for p in utils.sequence_file_paths(input_yaml)] == [
+        'processing/sequences/default.fa',
+        'processing/sequences/2-chain.fa',
+        'processing/sequences/3-chain.fa',
+    ]
+
+
+def test_sequence_file_paths_deduplicates():
+    # the same file may legitimately be named by more than one variant
+    input_yaml = {
+        Constants.CONFIG_SEQUENCES: {
+            Constants.CONFIG_VARIANTS: [
+                {Constants.CONFIG_SEQUENCE: '2-chain.fa', Constants.CONFIG_CRYSTALS: ['xtal-1']},
+                {Constants.CONFIG_SEQUENCE: '2-chain.fa', Constants.CONFIG_CRYSTALS: ['xtal-2']},
+            ]
+        }
+    }
+    paths = [str(p) for p in utils.sequence_file_paths(input_yaml)]
+    assert paths == ['processing/analysis/sequences/default.fa', 'processing/analysis/sequences/2-chain.fa']
+
+
+def test_sequence_file_paths_without_a_sequences_section():
+    assert utils.sequence_file_paths({Constants.CONFIG_DIR: 'some/dir'}) == []
 
 
 def test_parse_compound_smiles():

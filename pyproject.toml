@@ -17,7 +17,9 @@ dependencies = [
     'pandas == 1.5.3',
     'pyyaml == 6.0',
     'jsonschema == 4.24.0',
-    'gemmi@git+https://github.com/project-gemmi/gemmi',
+    # git rather than PyPI: we need a fix that is not yet in a release (latest is v0.7.5).
+    # Pinned to a commit so CI does not change underneath us; bump deliberately.
+    'gemmi@git+https://github.com/project-gemmi/gemmi@92e8cfa80cf10bd0d0927946da9f6a3aaf998c85',
     'im-standardize-molecule == 0.1.0',
     'scp == 0.14.5',
     'GitPython == 3.1.41',
@@ -28,6 +30,7 @@ dependencies = [
     'requests-toolbelt == 1.0.0',
     # for pdb deposition
     'mmcif-gen == 1.2.2',
+    'beautifulsoup4 == 4.14.3',
     # from lna
     'loguru == 0.7.3',
     'pydantic==2.6.0',

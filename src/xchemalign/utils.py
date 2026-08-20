@@ -47,6 +47,8 @@ class Constants:
     VERSION_DIR_PREFIX = "upload_"
     DEFAULT_SOAKDB_PATH = "processing/database/soakDBDataFile.sqlite"
     DEFAULT_MODEL_BUILDING_DIR = "processing/analysis/model_building"
+    DEFAULT_SEQUENCES_DIR = "processing/analysis/sequences"
+    DEFAULT_SEQUENCES_FILE = "default.fa"
     CONFIG_INPUTS = "inputs"
     CONFIG_TYPE = "type"
     CONFIG_DIR = "dir"
@@ -59,9 +61,9 @@ class Constants:
     CONFIG_OUTPUT_DIR = "output_dir"
     CONFIG_TARGET_NAME = "target_name"
     CONFIG_REF_DATASETS = "ref_datasets"
-    CONFIG_EXCLUDE = "exclude"
-    CONFIG_CODE_PREFIX = "code_prefix"
-    CONFIG_CODE_PREFIX_TOOLTIP = "code_prefix_tooltip"
+    CONFIG_EXCLUDE = 'exclude'
+    CONFIG_CODE_PREFIX = 'code_prefix'
+    CONFIG_CODE_PREFIX_TOOLTIP = 'code_prefix_tooltip'
     CONFIG_PANDDAS_EVENT_FILES = "panddas_event_files"
     CONFIG_OVERRIDES = "overrides"
     CONFIG_COVALENT = "covalent"
@@ -103,7 +105,7 @@ class Constants:
     META_PROT_MODEL = "model"
     META_PROT_CHAIN = "chain"
     META_PROT_RES = "res"
-    META_PROT_ALTLOC = "altloc"
+    META_PROT_ALTLOC = 'altloc'
     META_PROT_NAME = "name"
     META_PROT_INDEX = "index"
     META_PROT_BDC = "bdc"
@@ -181,25 +183,22 @@ class Constants:
     SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST = "RefinementMMCIFmodel_latest"
     SOAKDB_COL_DATA_PROCESSING_PROGRAM = "DataProcessingProgram"
     SOAKDB_COL_DATA_PROCESSING_PATH_TO_LOGFILE = "DataProcessingPathToLogfile"
-    SOAKDB_VALUE_BUSTER = "Buster"
-    SOAKDB_VALUE_REFMAC = "Refmac"
+    SOAKDB_VALUE_BUSTER = 'Buster'
+    SOAKDB_VALUE_REFMAC = 'Refmac'
     CRYSTAL_NEW = "crystal_new"
     PREVIOUS_OUTPUT_DIR = ""
     ENV_XCA_GIT_REPO = "XCA_GIT_REPO"
 
 
 BOND_TYPES = {
-    "single": Chem.rdchem.BondType.SINGLE,
-    "double": Chem.rdchem.BondType.DOUBLE,
-    "triple": Chem.rdchem.BondType.TRIPLE,
-    "SINGLE": Chem.rdchem.BondType.SINGLE,
-    "DOUBLE": Chem.rdchem.BondType.DOUBLE,
-    "TRIPLE": Chem.rdchem.BondType.TRIPLE,
-    "aromatic": Chem.rdchem.BondType.AROMATIC,
-    "deloc": Chem.rdchem.BondType.SINGLE,
-    "SING": Chem.rdchem.BondType.SINGLE,
-    "DOUB": Chem.rdchem.BondType.DOUBLE,
-    "TRIP": Chem.rdchem.BondType.TRIPLE,
+    'single': Chem.rdchem.BondType.SINGLE,
+    'double': Chem.rdchem.BondType.DOUBLE,
+    'triple': Chem.rdchem.BondType.TRIPLE,
+    'aromatic': Chem.rdchem.BondType.AROMATIC,
+    'deloc': Chem.rdchem.BondType.SINGLE,
+    'sing': Chem.rdchem.BondType.SINGLE,
+    'doub': Chem.rdchem.BondType.DOUBLE,
+    'trip': Chem.rdchem.BondType.TRIPLE,
 }
 
 
@@ -447,11 +446,11 @@ def gen_mols_from_cif(cif_file):
     doc = cif.read(str(cif_file))
 
     ligand_blocks = []
-    list_block = doc.find_block("comp_list")
+    list_block = doc.find_block('comp_list')
     if list_block:  # seems to be a multi-ligand CIF
-        components = list_block.find_loop("_chem_comp.id")
+        components = list_block.find_loop('_chem_comp.id')
         for component in components:
-            block = doc.find_block("comp_" + str(component))
+            block = doc.find_block('comp_' + str(component))
             ligand_blocks.append(block)
     else:  # seems to be a single ligand CIF
         block = doc.sole_block()
@@ -464,24 +463,24 @@ def gen_mols_from_cif(cif_file):
         mol = Chem.RWMol()
         conf = Chem.Conformer()
 
-        comp_ids = block.find_loop("_chem_comp_atom.comp_id")
-        atom_ids = block.find_loop("_chem_comp_atom.atom_id")
-        atom_symbols = block.find_loop("_chem_comp_atom.type_symbol")
+        comp_ids = block.find_loop('_chem_comp_atom.comp_id')
+        atom_ids = block.find_loop('_chem_comp_atom.atom_id')
+        atom_symbols = block.find_loop('_chem_comp_atom.type_symbol')
         # coordinates are sometimes called "x" and sometimes "model_Cartn_x" etc.
-        x = block.find_loop("_chem_comp_atom.x")
+        x = block.find_loop('_chem_comp_atom.x')
         if not x:
-            x = block.find_loop("_chem_comp_atom.model_Cartn_x")
-        y = block.find_loop("_chem_comp_atom.y")
+            x = block.find_loop('_chem_comp_atom.model_Cartn_x')
+        y = block.find_loop('_chem_comp_atom.y')
         if not y:
-            y = block.find_loop("_chem_comp_atom.model_Cartn_y")
-        z = block.find_loop("_chem_comp_atom.z")
+            y = block.find_loop('_chem_comp_atom.model_Cartn_y')
+        z = block.find_loop('_chem_comp_atom.z')
         if not z:
-            z = block.find_loop("_chem_comp_atom.model_Cartn_z")
+            z = block.find_loop('_chem_comp_atom.model_Cartn_z')
         charges = [0] * len(atom_ids)
-        if block.find_loop("_chem_comp_atom.charge"):
-            charges = list(block.find_loop("_chem_comp_atom.charge"))
-        elif block.find_loop("_chem_comp_atom.partial_charge"):
-            charges = list(block.find_loop("_chem_comp_atom.partial_charge"))
+        if block.find_loop('_chem_comp_atom.charge'):
+            charges = list(block.find_loop('_chem_comp_atom.charge'))
+        elif block.find_loop('_chem_comp_atom.partial_charge'):
+            charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
 
         atoms = {}
         ligand_name = None
@@ -502,9 +501,9 @@ def gen_mols_from_cif(cif_file):
 
             atom = Chem.Atom(s)
             atom.SetFormalCharge(round(float(charge)))
-            atom.SetProp("atom_id", id)
+            atom.SetProp('atom_id', id)
             idx = mol.AddAtom(atom)
-            atom.SetIntProp("idx", idx)
+            atom.SetIntProp('idx', idx)
             atoms[id] = atom
 
             try:
@@ -513,39 +512,39 @@ def gen_mols_from_cif(cif_file):
             except:
                 coords_ok = False
 
-        atom1 = block.find_loop("_chem_comp_bond.atom_id_1")
-        atom2 = block.find_loop("_chem_comp_bond.atom_id_2")
-        bond_type = block.find_loop("_chem_comp_bond.type")
+        atom1 = block.find_loop('_chem_comp_bond.atom_id_1')
+        atom2 = block.find_loop('_chem_comp_bond.atom_id_2')
+        bond_type = block.find_loop('_chem_comp_bond.type')
         if not bond_type:
-            bond_type = block.find_loop("_chem_comp_bond.value_order")
+            bond_type = block.find_loop('_chem_comp_bond.value_order')
 
         try:
             for a1, a2, bt in zip(atom1, atom2, bond_type):
                 mol.AddBond(
-                    atoms[strip_quotes(a1)].GetIntProp("idx"),
-                    atoms[strip_quotes(a2)].GetIntProp("idx"),
-                    BOND_TYPES[bt],
+                    atoms[strip_quotes(a1)].GetIntProp('idx'),
+                    atoms[strip_quotes(a2)].GetIntProp('idx'),
+                    BOND_TYPES[bt.lower()],
                 )
         except:
-            print("CIF file")
+            print('CIF file')
             print(cif_file)
-            print("Ligand")
+            print('Ligand')
             print(ligand_name)
-            print("atoms")
+            print('atoms')
             print(atoms)
-            print("comp ids")
+            print('comp ids')
             print(comp_ids)
-            print("atom symbols")
+            print('atom symbols')
             print(atom_symbols)
-            print("atom ids")
+            print('atom ids')
             print(atom_ids)
-            print("x")
+            print('x')
             print(x)
-            print("y")
+            print('y')
             print(y)
-            print("z")
+            print('z')
             print(z)
-            print("charges")
+            print('charges')
             print(charges)
             raise Exception
 
@@ -561,7 +560,7 @@ def gen_mols_from_cif(cif_file):
 
         mol = Chem.RemoveAllHs(mol)
 
-        mol.SetProp("_Name", ligand_name)
+        mol.SetProp('_Name', ligand_name)
 
         mols.append(mol)
 
@@ -578,9 +577,9 @@ def strip_quotes(val):
 
 def parse_compound_smiles(val: str):
     result = []
-    tokens1 = val.strip().split(";")
+    tokens1 = val.strip().split(';')
     for token1 in tokens1:
-        tokens2 = token1.strip().split(" ")
+        tokens2 = token1.strip().split(' ')
         result.append(tokens2)
     return result
 
@@ -625,13 +624,13 @@ def _verify_working_dir(working_dir):
         print("Working dir {} does not exist".format(working_dir))
         exit(1)
 
-    current_dir = working_dir.joinpath("upload-current")
+    current_dir = working_dir.joinpath('upload-current')
     if current_dir.is_symlink():
         return working_dir
     else:
         # check if working dir is already one or 2 levels under where it really needs to be
         working_dir = working_dir.parent
-        current_dir = working_dir.joinpath("upload-current")
+        current_dir = working_dir.joinpath('upload-current')
         if current_dir.is_symlink():
             print(
                 "WARNING: you seem to have specified a directory one level under the true working dir. Using",
@@ -639,7 +638,7 @@ def _verify_working_dir(working_dir):
             )
             return working_dir
         working_dir = working_dir.parent
-        current_dir = working_dir.joinpath("upload-current")
+        current_dir = working_dir.joinpath('upload-current')
         if current_dir.is_symlink():
             print(
                 "WARNING: you seem to have specified a directory two levels under the true working dir. Using",
@@ -674,72 +673,128 @@ def collect_manual_files(manual_input_path: Path):
     return data
 
 
-def read_sequences(base_p, input_yaml):
+def sequence_file_paths(input_yaml):
+    """
+    The FASTA files declared for an input, as paths relative to the input's dir. The copier uses this to
+    know what to copy; read_sequences() resolves the same paths when it reads them, so the two agree on
+    where the files live.
+
+    :param input_yaml: the input section of config.yaml
+    :return: list of paths relative to the input's dir, empty if the input declares no sequences
+    """
+    sequences = input_yaml.get(Constants.CONFIG_SEQUENCES)
+    if not sequences:
+        return []
+
+    seq_dir = Path(sequences.get(Constants.CONFIG_DIR, Constants.DEFAULT_SEQUENCES_DIR))
+    paths = [seq_dir / sequences.get(Constants.CONFIG_DEFAULT, Constants.DEFAULT_SEQUENCES_FILE)]
+    for variant in sequences.get(Constants.CONFIG_VARIANTS) or []:
+        name = variant.get(Constants.CONFIG_SEQUENCE)
+        if name:
+            p = seq_dir / name
+            if p not in paths:
+                paths.append(p)
+    return paths
+
+
+def read_sequences(base_p, input_yaml, fatal=True):
+    """
+    Read the sequence definitions for an input.
+
+    :param base_p: the base dir the input's dir is relative to
+    :param input_yaml: the input section of config.yaml
+    :param fatal: if True a missing sequences section or FASTA file terminates the process, if False it is
+        reported as a warning and (None, {}) is returned. The collator uses fatal=False as sequences are
+        optional there, pdb_deposition needs them so uses the default.
+    :return: tuple of (default chain->(entity, seq) dict, dict of crystal name -> that crystal's variant dict)
+    """
+    log = get_singleton_logger()
     dir1 = input_yaml.get(Constants.CONFIG_DIR)
     sequences = input_yaml.get(Constants.CONFIG_SEQUENCES)
     xtal_to_seq = {}
-    chain_seqs_default = None
-    if not sequences and input_yaml.get(Constants.CONFIG_TYPE) == Constants.CONFIG_TYPE_MODEL_BUILDING:
-        LOG.error("sequences definitions not found in config.yaml for input", input_yaml.get(Constants.CONFIG_DIR))
-        exit(1)
-    else:
-        dir2 = sequences.get(Constants.CONFIG_DIR, "processing/analysis/sequences")
-        seq_default = sequences.get(Constants.CONFIG_DEFAULT, "default.fa")
-        p = base_p / dir1 / dir2 / seq_default
-        chain_seqs_default = read_fasta(p)
-        LOG.info("read default sequence", p, "containing chains", " ".join(chain_seqs_default.keys()))
-        variants = sequences.get(Constants.CONFIG_VARIANTS)
+    if not sequences:
+        # note: sequences are only ever defined for model_building inputs, the config schema forbids them
+        # on manual ones, so there is nothing to read and nothing to complain about in that case
+        if input_yaml.get(Constants.CONFIG_TYPE) == Constants.CONFIG_TYPE_MODEL_BUILDING:
+            if fatal:
+                log.error('sequences definitions not found in config.yaml for input', dir1)
+                exit(1)
+            log.warn('sequences definitions not found in config.yaml for input', dir1)
+        return None, xtal_to_seq
 
-        if variants:
-            for variant in variants:
-                seq = variant.get(Constants.CONFIG_SEQUENCE)
-                p = base_p / dir1 / dir2 / seq
-                chain_seqs_variant = read_fasta(p)
-                xtals = variant.get(Constants.CONFIG_CRYSTALS)
-                for xtal in xtals:
-                    xtal_to_seq[xtal] = chain_seqs_variant
-                LOG.info(
-                    "read variant sequence",
-                    p,
-                    "containing chains",
-                    " ".join(chain_seqs_variant.keys()),
-                    "for crystals",
-                    " ".join(xtals),
-                )
+    dir2 = sequences.get(Constants.CONFIG_DIR, Constants.DEFAULT_SEQUENCES_DIR)
+    seq_default = sequences.get(Constants.CONFIG_DEFAULT, Constants.DEFAULT_SEQUENCES_FILE)
+    p = base_p / dir1 / dir2 / seq_default
+    chain_seqs_default = read_fasta(p, fatal=fatal)
+    if chain_seqs_default is None:
+        return None, xtal_to_seq
+    log.info('read default sequence', p, 'containing chains', ' '.join(chain_seqs_default.keys()))
+    variants = sequences.get(Constants.CONFIG_VARIANTS)
+
+    if variants:
+        for variant in variants:
+            seq = variant.get(Constants.CONFIG_SEQUENCE)
+            p = base_p / dir1 / dir2 / seq
+            chain_seqs_variant = read_fasta(p, fatal=fatal)
+            if chain_seqs_variant is None:
+                continue
+            xtals = variant.get(Constants.CONFIG_CRYSTALS)
+            for xtal in xtals:
+                xtal_to_seq[xtal] = chain_seqs_variant
+            log.info(
+                'read variant sequence',
+                p,
+                'containing chains',
+                ' '.join(chain_seqs_variant.keys()),
+                'for crystals',
+                ' '.join(xtals),
+            )
 
     return chain_seqs_default, xtal_to_seq
 
 
-def read_fasta(seq_p):
+def read_fasta(seq_p, fatal=True):
+    """
+    Read a FASTA file whose titles define the entity and its chains e.g. '> A AB' means entity A
+    present as chains A and B.
+
+    :param seq_p: path of the FASTA file
+    :param fatal: if True a missing file terminates the process, if False it is reported as a warning
+        and None is returned
+    :return: dict keyed by chain name, values a tuple of (entity name, one letter sequence)
+    """
     data = {}
-    if seq_p.is_file():
-        with open(seq_p, "rt") as f:
-            entity_name = None
-            chain_names = []
-            chain_seq = None
-            for line in f:
-                match = re.search(r">\s*([A-Z])\s*([A-Z]+)", line)
-                if match:
-                    if chain_names:
-                        for chain_name in chain_names:
-                            data[chain_name] = (entity_name, chain_seq)
-                    entity_name = match.group(1)
-                    chain_names = list(match.group(2))
-                    entity_seq = ""
-                else:
-                    entity_seq += line.strip()
-            if chain_names:
+    if not seq_p.is_file():
+        log = get_singleton_logger()
+        if fatal:
+            log.error('sequence file', str(seq_p), 'not found')
+            exit(1)
+        log.warn('sequence file', str(seq_p), 'not found')
+        return None
+
+    with open(seq_p, 'rt') as f:
+        entity_name = None
+        chain_names = []
+        entity_seq = ''
+        for line in f:
+            match = re.search(r'>\s*([A-Z])\s*([A-Z]+)', line)
+            if match:
+                # flush the record that has just ended before starting the new one
                 for chain_name in chain_names:
                     data[chain_name] = (entity_name, entity_seq)
-    else:
-        LOG.error("sequence file", str(seq_p), "not found")
-        exit(1)
+                entity_name = match.group(1)
+                chain_names = list(match.group(2))
+                entity_seq = ''
+            else:
+                entity_seq += line.strip()
+        for chain_name in chain_names:
+            data[chain_name] = (entity_name, entity_seq)
 
     return data
 
 
 def main():
-    print(_verify_working_dir(Path("data/std_test/lb32633-6_2024-11-22/upload-current/upload_1")))
+    print(_verify_working_dir(Path('data/std_test/lb32633-6_2024-11-22/upload-current/upload_1')))
 
 
 if __name__ == "__main__":

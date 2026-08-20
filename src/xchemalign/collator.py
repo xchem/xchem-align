@@ -33,6 +33,7 @@ from rdkit import Chem
 from xchemalign import dbreader
 from xchemalign import utils
 from xchemalign import repo_info
+from xchemalign import sequence_check
 from xchemalign import setup
 from xchemalign.utils import Constants
 from xchemalign.decoder import decoder
@@ -71,6 +72,7 @@ class Input:
         code_prefix=None,
         code_prefix_tooltip=None,
         reference=False,
+        config=None,
     ):
         self.base_path = base_path
         self.input_dir_path = input_dir_path
@@ -83,6 +85,8 @@ class Input:
         self.code_prefix = code_prefix
         self.code_prefix_tooltip = code_prefix_tooltip
         self.reference = reference
+        # the raw input section of config.yaml, needed for properties that are read on demand e.g. sequences
+        self.config = config if config is not None else {}
         self.logger = utils.get_singleton_logger()
 
     def get_input_dir_path(self, expand=True):
@@ -224,6 +228,7 @@ class Collator:
                             excluded_datasets,
                             code_prefix=code_prefix,
                             code_prefix_tooltip=code_prefix_tooltip,
+                            config=input,
                         )
                     )
 
@@ -244,6 +249,7 @@ class Collator:
                             excluded_datasets,
                             code_prefix=code_prefix,
                             code_prefix_tooltip=code_prefix_tooltip,
+                            config=input,
                         )
                     )
                 else:
@@ -498,6 +504,13 @@ class Collator:
             self.logger.info("using user defined statuses:", statuses)
         df = dbreader.filter_dbmeta(dbfile, ref_datasets, statuses)
 
+        # sequences are optional here, they are only required by pdb_deposition, so a missing sequences
+        # section or FASTA file is reported and the check is skipped rather than terminating the collator
+        default_seq, seq_variants = utils.read_sequences(self.base_path, input.config, fatal=False)
+        seq_candidates = sequence_check.collect_candidates(
+            input.config.get(Constants.CONFIG_SEQUENCES), default_seq, seq_variants
+        )
+
         count = 0
         processed = 0
         num_pdb_files = 0
@@ -545,6 +558,9 @@ class Collator:
                         if ok:
                             num_pdb_files += 1
                             expanded_files.append(inputpath)
+                            self._check_sequences(
+                                xtal_name, full_inputpath, seq_variants.get(xtal_name, default_seq), seq_candidates
+                            )
                         else:
                             expanded_files.append(None)
                             missing_files += 1
@@ -662,6 +678,32 @@ class Collator:
             self.logger.warn(
                 "PDB files for these crystals were missing. Add them to your inputs.exclude section: "
                 + ",".join(missing_pdbs)
+            )
+
+    def _check_sequences(self, xtal_name, pdb_path, seq_dict, candidates):
+        """
+        Warn if the model does not match the sequence declared for it. This is only a warning here as the
+        sequences are not used until PDB deposition, which reports the same problem as an error.
+        """
+        if not seq_dict:
+            return
+        try:
+            struc = sequence_check.read_structure(pdb_file=pdb_path)
+        except Exception as e:
+            self._log_warning("could not read {} to check its sequence: {}".format(pdb_path, e))
+            return
+
+        issues = sequence_check.check_sequences(struc, seq_dict)
+        if not issues:
+            return
+        for issue in issues:
+            self._log_warning("sequence mismatch for {}: {}".format(xtal_name, issue))
+        match = sequence_check.suggest_sequence(struc, candidates)
+        if match:
+            self._log_warning(
+                "{} matches {} - add it to the corresponding sequences.variants section of config.yaml".format(
+                    xtal_name, match
+                )
             )
 
     def _validate_manual_input(self, input, crystals):
