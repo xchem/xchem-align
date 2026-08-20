@@ -12,6 +12,7 @@
 
 import os
 import re
+import base64
 import argparse
 import tarfile
 import hashlib
@@ -25,6 +26,7 @@ import subprocess
 from tempfile import TemporaryDirectory
 from typing import Any
 from abc import ABC, abstractmethod
+from io import BytesIO
 
 from tqdm import tqdm
 import boto3
@@ -50,14 +52,18 @@ from .copier import handle_inputs
 
 # for compression
 NUM_PROCESSES = max(1, os.cpu_count() - 1)
-AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", '')
+AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", "")
 
 
 # this needs to be kept more or less up to date
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 
-logger = utils.get_singleton_logger()
+# The uploader can be run from several locations and has no fixed working dir
+# for a log file, so it deliberately uses the default (console) logger rather
+# than calling create_singleton_logger(); warn=False silences the nag for this
+# intentional case.
+logger = utils.get_singleton_logger(warn=False)
 
 
 def compile_stack_urls(url_prefix: str) -> dict[str, str]:
@@ -114,14 +120,17 @@ def compress_directory(upload_path, tarball_path):
 
     if compression_tool in ["pigz", "gzip"]:
         # using subprocess to show a progress bar
-        with tqdm(
-            total=os.path.getsize(upload_path),
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-            desc=f"Compressing {upload_path}",
-            dynamic_ncols=True,
-        ) as pbar, open(tarball_path, "wb") as output_file:
+        with (
+            tqdm(
+                total=os.path.getsize(upload_path),
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                desc=f"Compressing {upload_path}",
+                dynamic_ncols=True,
+            ) as pbar,
+            open(tarball_path, "wb") as output_file,
+        ):
             # due to the way gzip and pigz work, specifically, not
             # allowing to set the output file but use pipes instead, I
             # have to create 2 processes, one creates the zipped
@@ -222,12 +231,39 @@ class StatusError(Exception):
     pass
 
 
+class CurationRequiredError(Exception):
+    """Raised when the incoming compounds need manual curation before upload.
+
+    Carries the path to the curation spreadsheet the user must review, so the
+    caller can present a helpful message rather than a stack trace.
+    """
+
+    def __init__(self, message: str, curation_path: Path | None = None) -> None:
+        super().__init__(message)
+        self.curation_path = curation_path
+
+
 class DataSource(ABC):
-    META_ALIGNER_FILE = 'meta_aligner.yaml'
+    META_ALIGNER_FILE = "meta_aligner.yaml"
     CONFIG_FILE = "config.yaml"
 
     DEFAULT_TARBALL_TEMPLATE = "{target}_v{version}_{upload_no}_{date}.tgz"
     DEFAULT_INPUTS_TEMPLATE = "{target}_v{version}_{upload_no}_{date}_inputs.tgz"
+
+    # Per-ligand content fields lifted from meta_aligner.yaml and sent to the
+    # backend for compound reconciliation. The backend recomputes the InChIKey
+    # from `smiles` itself (canonicalisation must live in exactly one place) --
+    # we deliberately do NOT send a key. Field names match the backend's
+    # CONTENT_FIELDS one-for-one; missing keys are simply omitted.
+    COMPOUND_FIELDS = (
+        utils.Constants.META_SMILES,
+        utils.Constants.META_CMPD_CODE,
+        utils.Constants.META_LIGAND_NAME,
+        utils.Constants.META_MODELED_SMILES_SOAKDB,
+        utils.Constants.META_MODELED_SMILES_CANON,
+        utils.Constants.META_SOAKED_SMILES_SOAKDB,
+        utils.Constants.META_SOAKED_SMILES_CANON,
+    )
 
     def __init__(self) -> None:
         self._config = None
@@ -302,12 +338,44 @@ class DataSource(ABC):
     def _get_tarball_path(self) -> Path:
         raise NotImplementedError
 
-    def get_validation_payload(self) -> dict[str, str]:
+    def get_validation_payload(self) -> dict[str, Any]:
         return {
-            'data_version': self.data_version,
-            'target_name': self.target_name,
-            'upload_version': self.upload_version,
+            "data_version": self.data_version,
+            "target_name": self.target_name,
+            "upload_version": self.upload_version,
+            "compounds": self._extract_compounds(),
         }
+
+    def _extract_compounds(self) -> list[dict[str, Any]]:
+        """Collect the incoming compounds from meta_aligner.yaml.
+
+        Walks crystals -> crystallographic_files -> ligand_cif -> ligands and
+        emits one dict per distinct ligand carrying whatever COMPOUND_FIELDS are
+        present. Ligands without a SMILES are skipped (the backend cannot key
+        them). Exact duplicates (same compound repeated across crystals) are
+        collapsed so the backend does not raise spurious conflicts.
+        """
+        compounds: list[dict[str, Any]] = []
+        seen: set = set()
+        crystals = self.meta.get(utils.Constants.META_XTALS, {}) or {}
+        for xtal in crystals.values():
+            if not isinstance(xtal, dict):
+                continue
+            xtal_files = xtal.get(utils.Constants.META_XTAL_FILES, {}) or {}
+            ligand_cif = xtal_files.get(utils.Constants.META_XTAL_CIF, {}) or {}
+            ligands = ligand_cif.get(utils.Constants.META_LIGANDS, {}) or {}
+            for ligand in ligands.values():
+                if not isinstance(ligand, dict):
+                    continue
+                entry = {f: ligand[f] for f in self.COMPOUND_FIELDS if ligand.get(f) is not None}
+                if not entry.get(utils.Constants.META_SMILES):
+                    continue
+                dedup_key = tuple(sorted(entry.items()))
+                if dedup_key in seen:
+                    continue
+                seen.add(dedup_key)
+                compounds.append(entry)
+        return compounds
 
     def checksum(self):
         return calculate_sha256(self.tarball_path)
@@ -319,7 +387,7 @@ class XCADataUpload:
     LOGIN_URL = "/accounts/login/"
     VALIDATE_URL = "/api/validate_target_experiments/"
     UPLOAD_URL = "/api/upload_target_experiments/"
-    LANDING_PAGE_URL = '/viewer/react/landing/'
+    LANDING_PAGE_URL = "/viewer/react/landing/"
 
     def __init__(
         self,
@@ -328,14 +396,16 @@ class XCADataUpload:
         proposal: str,
         auth_token: str | None = None,
         retries: int = 3,
+        curation_file: str | None = None,
     ) -> None:
         self._data_source = data_source
         self._proposal = proposal
         self._auth_token = auth_token
         self._retries = retries
+        self._curation_file = Path(curation_file) if curation_file else None
 
         splits = urlsplit(url)
-        self._base_url = f'{splits.scheme}://{splits.netloc}'
+        self._base_url = f"{splits.scheme}://{splits.netloc}"
         self._validate_url = urljoin(self._base_url, self.VALIDATE_URL)
         self._upload_url = urljoin(self._base_url, self.UPLOAD_URL)
         self._landing_page_url = urljoin(url, self.LANDING_PAGE_URL)
@@ -364,7 +434,7 @@ class XCADataUpload:
         # session = check_deployment(session, auth_token)
         self._session.get(self._landing_page_url)  # sets csrftoken
 
-        csrftoken = self._session.cookies.get('csrftoken', None)
+        csrftoken = self._session.cookies.get("csrftoken", None)
         if csrftoken:
             self._session.headers.update(
                 {
@@ -385,16 +455,22 @@ class XCADataUpload:
 
         Checks data version, proposal membership, authentication (if given).
         """
-        logger.info('Validating upload')
+        logger.info("Validating upload")
         validation_data = self._data_source.get_validation_payload()
         logger.info(f'Local data version: {validation_data["data_version"]}')
         logger.info(f'Local upload version: {validation_data["upload_version"]}')
 
         validation_data["target_access_string"] = self._proposal
 
+        # If the user is re-running with a completed curation spreadsheet, send
+        # it (base64) so the backend can apply the decisions and re-check. The
+        # payload carries a list of compound dicts, so it must go as JSON.
+        if self._curation_file is not None:
+            validation_data["curation_file"] = self._encode_curation_file()
+
         validation_result = self._session.post(
             self._validate_url,
-            data=validation_data,
+            json=validation_data,
         )
         if validation_result.url.find("keycloak") > 0:
             raise AuthenticationError("You are not logged in to Fragalysis")
@@ -405,13 +481,18 @@ class XCADataUpload:
             # data validation errors
             if "success" in result_json.keys():
                 if not result_json["success"]:
+                    # Compounds needing curation are handled specially: write
+                    # the spreadsheet the backend generated and stop, telling
+                    # the user to review it and re-run with --curation-file.
+                    if result_json.get("compound_conflicts"):
+                        self._handle_curation_required(result_json)
                     errors = False
                     for msg in result_json["message"]:
                         errors = True
                         logger.error(msg)
                     if errors:
                         # need to raise error.. but message superfluous?
-                        raise ValidationError('Data validation errors, quitting')
+                        raise ValidationError("Data validation errors, quitting")
 
             elif "detail" in result_json.keys():
                 raise ValidationError(result_json["detail"])
@@ -435,22 +516,84 @@ class XCADataUpload:
                     for e in errors:
                         logger.error(f"{field}: {e}")
 
-                    raise ValidationError('Server validation errors')
+                    raise ValidationError("Server validation errors")
+
+    def _encode_curation_file(self) -> str:
+        """Base64-encode the user's completed curation spreadsheet.
+
+        The backend format is hierarchical (compound groups), which is what
+        the user edits directly. Just encode and send as-is.
+        """
+        with open(self._curation_file, "rb") as f:
+            data = f.read()
+
+        return base64.b64encode(data).decode("ascii")
+
+    def _write_curation_file(self, data: bytes, suggested_name: str | None) -> Path:
+        """Write the backend-generated curation spreadsheet unchanged.
+
+        The backend generates the complete xlsx with all formatting, styling,
+        and data validation. The uploader just writes it as-is.
+        """
+        name = os.path.basename(suggested_name) if suggested_name else None
+        if not name:
+            name = f"{self._data_source.target_name}_curation.xlsx"
+        out_path = Path.cwd().joinpath(name)
+
+        with open(out_path, "wb") as f:
+            f.write(data)
+        return out_path
+
+    def _handle_curation_required(self, result_json: dict) -> None:
+        """Surface compound conflicts and stop the upload.
+
+        The backend returns the conflicts plus a ready-made spreadsheet (base64)
+        for the user to resolve. Write it out and raise so the upload halts; the
+        user edits it and re-runs with --curation-file.
+        """
+        conflicts = result_json.get("compound_conflicts") or []
+        out_path = None
+        if encoded := result_json.get("curation_file"):
+            out_path = self._write_curation_file(
+                base64.b64decode(encoded),
+                result_json.get("curation_filename"),
+            )
+
+        if self._curation_file is not None:
+            logger.error(
+                f"{len(conflicts)} compound(s) still need review: the supplied curation "
+                "file did not resolve all conflicts, or it is out of date with the server."
+            )
+        else:
+            logger.error(f"{len(conflicts)} compound(s) need curation before this upload can proceed.")
+
+        if out_path is not None:
+            logger.error(f"A curation spreadsheet has been written to: {out_path}")
+            logger.error(
+                f"Review it, set the decision column(s), then re-run the upload adding --curation-file {out_path}"
+            )
+
+        raise CurationRequiredError("Compound curation required", curation_path=out_path)
 
     def _upload(self) -> str:
         """File upload attempt"""
         checksum = self._data_source.checksum()
-        encoder = MultipartEncoder(
-            fields={
-                "target_access_string": self._proposal,
-                "sha256checksum": checksum,
-                "file": (
-                    str(self._data_source.tarball_path),
-                    open(self._data_source.tarball_path, "rb"),
-                    "application/octet-stream",
-                ),
-            }
-        )
+        fields = {
+            "target_access_string": self._proposal,
+            "sha256checksum": checksum,
+            "file": (
+                str(self._data_source.tarball_path),
+                open(self._data_source.tarball_path, "rb"),
+                "application/octet-stream",
+            ),
+        }
+        if self._curation_file is not None:
+            fields["curation_file"] = (
+                self._curation_file.name,
+                open(self._curation_file, "rb"),
+                "application/octet-stream",
+            )
+        encoder = MultipartEncoder(fields=fields)
         with open(self._data_source.tarball_path, "rb") as f:
             file_size = int(f.seek(0, 2))
             f.seek(0)
@@ -462,7 +605,7 @@ class XCADataUpload:
 
             self._session.headers.update({"Content-Type": monitor.content_type})
 
-            with tqdm(total=file_size, unit="B", unit_scale=True, desc='Uploading') as pbar:
+            with tqdm(total=file_size, unit="B", unit_scale=True, desc="Uploading") as pbar:
                 try:
                     response = self._session.post(
                         self._upload_url,
@@ -470,7 +613,7 @@ class XCADataUpload:
                     )
                 except ConnectionError as exc:
                     logger.error(exc)
-                    raise ConnectionError('Connection closed by server') from exc
+                    raise ConnectionError("Connection closed by server") from exc
 
         if response.ok:
             try:
@@ -482,11 +625,11 @@ class XCADataUpload:
                 # update: have I actually observed it? may have mixed up
                 # with the one below. Doesn't sound like ok response can
                 # throw errors
-                msg = 'Server response does not contain json payload'
+                msg = "Server response does not contain json payload"
                 logger.error(msg)
-                logger.error('Status code:', response.status_code)
-                logger.error('response headers:', response.headers)
-                logger.error('response text', response.text[:50])
+                logger.error("Status code:", response.status_code)
+                logger.error("response headers:", response.headers)
+                logger.error("response text", response.text[:50])
                 raise ValueError(msg) from exc
 
             try:
@@ -495,7 +638,7 @@ class XCADataUpload:
                 self._task_status_url = task_status_url
                 logger.info(f"task_status_url={task_status_url}")
             except KeyError:
-                logger.error('Server response does not contain task url')
+                logger.error("Server response does not contain task url")
                 raise Exception
 
             return task_status_url
@@ -505,17 +648,17 @@ class XCADataUpload:
                 response_json = response.json()
             except requests.exceptions.JSONDecodeError as exc:
                 # try something else?
-                msg = 'Response body does not contain JSON payload'
+                msg = "Response body does not contain JSON payload"
                 logger.error(msg)
-                logger.error('Status code:', response.status_code)
+                logger.error("Status code:", response.status_code)
                 if response.status_code == 500:
-                    logger.error('Server-side processing error')
+                    logger.error("Server-side processing error")
                 elif response.status_code == 504:
                     logger.log(
-                        'Timed out waiting for the server to respond. If the tarball'
-                        + ' was uploaded successfully, the server will continue to'
-                        + ' process it and you should see your target in Fragalysis'
-                        + ' shortly.',
+                        "Timed out waiting for the server to respond. If the tarball"
+                        + " was uploaded successfully, the server will continue to"
+                        + " process it and you should see your target in Fragalysis"
+                        + " shortly.",
                         level=-1,
                     )
 
@@ -530,13 +673,13 @@ class XCADataUpload:
 
             # no network errors, response resoved correctly, but there might
             # see if the server raises any issues
-            if fname_errors := response_json.get('filename', ''):
+            if fname_errors := response_json.get("filename", ""):
                 # comes as a list, have to go through everything
                 for e in fname_errors:
-                    if e.find('checksum'):
+                    if e.find("checksum"):
                         raise FileTransferError
                     else:
-                        raise Exception(f'Upload file error: {e}')
+                        raise Exception(f"Upload file error: {e}")
             else:
                 raise Exception
 
@@ -550,7 +693,7 @@ class XCADataUpload:
 
         status_json = status.json()
 
-        if status_json.get('status', None) in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
+        if status_json.get("status", None) in ("SUCCESS", "FAILED", "CANCELED", "FATAL"):
             finished = True
 
         if status_json.get("ready", False) is True:
@@ -579,12 +722,12 @@ class XCADataUpload:
     #     upload_to_s3(inputs_path, object_key=object_key)
 
     def upload(self):
-        logger.info(f'Uploading {self._data_source.data_source}')
+        logger.info(f"Uploading {self._data_source.data_source}")
 
         try:
             self._init_session()
             self._validate()
-            logger.info('Validation successful, starting file upload')
+            logger.info("Validation successful, starting file upload")
 
             for i in range(self._retries):
                 try:
@@ -592,15 +735,15 @@ class XCADataUpload:
                     break
                 except FileTransferError:
                     logger.info(
-                        'Uploaded file checksum does not match the calculated checksum, '
-                        + f'file was likely corrupt during the transfer. Retrying {i + 1}',
+                        "Uploaded file checksum does not match the calculated checksum, "
+                        + f"file was likely corrupt during the transfer. Retrying {i + 1}",
                     )
                 except ValueError:
                     return
             else:
-                raise RetryLimitReachedError(f'Upload retry limit ({self._retries}) reached, quitting')
+                raise RetryLimitReachedError(f"Upload retry limit ({self._retries}) reached, quitting")
 
-            logger.info('File uploaded, checking progress...')
+            logger.info("File uploaded, checking progress...")
             count = 0
             missing_proj_msg_already_shown = False
             while True:
@@ -613,7 +756,7 @@ class XCADataUpload:
                     continue
                 except StatusError as exc:
                     # this is an error raised by server, see what it says
-                    if exc.args[0] == f'Proposal {self._proposal} not found':
+                    if exc.args[0] == f"Proposal {self._proposal} not found":
                         # common in staging which gets wiped often and
                         # users upload to projects that don't exist
                         # yet, but is being created by this very
@@ -623,13 +766,13 @@ class XCADataUpload:
                         if not missing_proj_msg_already_shown:
                             # printing this once is enough
                             missing_proj_msg_already_shown = True
-                            logger.info(f'Proposal {self._proposal} not found!')
+                            logger.info(f"Proposal {self._proposal} not found!")
                             logger.info(
-                                'This indicates that the proposal does not yet exist and '
-                                + 'will now be created. It is not possible to display live '
-                                + 'updates of the target loading process; all collected '
-                                + 'messages will be presented once the process has completed. '
-                                + 'Depending on the size of the tarball, this may take some time.'
+                                "This indicates that the proposal does not yet exist and "
+                                + "will now be created. It is not possible to display live "
+                                + "updates of the target loading process; all collected "
+                                + "messages will be presented once the process has completed. "
+                                + "Depending on the size of the tarball, this may take some time."
                             )
 
                         # reset counter. Not ideal if gets stuck but nothing to do here
@@ -651,7 +794,7 @@ class XCADataUpload:
 
                 if count > self._futile_ping_count:
                     # if no changes for {randomly selected number of pings}, quit
-                    logger.info(f'No changes in {self._futile_ping_count} pings, quitting')
+                    logger.info(f"No changes in {self._futile_ping_count} pings, quitting")
                     break
 
                 # db message buffer contains all messages that have
@@ -660,7 +803,7 @@ class XCADataUpload:
                 # error, store for showing later
                 for m in messages[self._progress_message_count :]:
                     logger.log(m, level=-1)
-                    if m.startswith('ERROR'):
+                    if m.startswith("ERROR"):
                         self._progress_errors.append(m)
 
                 self._progress_message_count = len(messages)
@@ -672,7 +815,7 @@ class XCADataUpload:
             # at the end, print all the errors once more
             if self._progress_errors:
                 logger.log(
-                    'The following errors were encountered when processing ' + 'f{self._data_source.tarball_path}:',
+                    "The following errors were encountered when processing " + "f{self._data_source.tarball_path}:",
                     level=-1,
                 )
                 for e in self._progress_errors:
@@ -697,12 +840,12 @@ class TarballSource(DataSource):
 
     def _load_yaml_data(self, filename):
         """Override: extract yaml files from the tarball"""
-        logger.info(f'Extracting {filename} from tarball')
-        with tarfile.open(self.tarball_path, 'r') as tar:
+        logger.info(f"Extracting {filename} from tarball")
+        with tarfile.open(self.tarball_path, "r") as tar:
             try:
                 yaml_file = next(
                     filter(
-                        re.compile(f'upload_\d+/{filename}').match,
+                        re.compile(rf"upload_\d+/{filename}").match,
                         tar.getnames(),
                     ),
                 )
@@ -781,7 +924,7 @@ class FilesystemSource(DataSource):
         # url, if going to check this, this parameter must be made
         # available from cli
 
-        date = datetime.datetime.today().strftime('%Y-%m-%d')
+        date = datetime.datetime.today().strftime("%Y-%m-%d")
         upload_dir = self.upload_path.parts[-1]
 
         inputs_path = self._root_path.joinpath(
@@ -803,7 +946,7 @@ class FilesystemSource(DataSource):
 
     def _get_tarball_path(self) -> Path:
         """Override: compile tarball path"""
-        date = datetime.datetime.today().strftime('%Y-%m-%d')
+        date = datetime.datetime.today().strftime("%Y-%m-%d")
         upload_dir = self.upload_path.parts[-1]
 
         tarball_path = self._root_path.joinpath(
@@ -871,6 +1014,7 @@ class XCAUploadManager:
         no_copy: bool = False,
         retries: int = 3,
         auth_token: str | None = None,
+        curation_file: str | None = None,
     ) -> None:
         self._url = self.get_stack_url(url)
         self._proposal = proposal
@@ -878,6 +1022,7 @@ class XCAUploadManager:
         self._no_copy = no_copy
         self._no_copy = False  # no copying atm
         self._retries = retries
+        self._curation_file = curation_file
 
         if use_custom:
             # user gave the path to the tarball they want to upload
@@ -898,14 +1043,18 @@ class XCAUploadManager:
             proposal=self._proposal,
             auth_token=self._auth_token,
             retries=self._retries,
+            curation_file=self._curation_file,
         )
 
         try:
             uploader.upload()
         except KeyboardInterrupt:
             logger.info(
-                'Quitting. If the tarball was already uploaded, this will not ' + 'stop the processing in Fragalys.'
+                "Quitting. If the tarball was already uploaded, this will not " + "stop the processing in Fragalys."
             )
+        except CurationRequiredError:
+            # the user-facing guidance has already been logged; stop quietly
+            logger.info("Upload halted pending compound curation.")
         except (
             AuthenticationError,
             ValidationError,
@@ -924,7 +1073,7 @@ class XCAUploadManager:
             data_source.upload_inputs()
         except KeyboardInterrupt:
             logger.info(
-                'Quitting. If the tarball was already uploaded, this will not ' + 'stop the processing in Fragalys.'
+                "Quitting. If the tarball was already uploaded, this will not " + "stop the processing in Fragalys."
             )
         except (FileNotFoundError,) as exc:
             logger.error(exc)
@@ -1000,6 +1149,13 @@ def main():
         help="Do not copy input data to destination",
     )
     parser.add_argument(
+        "--curation-file",
+        required=False,
+        metavar="xlsx",
+        help="Completed compound-curation spreadsheet (as produced by a previous "
+        "validation run) resolving compound conflicts flagged by the server",
+    )
+    parser.add_argument(
         "-s",
         "--upload-inputs",
         action="store_true",
@@ -1029,6 +1185,7 @@ def main():
             use_custom=args.use_custom,
             no_copy=args.no_copy,
             retries=args.max_retries,
+            curation_file=args.curation_file,
         )
         uploader.upload_target()
 

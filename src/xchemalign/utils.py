@@ -330,18 +330,22 @@ def create_singleton_logger(log_file, log_level):
     return LOG
 
 
-def get_singleton_logger():
+def get_singleton_logger(warn=True):
     """
     Get the singleton logger. Create if first by using create_singleton_logger().
+    :param warn: emit a warning if the logger has not yet been explicitly created.
+        Pass False for entrypoints that deliberately rely on the default
+        (console) logger, e.g. when there is no fixed working dir for a log file.
     :return:
     """
     global LOG
     if LOG is None:
         LOG = Logger()
-        LOG.warn(
-            "Logger has not been created, so default logger is used. "
-            + "Please use create_singleton_logger() to create the required logger."
-        )
+        if warn:
+            LOG.warn(
+                "Logger has not been created, so default logger is used. "
+                + "Please use create_singleton_logger() to create the required logger."
+            )
     return LOG
 
 
