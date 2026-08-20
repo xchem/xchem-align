@@ -732,9 +732,8 @@ but whose details differ, the server cannot know which version is correct, so it
 stops and asks you. This is *compound curation*: you answer the questions in a
 spreadsheet and re-run the same upload with your answers attached.
 
-Most differences never reach you. If one side simply has a value and the other is
-empty, the existing value wins automatically, and free-text fields such as
-`description` are concatenated. You will see these reported as
+Most differences never reach you: if one side simply has a value and the other is
+empty, the populated one wins automatically. You will see these reported as
 `N compound(s) auto-merged` and no decision is needed. Only genuine
 disagreements — both sides holding different, non-empty values — are put to you.
 
@@ -813,7 +812,8 @@ the whole block into one compound. When you choose `MERGE`, every yellow cell on
 that row must be filled: each is a dropdown listing the values actually on offer
 from the rows above, and you pick the one that wins. Cells where only one value
 exists are pre-filled and locked, so you only decide where there is a genuine
-disagreement.
+disagreement. If `MERGE` is selected, all other options above are ignored and
+compounds are collapsed into one.
 
 The defaults are deliberately safe: an untouched spreadsheet means *keep every
 existing compound exactly as it is, and add the incoming one alongside*. That is
