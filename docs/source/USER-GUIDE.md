@@ -724,6 +724,144 @@ These must be named in sequence `upload_1`, `upload_2`, `upload_3` ...
 When complete tar gzip the relevant `upload_?` dir and load into Fragalysis as before.
 Fragalysis also only accepts uploads in the strict sequence described.
 
+## 7. Curating compound conflicts
+
+Fragalysis stores each compound once per proposal, identified by its stereo-aware
+InChIKey. When your upload contains a compound that already exists in the proposal
+but whose details differ, the server cannot know which version is correct, so it
+stops and asks you. This is *compound curation*: you answer the questions in a
+spreadsheet and re-run the same upload with your answers attached.
+
+Most differences never reach you. If one side simply has a value and the other is
+empty, the existing value wins automatically, and free-text fields such as
+`description` are concatenated. You will see these reported as
+`N compound(s) auto-merged` and no decision is needed. Only genuine
+disagreements — both sides holding different, non-empty values — are put to you.
+
+### 7.1 The workflow
+
+Curation adds one round trip to a normal upload:
+
+1. Run the upload as usual. If compounds need review, the upload **halts before
+   anything is written** and a spreadsheet is saved to your current directory:
+
+   ```commandline
+   python -m xchemalign.uploader -u <fragalysis url> -p <proposal number> -t <token>
+   ```
+
+   ```
+   ERROR: 40 compound(s) need curation before this upload can proceed.
+   ERROR: A curation spreadsheet has been written to: /path/to/A71EV2A_curation.xlsx
+   ERROR: Review it, set the decision column(s), then re-run the upload adding --curation-file /path/to/A71EV2A_curation.xlsx
+   ```
+
+2. Open the spreadsheet, make your decisions (see below), and save it as `.xlsx`.
+
+3. Re-run the **same** upload command with `--curation-file` added:
+
+   ```commandline
+   python -m xchemalign.uploader -u <fragalysis url> -p <proposal number> -t <token> \
+       --curation-file A71EV2A_curation.xlsx
+   ```
+
+Nothing is uploaded until every conflict is resolved, so it is safe to run step 1
+as often as you like — it tells you what curation the data will need without
+changing anything.
+
+### 7.2 Reading the spreadsheet
+
+The workbook has one visible sheet, **Incoming compounds**, containing a block per
+compound needing a decision. Each block has its own header row followed by three
+kinds of row:
+
+| Row | Meaning |
+| --- | --- |
+| A numeric `id` | A compound that already exists in Fragalysis. There may be several. |
+| `Incoming` | The compound in the upload you are submitting. |
+| `Merge to` | Where you build a single combined compound, if you want one. |
+
+The colours tell you what you may touch:
+
+* **Grey** — locked. Identity columns and values that need no decision. The sheet
+  is protected, so you cannot edit these by accident.
+* **Yellow** — yours to fill in.
+* **Light red** — only appears on a re-run: an answer the server could not accept.
+  Fix the red cells and send the file back.
+
+There is also a hidden `_curation` sheet used by the server. Leave it alone.
+
+### 7.3 Making decisions
+
+Every row's `action` column offers only the choices that make sense for it.
+
+**On an existing compound row** — `KEEP` (the default) or
+`DELETE`. `DELETE` is destructive and cannot be undone: that compound
+row is removed from the database, its ID ceases to exist, and its own
+values are lost unless you select them as the winners on the `Merge
+to` row. What is *not* lost is the experimental data pointing at it —
+site observations and every other reference are relinked to the
+surviving compound before the row is deleted, so nothing is
+orphaned. Use `DELETE` for rows that are unnecessary duplicates.
+
+**On the `Incoming` row** — `CREATE` (the default) means add the uploaded compound
+as a new one. **Clear the cell** (select it and press Delete) to say the opposite:
+do not create it, treat it as the same compound as the existing row you kept. This
+is how you reuse an existing compound rather than adding a near-duplicate.
+
+**On the `Merge to` row** — leave it blank for no merge, or choose `MERGE` to fold
+the whole block into one compound. When you choose `MERGE`, every yellow cell on
+that row must be filled: each is a dropdown listing the values actually on offer
+from the rows above, and you pick the one that wins. Cells where only one value
+exists are pre-filled and locked, so you only decide where there is a genuine
+disagreement.
+
+The defaults are deliberately safe: an untouched spreadsheet means *keep every
+existing compound exactly as it is, and add the incoming one alongside*. That is
+always a valid answer, so you can resolve the blocks you care about and leave the
+rest. It does mean an untouched sheet performs no de-duplication.
+
+### 7.4 Worked examples
+
+**Two rows, same molecule, different registration codes** — they are genuinely
+different entities that happen to share a structure. Leave everything at its
+default: both existing rows stay, and the incoming compound is added.
+
+**The incoming compound is one you already have** — keep the existing row at
+`KEEP`, and clear the `action` on the `Incoming` row. The upload links to the
+existing compound and no new one is created.
+
+**Three duplicate rows that should be one compound** — set `MERGE` on the
+`Merge to` row and pick the winning value for each yellow cell. The lowest-numbered
+existing compound survives with the values you chose; the others are relinked to it
+and removed.
+
+### 7.5 Re-running, and what happens if you get it wrong
+
+If any decision cannot be applied — most often `MERGE` with a value left unchosen —
+the upload halts again and a fresh spreadsheet is written to your working
+directory. It contains **every** block again, not just the problem ones, and it
+carries the answers you already gave. Only the cells the server could not accept
+are red, so a second pass is usually a few seconds' work.
+
+> Note: always edit and submit the newly written file, and always send the whole
+  file. A block missing from the spreadsheet reaches the server with no decision
+  attached and falls back to the defaults, silently discarding what you said about
+  it. The file written to your working directory is complete by construction, so
+  the safe habit is simply not to hand-assemble one.
+
+Your decisions are matched to compounds by identity, not by position, so adding or
+reordering rows achieves nothing. The server also re-checks the whole
+reconciliation against the live database at the moment of upload rather than
+trusting the spreadsheet. If the data changed in between — someone else uploaded to
+the same proposal, say — the affected decision is reported and the upload is
+rejected rather than being misapplied. Re-run without `--curation-file` to get a
+spreadsheet that reflects the current state.
+
+Once every conflict resolves, the upload proceeds exactly as an uncurated one.
+Keep the completed spreadsheet with your upload directory: it is the only record of
+the decisions you made, and you will want it if you need to explain later why two
+compounds were merged.
+
 ---
 
 ## Debugging Errors
