@@ -1,16 +1,21 @@
 import textwrap
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from gemmi import cif
 
+from pdbdepo import pdb_deposition
 from pdbdepo.pdb_deposition import (
+    filter_excluded,
     merge_mmcifgen_into_structure,
     read_cmpd_codes,
     read_fragalysis_csv,
     rename_beamlines,
     substitute_tokens,
+    validate_sequences,
 )
+from xchemalign.utils import Constants
 
 
 # ---------------------------------------------------------------------------
@@ -374,3 +379,89 @@ def test_rename_beamlines_preserves_quoting():
     written = doc.as_string()
     assert "'DIAMOND BEAMLINE VMXi' DIAMOND VMXi" in written
     assert 'I02-2' not in written
+
+
+# ---------------------------------------------------------------------------
+# filter_excluded
+# ---------------------------------------------------------------------------
+
+
+def _soakdb_df(*xtal_names):
+    return pd.DataFrame(
+        {Constants.SOAKDB_XTAL_NAME: list(xtal_names), 'RefinementOutcome': ['5 - Deposition'] * len(xtal_names)}
+    )
+
+
+def test_filter_excluded_drops_listed_crystals():
+    df = _soakdb_df('XTAL-x0001', 'XTAL-x0002', 'XTAL-x0003')
+    result = filter_excluded(df, {'exclude': ['XTAL-x0002']})
+    assert list(result[Constants.SOAKDB_XTAL_NAME]) == ['XTAL-x0001', 'XTAL-x0003']
+
+
+def test_filter_excluded_drops_several_crystals():
+    df = _soakdb_df('XTAL-x0001', 'XTAL-x0002', 'XTAL-x0003')
+    result = filter_excluded(df, {'exclude': ['XTAL-x0001', 'XTAL-x0003']})
+    assert list(result[Constants.SOAKDB_XTAL_NAME]) == ['XTAL-x0002']
+
+
+def test_filter_excluded_no_exclude_section():
+    df = _soakdb_df('XTAL-x0001', 'XTAL-x0002')
+    result = filter_excluded(df, {'dir': 'somewhere'})
+    assert list(result[Constants.SOAKDB_XTAL_NAME]) == ['XTAL-x0001', 'XTAL-x0002']
+
+
+def test_filter_excluded_empty_exclude_tag():
+    # 'exclude:' present in the YAML but with no values parses as None
+    df = _soakdb_df('XTAL-x0001', 'XTAL-x0002')
+    result = filter_excluded(df, {'exclude': None})
+    assert list(result[Constants.SOAKDB_XTAL_NAME]) == ['XTAL-x0001', 'XTAL-x0002']
+
+
+def test_filter_excluded_name_not_in_dataframe():
+    df = _soakdb_df('XTAL-x0001', 'XTAL-x0002')
+    result = filter_excluded(df, {'exclude': ['XTAL-x9999']})
+    assert list(result[Constants.SOAKDB_XTAL_NAME]) == ['XTAL-x0001', 'XTAL-x0002']
+
+
+def test_filter_excluded_leaves_other_columns_intact():
+    df = _soakdb_df('XTAL-x0001', 'XTAL-x0002')
+    result = filter_excluded(df, {'exclude': ['XTAL-x0001']})
+    assert list(result.columns) == list(df.columns)
+    assert result.iloc[0]['RefinementOutcome'] == '5 - Deposition'
+
+
+def test_excluded_crystal_is_not_sequence_checked(monkeypatch, tmp_path):
+    # the reported bug: a crystal in the exclude section still failed the issue #94 sequence check,
+    # which is fatal, so the user had no way of getting past it
+    monkeypatch.setattr(pdb_deposition.sequence_check, 'collect_candidates', lambda *args: {})
+    monkeypatch.setattr(pdb_deposition.sequence_check, 'read_structure', lambda **kwargs: 'structure')
+
+    checked = []
+
+    def fake_check_sequences(struc, seq_dict):
+        checked.append(seq_dict)
+        return ['chain A: declared D but model has LEU 33']
+
+    monkeypatch.setattr(pdb_deposition.sequence_check, 'check_sequences', fake_check_sequences)
+    monkeypatch.setattr(pdb_deposition.sequence_check, 'suggest_sequence', lambda struc, candidates: None)
+
+    df = pd.DataFrame(
+        {
+            Constants.SOAKDB_XTAL_NAME: ['XTAL-x0001'],
+            Constants.SOAKDB_COL_REFINEMENT_MMCIF_MODEL_LATEST: ['None'],
+            Constants.SOAKDB_COL_PDB: [str(tmp_path / 'XTAL-x0001.pdb')],
+        }
+    )
+    input_config = {'exclude': ['XTAL-x0001']}
+    default_seq = {'A': ('A', 'MNPQRSTVW')}
+
+    # without the filter the failing crystal is checked, and is fatal
+    with pytest.raises(SystemExit):
+        validate_sequences(tmp_path, df, input_config, default_seq, {})
+    assert checked == [default_seq]
+
+    # once it is excluded it is not checked at all
+    checked.clear()
+    filtered = filter_excluded(df, input_config)
+    validate_sequences(tmp_path, filtered, input_config, default_seq, {})
+    assert not checked

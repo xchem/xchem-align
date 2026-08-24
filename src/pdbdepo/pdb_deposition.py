@@ -169,6 +169,30 @@ def merge_mmcifgen_into_structure(
             structure_block.add_item(item)
 
 
+def filter_excluded(df, input_config: dict):
+    """
+    Drop the crystals listed in the input's exclude section from the soakdb dataframe.
+
+    The collator drops them before it validates or writes anything, so an excluded crystal is not in
+    meta_collator.yaml and nothing here can be produced for it. Without this the sequence check would
+    fail on a crystal the user has deliberately dropped, with no way to satisfy it, and the writing
+    loop would create an empty output dir for it before finding no metadata.
+
+    :param df: the soakdb dataframe
+    :param input_config: the input section of config.yaml
+    :return: the dataframe with the excluded crystals removed
+    """
+    excludes = utils.find_property(input_config, Constants.CONFIG_EXCLUDE)
+    if not excludes:
+        return df
+
+    filtered = df[~df[Constants.SOAKDB_XTAL_NAME].isin(excludes)]
+    num_dropped = len(df) - len(filtered)
+    if num_dropped:
+        info('excluded', num_dropped, 'crystals listed in the exclude section of config.yaml')
+    return filtered
+
+
 def validate_sequences(base_dir: Path, df, input_config: dict, default_seq, variants):
     """
     Check every structure against the sequence declared for it before anything is written.
@@ -285,6 +309,7 @@ def process_input(
     info("reading soakdb file:", soakdb_file_p)
     df = dbreader.read_pdb_depo(soakdb_file_p)
     info("read {} rows".format(len(df)))
+    df = filter_excluded(df, input_config)
 
     validate_sequences(base_dir, df, input_config, default_seq, variants)
 
