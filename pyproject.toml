@@ -125,6 +125,10 @@ exclude = [".tox", "venv"]
 
 [tool.black]
 line-length = 119
+# Must match the --skip-string-normalization passed to the black pre-commit hook. Kept here rather
+# than only in .pre-commit-config.yaml so that a plain `black src tests`, or an editor's
+# format-on-save, does not rewrite every single-quoted string in the repo.
+skip-string-normalization = true
 
 [tool.pytest.ini_options]
 testpaths = ['tests']
