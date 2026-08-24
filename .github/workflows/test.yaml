@@ -34,6 +34,9 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    # Must run before any "pip install ." - see the action for why.
+    - name: Install gemmi
+      uses: ./.github/actions/install-gemmi
     - name: Pre-commit check
       run: |
         pip install --upgrade pip
@@ -54,6 +57,9 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    # Must run before any "pip install ." - see the action for why.
+    - name: Install gemmi
+      uses: ./.github/actions/install-gemmi
     - name: Install dependencies
       run: |
         pip install --upgrade pip
@@ -77,6 +83,9 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    # Must run before any "pip install ." - see the action for why.
+    - name: Install gemmi
+      uses: ./.github/actions/install-gemmi
     - name: Install dependencies
       run: |
         pip install --upgrade pip

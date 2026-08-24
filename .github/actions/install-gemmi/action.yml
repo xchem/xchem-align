@@ -1,0 +1,32 @@
+---
+name: Install gemmi
+description: >
+  Install the pinned gemmi commit against a nanobind 2.x build toolchain.
+
+  gemmi's build-system.requires says "nanobind >=2.4" with no upper bound, but its
+  CMakeLists.txt calls find_package(nanobind 2.4.0 CONFIG REQUIRED), and nanobind's
+  cmake config is generated with COMPATIBILITY SameMajorVersion. nanobind 3.0.0 is
+  therefore installed into the PEP 517 build overlay and then rejected by cmake.
+  That is why every job here went red on 2026-08-22 with no commit behind it.
+
+  PIP_CONSTRAINT does not fix it: pip does not apply constraints to the build
+  overlay. The build dependencies are installed into the job environment instead,
+  and gemmi is built with --no-build-isolation so that it picks them up.
+
+  Remove this action once gemmi upstream bounds its nanobind requirement or
+  supports 3.x - the plain "pip install ." in each job then covers gemmi again.
+
+runs:
+  using: composite
+  steps:
+  - name: Build gemmi against nanobind 2.x
+    shell: bash
+    run: |
+      set -euo pipefail
+      pip install --upgrade pip
+      pip install scikit-build-core "nanobind>=2.4,<3" cmake ninja
+      # Read the pin out of pyproject.toml so that it cannot drift from the
+      # real dependency when the gemmi commit is next bumped.
+      gemmi_req=$(grep -oE "gemmi@git\+[^']+" pyproject.toml)
+      echo "installing ${gemmi_req}"
+      pip install --no-build-isolation "${gemmi_req}"
