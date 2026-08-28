@@ -23,6 +23,11 @@ XCA is typically run on fragment screening data that is collected by [XChem](htt
 :maxdepth: 1
 USER-GUIDE.md
 ```
+## PDB Deposition User Guide
+```{toctree}
+:maxdepth: 1
+PDB-DEPO-GUIDE.md
+```
 ## XChemAlign Developer Guide
 ```{toctree}
 :maxdepth: 1
