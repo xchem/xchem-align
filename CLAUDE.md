@@ -83,6 +83,10 @@ src/
 
 `ligand_neighbourhood_alignment` (LNA) was originally a separate project and retains its own style (loguru for logging, pydantic models, `networkx` graphs). The `dep/` subdirectory contains the old implementation and is not used by the current pipeline. When modifying alignment logic, work in the top-level LNA modules (`alignment_core.py`, `update.py`, `structure_alignment.py`, etc.), not in `dep/`.
 
+### PDB deposition documentation
+
+`docs/source/PDB-DEPO-GUIDE.md` documents, in detail, how each crystal's deposition files are built — crystal selection, the SoakDB columns and other inputs used, and the per-program variations in data processing and refinement. It is written from the code and has no test enforcing it, so keep it in step in the same commit when changing `pdb_deposition.py`, `merge_sf.py`, `scrape_processing_stats.py`, `dbreader.read_pdb_depo()`, `config/pdb-depo/*.cif`, or `xchem_operations.json`. The guide carries a maintainer note listing which section covers what.
+
 ### gemmi workaround
 
 There is an active workaround in `pdb_deposition.py` and `rename_chains_2a.py` for a gemmi upstream bug (tracked in project memory). See `memory/project_gemmi_workaround.md` for details on what to revert when the bug is fixed.
