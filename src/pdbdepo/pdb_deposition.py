@@ -639,13 +639,16 @@ def add_software_loop(templates_dict, block, refinement_prog, data_processing_pr
     is_error = False
     refinement_t = templates_dict.get(refinement_prog.lower())
     if not refinement_t:
-        error('no software template found for', refinement_prog.lower())
+        error('no refinement template found for', refinement_prog.lower())
         is_error = True
 
     data_processing_t = templates_dict.get(data_processing_prog.lower())
     if not data_processing_t:
-        error('no software template found for', data_processing_prog.lower())
+        error('no data processing template found for', data_processing_prog.lower())
         is_error = True
+
+    if is_error:
+        exit(1)
 
     refinement_item = refinement_t[0].find_loop_item('_software.pdbx_ordinal')
     if not refinement_item or not refinement_item.loop:
