@@ -13,6 +13,7 @@ This supersedes [Fragalysis-API](https://github.com/xchem/fragalysis-api).
 
 See:
 * [User Guide](https://xchem-align.readthedocs.io/en/latest/USER-GUIDE.html)
+* [PDB Deposition  Guide](https://xchem-align.readthedocs.io/en/latest/PDB-DEPO-GUIDE.html)
 * [Developer Guide](https://xchem-align.readthedocs.io/en/latest/DEV-GUIDE.html)
 * [Algorithm Guide](https://xchem-align.readthedocs.io/en/latest/ALGORITHM-GUIDE.html)
 
