@@ -27,34 +27,60 @@ SCORING = gemmi.AlignmentScoring('s')
 UNKNOWN_RESIDUE = 'X'
 
 
+def peptide_residues(polymer):
+    """
+    The amino acid residues of a polymer span.
+
+    gemmi's polymer span is not purely peptide: a cofactor or ligand numbered before the first
+    modelled residue of the chain (e.g. COA B 1 where the peptide starts at B 491) is swept into the
+    chain's polymer subchain by setup_entities. Such a residue is never part of the declared FASTA
+    sequence, so it must be ignored here or every model containing one is reported as a mismatch.
+
+    Modified residues that derive from a standard one (MSE, SEP, PTR ...) are amino acids and are
+    kept, as the sequence does declare them.
+
+    :param polymer: a gemmi ResidueSpan
+    :return: list of gemmi Residue
+    """
+    residues = []
+    for residue in polymer:
+        info = gemmi.find_tabulated_residue(residue.name)
+        if info and info.is_amino_acid():
+            residues.append(residue)
+    return residues
+
+
 def polymer_chains(struc):
     """
     The peptide chains of a structure, keyed by chain name. Matches how adjust_chains_and_entities in
     pdb_deposition decides what is a protein chain, so the two agree on which chains need a sequence.
 
     :param struc: the gemmi Structure
-    :return: dict of chain name -> gemmi ResidueSpan
+    :return: dict of chain name -> list of gemmi Residue, the amino acid residues of that chain
     """
     chains: dict = {}
     if len(struc) == 0:
         return chains
     for chain in struc[0]:  # always only a single model
         polymer = chain.get_polymer()
-        if len(polymer) > 0 and polymer.check_polymer_type() == gemmi.PolymerType.PeptideL:
-            chains[chain.name] = polymer
+        if len(polymer) == 0 or polymer.check_polymer_type() != gemmi.PolymerType.PeptideL:
+            continue
+        residues = peptide_residues(polymer)
+        if residues:
+            chains[chain.name] = residues
     return chains
 
 
-def observed_sequence(polymer):
+def observed_sequence(residues):
     """
     The one letter sequence of the residues actually present, with modified residues represented by
     the residue they derive from, so that e.g. selenomethionine counts as the M the user declared.
 
-    :param polymer: a gemmi ResidueSpan
+    :param residues: list of gemmi Residue, as returned by polymer_chains
     :return: one letter sequence as a string
     """
     codes = []
-    for residue in polymer:
+    for residue in residues:
         info = gemmi.find_tabulated_residue(residue.name)
         # one_letter_code is lower case for non-standard residues that have a standard parent
         code = info.one_letter_code.upper() if info else ''
@@ -89,7 +115,7 @@ def check_sequences(struc, seq_dict):
     return issues
 
 
-def compare_chain(name, declared, polymer):
+def compare_chain(name, declared, residues):
     """
     Align a declared sequence to the residues of one chain and describe anything that does not fit.
 
@@ -98,22 +124,22 @@ def compare_chain(name, declared, polymer):
 
     :param name: the chain name, used in the descriptions
     :param declared: the declared one letter sequence
-    :param polymer: a gemmi ResidueSpan
+    :param residues: list of gemmi Residue, as returned by polymer_chains
     :return: list of descriptions
     """
     issues = []
-    observed = observed_sequence(polymer)
+    observed = observed_sequence(residues)
     alignment = gemmi.align_string_sequences(list(declared), list(observed), [], SCORING)
 
     declared_aligned = alignment.add_gaps(declared, 1)
     observed_aligned = alignment.add_gaps(observed, 2)
 
-    index = 0  # index into polymer, advanced for each aligned position that is a real residue
+    index = 0  # index into residues, advanced for each aligned position that is a real residue
     for declared_code, observed_code in zip(declared_aligned, observed_aligned):
         if observed_code == '-':
             # a residue that was not modelled, which is normal
             continue
-        residue = polymer[index]
+        residue = residues[index]
         index += 1
         if declared_code == '-':
             issues.append(

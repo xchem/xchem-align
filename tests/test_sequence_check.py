@@ -4,10 +4,15 @@ import gemmi
 import pytest
 
 from xchemalign import sequence_check
+from xchemalign.sequence_check import UNKNOWN_RESIDUE
 
 # chain A is complete (residues 1-302), chain B has an internal gap (48-50 are not modelled)
 TWO_CHAIN_PDB = 'test-data/8e1y.pdb'
 ONE_CHAIN_PDB = 'test-data/refine_7.split.bound-state.pdb'
+# two chains each with a cofactor numbered 1, i.e. before the first modelled residue of the chain,
+# which gemmi's setup_entities sweeps into that chain's polymer subchain
+COFACTOR_PDBS = ['test-data/XXX-CoA.pdb', 'test-data/RFKAT2B-x0045.pdb']
+COFACTOR_NAMES = ['COA', 'POP']
 
 
 def read(path):
@@ -158,3 +163,18 @@ def test_structure_with_no_model_is_not_an_error():
     # a CIF that is not a set of coordinates at all, e.g. ligand restraints, must not blow up
     struc = sequence_check.read_structure(mmcif_file='test-data/inputs_2/ligand_bound_manual/Mpro-i0130.cif')
     assert sequence_check.polymer_chains(struc) == {}
+
+
+@pytest.mark.parametrize('path', COFACTOR_PDBS)
+def test_cofactor_in_the_polymer_is_ignored(path):
+    # https://github.com/xchem/xchem-align/issues/94: a cofactor at the start of a chain must not be
+    # reported as a residue the declared sequence does not account for
+    struc = read(path)
+    chains = sequence_check.polymer_chains(struc)
+    assert sorted(chains) == ['A', 'B']
+    for name in chains:
+        assert not any(residue.name in COFACTOR_NAMES for residue in chains[name])
+        assert UNKNOWN_RESIDUE not in observed(struc, name)
+    # both chains are the same construct, so the same declared sequence covers them both
+    declared = observed(struc, 'A')
+    assert sequence_check.check_sequences(struc, {'A': ('A', declared), 'B': ('A', declared)}) == []
