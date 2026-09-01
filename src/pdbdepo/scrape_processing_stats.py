@@ -170,6 +170,7 @@ def handle_autoproc_staraniso(file):
 
 
 def handle_xia2_dials(file):
+    # assumes the syntax is the same as for xia2-3dii
     return handle_text_file(file, d_xia_3dii)
 
 
@@ -278,6 +279,8 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
         reflns, shell = handle_xia_3dii(file)
     elif type == 'xia2-multiplex':
         reflns, shell = handle_xia2_multiplex(file)
+    elif type == 'xia2-dials':
+        reflns, shell = handle_xia2_dials(file)
     else:
         info('Unsupported type: ' + type)
         return None
