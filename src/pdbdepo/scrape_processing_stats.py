@@ -277,7 +277,7 @@ def handle_file(file, type, doc: cif.Document, outputfile: str):
         reflns, shell = handle_autoproc_staraniso(file)
     elif type == 'xia-3dii' or type == 'xia_3dii':
         reflns, shell = handle_xia_3dii(file)
-    elif type == 'xia2-multiplex' or 'xia2_multiplex':
+    elif type == 'xia2-multiplex' or type == 'xia2_multiplex':
         reflns, shell = handle_xia2_multiplex(file)
     elif type == 'xia2-dials' or type == 'xia2_dials':
         reflns, shell = handle_xia2_dials(file)
