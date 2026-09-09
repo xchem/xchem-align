@@ -199,7 +199,7 @@ def test_handle_file_autoproc_staraniso_creates_reflns_loop():
 
 
 def test_handle_file_xia_3dii_creates_reflns_loop():
-    doc = sps.handle_file(str(XIA_3DII_LOG), "xia_3dii", None, None)
+    doc = sps.handle_file(str(XIA_3DII_LOG), "xia2-3dii", None, None)
     block = doc[0]
     assert block.find_pair("_reflns.d_resolution_high") == ("_reflns.d_resolution_high", "1.60")
 

@@ -300,18 +300,18 @@ The log parsers recognise these program names and file formats:
 |---|---|---|
 | `autoproc` | `<crystal>.log` or `aimless.log` | AIMLESS text summary table |
 | `autoproc_staraniso` | `staraniso_alldata-unique.table1` | STARANISO text summary table |
-| `xia_3dii` | `<crystal>.log` | xia2 text summary table |
+| `xia2-3dii` | `<crystal>.log` | xia2 text summary table |
+| `xia2-dials` | `<crystal>.log` | xia2 text summary table (assumed to be the same format as `xia2-3dii`) |
 | `xia2-multiplex` | the xia2.multiplex HTML report | HTML, parsed with BeautifulSoup — the "Overall" table of the combined "All data" dataset |
 
-In each case the overall values become `_reflns` and the inner/outer shell values become a two-row
-`_reflns_shell` loop.
+Each name is also recognised with underscores in place of hyphens, since `DataProcessingProgram`
+values seen in the wild use both. In each case the overall values become `_reflns` and the
+inner/outer shell values become a two-row `_reflns_shell` loop.
 
 ```{note}
-The names the log parsers recognise are not identical to the software template filenames. There is no
-log parser for `xia2-dials`, and the parser for the xia2 3dii pipeline is registered as `xia_3dii`
-whereas its template is `xia2-3dii.cif`. This does not bite in practice because those pipelines write
-`xia2.mmcif.bz2`, which takes priority anyway; but if that file is missing for such a crystal, the run
-logs `stats could not be scraped from log file` and the structure CIF has no `_reflns` data.
+If the log file named by `DataProcessingPathToLogfile` is missing or unparseable, and no
+`xia2.mmcif.bz2` is present either, the run logs `stats could not be scraped from log file` and the
+structure CIF has no `_reflns` data.
 ```
 
 If `DataProcessingPathToLogfile` is empty, no statistics source is looked for at all and the
