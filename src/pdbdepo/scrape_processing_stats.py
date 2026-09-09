@@ -273,13 +273,13 @@ def handle_xia2_multiplex(file):
 def handle_file(file, type, doc: cif.Document, outputfile: str):
     if type == 'autoproc':
         reflns, shell = handle_autoproc(file)
-    elif type == 'autoproc_staraniso':
+    elif type == 'autoproc-staraniso' or type == 'autoproc_staraniso':
         reflns, shell = handle_autoproc_staraniso(file)
-    elif type == 'xia_3dii':
+    elif type == 'xia-3dii' or type == 'xia_3dii':
         reflns, shell = handle_xia_3dii(file)
-    elif type == 'xia2-multiplex':
+    elif type == 'xia2-multiplex' or 'xia2_multiplex':
         reflns, shell = handle_xia2_multiplex(file)
-    elif type == 'xia2-dials':
+    elif type == 'xia2-dials' or type == 'xia2_dials':
         reflns, shell = handle_xia2_dials(file)
     else:
         info('Unsupported type: ' + type)
