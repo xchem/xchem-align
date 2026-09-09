@@ -271,11 +271,12 @@ def handle_xia2_multiplex(file):
 
 
 def handle_file(file, type, doc: cif.Document, outputfile: str):
+    info("type is", type)
     if type == 'autoproc':
         reflns, shell = handle_autoproc(file)
     elif type == 'autoproc-staraniso' or type == 'autoproc_staraniso':
         reflns, shell = handle_autoproc_staraniso(file)
-    elif type == 'xia-3dii' or type == 'xia_3dii':
+    elif type == 'xia2-3dii' or type == 'xia2_3dii':
         reflns, shell = handle_xia_3dii(file)
     elif type == 'xia2-multiplex' or type == 'xia2_multiplex':
         reflns, shell = handle_xia2_multiplex(file)
