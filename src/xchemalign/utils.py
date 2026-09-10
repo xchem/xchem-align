@@ -483,6 +483,7 @@ def gen_mols_from_cif(cif_file):
             charges = list(block.find_loop('_chem_comp_atom.partial_charge'))
 
         atoms = {}
+        fractional_charges = {}
         ligand_name = None
         coords_ok = True
         for name, s, id, px, py, pz, charge in zip(comp_ids, atom_symbols, atom_ids, x, y, z, charges):
@@ -500,9 +501,15 @@ def gen_mols_from_cif(cif_file):
                 s = s[0] + s[1].lower()
 
             atom = Chem.Atom(s)
-            atom.SetFormalCharge(round(float(charge)))
+            charge = float(charge)
+            whole = is_whole_charge(charge)
+            if whole:
+                atom.SetFormalCharge(round(charge))
             atom.SetProp('atom_id', id)
             idx = mol.AddAtom(atom)
+            if not whole:
+                # placed once the deloc bonds are known - see place_fractional_charges()
+                fractional_charges[idx] = charge
             atom.SetIntProp('idx', idx)
             atoms[id] = atom
 
@@ -518,13 +525,14 @@ def gen_mols_from_cif(cif_file):
         if not bond_type:
             bond_type = block.find_loop('_chem_comp_bond.value_order')
 
+        deloc_bonds = []
         try:
             for a1, a2, bt in zip(atom1, atom2, bond_type):
-                mol.AddBond(
-                    atoms[strip_quotes(a1)].GetIntProp('idx'),
-                    atoms[strip_quotes(a2)].GetIntProp('idx'),
-                    BOND_TYPES[bt.lower()],
-                )
+                idx1 = atoms[strip_quotes(a1)].GetIntProp('idx')
+                idx2 = atoms[strip_quotes(a2)].GetIntProp('idx')
+                mol.AddBond(idx1, idx2, BOND_TYPES[bt.lower()])
+                if bt.lower() == 'deloc':
+                    deloc_bonds.append((idx1, idx2))
         except:
             print('CIF file')
             print(cif_file)
@@ -548,6 +556,9 @@ def gen_mols_from_cif(cif_file):
             print(charges)
             raise Exception
 
+        if fractional_charges:
+            place_fractional_charges(mol, fractional_charges, deloc_bonds, ligand_name, cif_file)
+
         Chem.SanitizeMol(mol)
         if coords_ok:
             mol.AddConformer(conf)
@@ -565,6 +576,61 @@ def gen_mols_from_cif(cif_file):
         mols.append(mol)
 
     return mols
+
+
+# how far a charge read from a CIF may be from a whole number and still be treated as one
+CHARGE_TOLERANCE = 0.05
+
+
+def is_whole_charge(charge):
+    return abs(charge - round(charge)) <= CHARGE_TOLERANCE
+
+
+def place_fractional_charges(mol, fractional_charges, deloc_bonds, ligand_name, cif_file):
+    """
+    A formal charge must be a whole number, but a CIF may spread a charge over a delocalised group,
+    e.g. -0.5 on each O of a carboxylate. Rounding each atom's charge loses it (round(-0.5) == 0), so
+    instead the atoms joined by deloc bonds are grouped, their fractional charges summed, and the
+    whole-number total is placed on the first of those atoms in CIF order. A fractional charge that
+    does not sum to a whole number within its group is a partial charge rather than a formal one,
+    and is ignored.
+
+    :param mol: The RWMol, whose atoms with a fractional charge in the CIF have no formal charge set
+    :param fractional_charges: dict of atom index to the fractional charge read from the CIF
+    :param deloc_bonds: list of (atom index, atom index) tuples, one for each deloc bond
+    :param ligand_name: The ligand name, for the warning message
+    :param cif_file: The CIF file, for the warning message
+    """
+    neighbours = {}
+    for idx1, idx2 in deloc_bonds:
+        neighbours.setdefault(idx1, []).append(idx2)
+        neighbours.setdefault(idx2, []).append(idx1)
+
+    done = set()
+    for start in sorted(fractional_charges):
+        if start in done:
+            continue
+        # every atom that can be reached from this one through deloc bonds
+        group = {start}
+        todo = [start]
+        while todo:
+            for idx in neighbours.get(todo.pop(), []):
+                if idx not in group:
+                    group.add(idx)
+                    todo.append(idx)
+        done |= group
+
+        charged = sorted(idx for idx in group if idx in fractional_charges)
+        total = sum(fractional_charges[idx] for idx in charged)
+        if is_whole_charge(total):
+            mol.GetAtomWithIdx(charged[0]).SetFormalCharge(round(total))
+        else:
+            atom_ids = [mol.GetAtomWithIdx(idx).GetProp('atom_id') for idx in charged]
+            log_warn(
+                "fractional charges on atoms {} of ligand {} in {} do not sum to a whole number, so are ignored".format(
+                    atom_ids, ligand_name, cif_file
+                )
+            )
 
 
 def strip_quotes(val):
