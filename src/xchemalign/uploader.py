@@ -354,11 +354,16 @@ class DataSource(ABC):
         present. Ligands without a SMILES are skipped (the backend cannot key
         them). Exact duplicates (same compound repeated across crystals) are
         collapsed so the backend does not raise spurious conflicts.
+
+        Each entry also carries the crystals it was found on, under "crystals".
+        The backend shows these in the curation spreadsheet so whoever resolves a
+        flagged compound can trace it back to the source data; they take no part
+        in matching.
         """
         compounds: list[dict[str, Any]] = []
-        seen: set = set()
+        by_key: dict = {}
         crystals = self.meta.get(utils.Constants.META_XTALS, {}) or {}
-        for xtal in crystals.values():
+        for xtal_name, xtal in crystals.items():
             if not isinstance(xtal, dict):
                 continue
             xtal_files = xtal.get(utils.Constants.META_XTAL_FILES, {}) or {}
@@ -370,11 +375,17 @@ class DataSource(ABC):
                 entry = {f: ligand[f] for f in self.COMPOUND_FIELDS if ligand.get(f) is not None}
                 if not entry.get(utils.Constants.META_SMILES):
                     continue
+                # Keyed on the compound fields alone, before the crystal is added,
+                # so collecting crystals cannot change what counts as a duplicate.
                 dedup_key = tuple(sorted(entry.items()))
-                if dedup_key in seen:
+                if dedup_key in by_key:
+                    by_key[dedup_key]["crystals"].append(xtal_name)
                     continue
-                seen.add(dedup_key)
+                entry["crystals"] = [xtal_name]
+                by_key[dedup_key] = entry
                 compounds.append(entry)
+        for entry in compounds:
+            entry["crystals"] = sorted(set(entry["crystals"]))
         return compounds
 
     def checksum(self):

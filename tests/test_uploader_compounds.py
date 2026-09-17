@@ -58,13 +58,25 @@ def test_extract_compounds_basic():
         )
     )
     compounds = src._extract_compounds()
-    assert compounds == [{"smiles": "CCO", "compound_code": "Z1", "modeled_smiles_canon": "CCO"}]
+    assert compounds == [
+        {
+            "smiles": "CCO",
+            "compound_code": "Z1",
+            "modeled_smiles_canon": "CCO",
+            "crystals": ["Xtal-0"],
+        }
+    ]
 
 
 def test_extract_compounds_dedupes_identical_across_crystals():
+    """One entry still, but naming both crystals it was found on.
+
+    The crystals are what the backend shows in the curation spreadsheet, so a
+    compound flagged there can be traced back to the source data.
+    """
     lig = {C.META_SMILES: "CCO", C.META_CMPD_CODE: "Z1"}
     src = _source(_meta([lig], [dict(lig)]))
-    assert src._extract_compounds() == [{"smiles": "CCO", "compound_code": "Z1"}]
+    assert src._extract_compounds() == [{"smiles": "CCO", "compound_code": "Z1", "crystals": ["Xtal-0", "Xtal-1"]}]
 
 
 def test_extract_compounds_keeps_distinct_same_smiles_different_code():
@@ -86,13 +98,13 @@ def test_extract_compounds_skips_ligand_without_smiles():
 
 def test_extract_compounds_omits_missing_and_null_fields():
     src = _source(_meta([{C.META_SMILES: "CCO", C.META_CMPD_CODE: None}]))
-    assert src._extract_compounds() == [{"smiles": "CCO"}]
+    assert src._extract_compounds() == [{"smiles": "CCO", "crystals": ["Xtal-0"]}]
 
 
 def test_validation_payload_includes_compounds():
     src = _source(_meta([{C.META_SMILES: "CCO", C.META_CMPD_CODE: "Z1"}]))
     payload = src.get_validation_payload()
-    assert payload["compounds"] == [{"smiles": "CCO", "compound_code": "Z1"}]
+    assert payload["compounds"] == [{"smiles": "CCO", "compound_code": "Z1", "crystals": ["Xtal-0"]}]
     assert payload["target_name"] == "MyTarget"
 
 
