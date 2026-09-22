@@ -345,7 +345,7 @@ to it is ignored, and is not copied by `copier`, because it holds the original s
 reprocessing was done to replace. If the phenix log is missing, the structure CIF has no `_reflns`
 data.
 
-The `_software` loop gets the PHENIX row from `config/pdb-depo/phenix.cif`, placed between the data
+The `_software` loop gets the Phenix row from `config/pdb-depo/phenix.cif`, placed between the data
 processing and refinement rows (see below).
 
 ### The `_software` loop

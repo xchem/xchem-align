@@ -10,5 +10,5 @@ _software.date
 _software.location
 _software.description
 _software.pdbx_reference_DOI
-1 PHENIX refinement program ? ? https://phenix-online.org/ 'A refinement program' ?
+1 Phenix refinement package 2.0-5936 2026-01-08 https://www.phenix-online.org/ 'Comprehensive software package for macromolecular structure determination' 10.1107/S2059798319011471
 #

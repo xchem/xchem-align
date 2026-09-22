@@ -518,6 +518,11 @@ def test_find_data_processing_template_unknown():
 _TEMPLATES_DIR = Path(__file__).parent.parent / 'config' / 'pdb-depo'
 
 
+def _phenix_row():
+    table = cif.read(str(_TEMPLATES_DIR / 'phenix.cif'))[0].find('_software.', ['name', 'classification'])
+    return (table[0][0], cif.as_string(table[0][1]))
+
+
 def _software_rows(data_processing_prog, refinement_prog):
     templates = {p.stem.lower(): cif.read(str(p)) for p in _TEMPLATES_DIR.glob('*.cif')}
     block = cif.Document().add_new_block('x')
@@ -530,7 +535,7 @@ def test_add_software_loop_no_phenix():
     rows = _software_rows('xia2-dials', 'buster')
     assert [r[0] for r in rows] == [str(i) for i in range(1, len(rows) + 1)]
     assert rows[-1][1] == 'BUSTER'
-    assert 'PHENIX' not in [r[1] for r in rows]
+    assert _phenix_row()[0] not in [r[1] for r in rows]
 
 
 @pytest.mark.parametrize('refinement_prog,refinement_name', [('buster', 'BUSTER'), ('refmac', 'REFMAC')])
@@ -538,6 +543,6 @@ def test_add_software_loop_no_phenix():
 def test_add_software_loop_phenix_before_refinement(data_processing_prog, refinement_prog, refinement_name):
     rows = _software_rows(data_processing_prog, refinement_prog)
     assert [r[0] for r in rows] == [str(i) for i in range(1, len(rows) + 1)]
-    assert rows[-2][1:] == ('PHENIX', 'refinement')
+    assert rows[-2][1:] == _phenix_row()
     assert rows[-1][1] == refinement_name
-    assert [r[1] for r in rows].count('PHENIX') == 1
+    assert [r[1] for r in rows].count(_phenix_row()[0]) == 1
