@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from gemmi import cif
 
 from pdbdepo import scrape_processing_stats as sps
@@ -11,6 +13,8 @@ AUTOPROC_LOG = DATA_DIR / "autoproc_aimless.log"
 AUTOPROC_STARANISO_TABLE1 = DATA_DIR / "staraniso_alldata-unique.table1"
 XIA_3DII_LOG = DATA_DIR / "xia_3dii.log"
 XIA2_MULTIPLEX_HTML = DATA_DIR / "xia2_multiplex.html"
+# phenix.merging_statistics log for A71EV2A-x5488, from m2ms/fragalysis-frontend#2370
+PHENIX_LOG = DATA_DIR / "phenix_merging_stats.log"
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +184,80 @@ def test_handle_xia2_multiplex_missing_overall_panel(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# handle_phenix
+# ---------------------------------------------------------------------------
+
+
+def test_handle_phenix_overall_stats():
+    reflns, shell = sps.handle_phenix(str(PHENIX_LOG))
+
+    assert reflns["d_resolution_low"] == "47.03"
+    assert reflns["d_resolution_high"] == "1.89"
+    assert reflns["number_measured_obs"] == "78692"
+    assert reflns["number_obs"] == "11633"
+    assert reflns["pdbx_redundancy"] == "6.76"
+    assert reflns["pdbx_netI_over_sigmaI"] == "3.8"
+    assert reflns["pdbx_Rmerge_I_obs"] == "0.909"
+    assert reflns["pdbx_Rrim_I_all"] == "0.985"
+    assert reflns["pdbx_Rpim_I_all"] == "0.377"
+    assert reflns["pdbx_CC_half"] == "0.903"
+    assert reflns["percent_possible_obs"] == "99.98"
+    assert "pdbx_chi_squared" not in reflns
+
+
+def test_handle_phenix_shell_stats():
+    reflns, shell = sps.handle_phenix(str(PHENIX_LOG))
+
+    # first row is outer (high-resolution) shell, second is inner (low-resolution) shell
+    assert shell["d_res_low"] == ("1.92", "47.04")
+    assert shell["d_res_high"] == ("1.89", "5.13")
+    assert shell["number_measured_obs"] == ("4039", "3794")
+    assert shell["number_unique_obs"] == ("581", "608")
+    assert shell["pdbx_Rmerge_I_obs"] == ("2.471", "0.402")
+    assert shell["pdbx_CC_half"] == ("0.151", "0.890")
+
+
+def test_handle_phenix_missing_file():
+    reflns, shell = sps.handle_phenix(str(DATA_DIR / "does_not_exist.log"))
+    assert not reflns
+    assert not shell
+
+
+def test_handle_phenix_none_file():
+    reflns, shell = sps.handle_phenix(None)
+    assert not reflns
+    assert not shell
+
+
+def test_handle_phenix_no_table(tmp_path):
+    log = tmp_path / "phenix.log"
+    log.write_text("Merging statistics\nResolution: 47.03 - 1.89\n")
+    reflns, shell = sps.handle_phenix(str(log))
+    assert "d_resolution_high" not in reflns
+    assert "d_res_high" not in shell
+
+
+@pytest.mark.parametrize(
+    "type_name",
+    [
+        "autoproc-phenix",
+        "autoproc-staraniso-phenix",
+        "xia2-3dii-phenix",
+        "xia2-dials-phenix",
+        "xia2_dials_phenix",
+        "autoproc_staraniso_phenix",
+    ],
+)
+def test_is_phenix_type(type_name):
+    assert sps.is_phenix_type(type_name)
+
+
+@pytest.mark.parametrize("type_name", ["autoproc", "xia2-dials", "xia2-multiplex-phenix", None, ""])
+def test_is_not_phenix_type(type_name):
+    assert not sps.is_phenix_type(type_name)
+
+
+# ---------------------------------------------------------------------------
 # handle_file — dispatch by type, and CIF document assembly
 # ---------------------------------------------------------------------------
 
@@ -232,3 +310,14 @@ def test_handle_file_writes_output_file(tmp_path):
     assert out_file.is_file()
     content = out_file.read_text()
     assert "_reflns.d_resolution_high" in content
+
+
+@pytest.mark.parametrize(
+    "type_name",
+    ["autoproc-phenix", "autoproc-staraniso-phenix", "xia2-3dii-phenix", "xia2-dials-phenix", "xia2_3dii_phenix"],
+)
+def test_handle_file_phenix_creates_reflns_loop(type_name):
+    doc = sps.handle_file(str(PHENIX_LOG), type_name, None, None)
+    block = doc[0]
+    assert block.find_pair("_reflns.d_resolution_high") == ("_reflns.d_resolution_high", "1.89")
+    assert block.find_loop("_reflns_shell.pdbx_CC_half")[0] == "0.151"

@@ -8,6 +8,7 @@ from gemmi import cif
 from pdbdepo import pdb_deposition
 from pdbdepo.pdb_deposition import (
     filter_excluded,
+    find_data_processing_template,
     merge_mmcifgen_into_structure,
     read_cmpd_codes,
     read_fragalysis_csv,
@@ -465,3 +466,46 @@ def test_excluded_crystal_is_not_sequence_checked(monkeypatch, tmp_path):
     filtered = filter_excluded(df, input_config)
     validate_sequences(tmp_path, filtered, input_config, default_seq, {})
     assert not checked
+
+
+# ---------------------------------------------------------------------------
+# find_data_processing_template
+# ---------------------------------------------------------------------------
+
+_TEMPLATES = {'autoproc': 'AP', 'autoproc_staraniso': 'APS', 'xia2-3dii': 'X3', 'xia2-dials': 'XD'}
+
+
+def test_find_data_processing_template_exact():
+    assert find_data_processing_template(_TEMPLATES, 'xia2-dials') == 'XD'
+
+
+def test_find_data_processing_template_case_insensitive():
+    assert find_data_processing_template(_TEMPLATES, 'AutoPROC') == 'AP'
+
+
+def test_find_data_processing_template_hyphen_underscore_swap():
+    assert find_data_processing_template(_TEMPLATES, 'autoproc-staraniso') == 'APS'
+    assert find_data_processing_template(_TEMPLATES, 'xia2_3dii') == 'X3'
+
+
+@pytest.mark.parametrize(
+    "prog,expected",
+    [
+        ('autoproc-phenix', 'AP'),
+        ('autoproc-staraniso-phenix', 'APS'),
+        ('xia2-3dii-phenix', 'X3'),
+        ('xia2_dials_phenix', 'XD'),
+    ],
+)
+def test_find_data_processing_template_phenix_falls_back_to_base(prog, expected):
+    assert find_data_processing_template(_TEMPLATES, prog) == expected
+
+
+def test_find_data_processing_template_phenix_specific_preferred():
+    templates = dict(_TEMPLATES, **{'xia2-dials-phenix': 'XDP'})
+    assert find_data_processing_template(templates, 'xia2_dials_phenix') == 'XDP'
+
+
+def test_find_data_processing_template_unknown():
+    assert find_data_processing_template(_TEMPLATES, 'not-a-program') is None
+    assert find_data_processing_template(_TEMPLATES, 'xia2-multiplex-phenix') is None

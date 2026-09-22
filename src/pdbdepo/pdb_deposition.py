@@ -461,7 +461,9 @@ def process_input(
                     stats_cif = (
                         base_dir / utils.make_path_relative(Path(data_processing_logfile).parent) / 'xia2.mmcif.bz2'
                     )
-                    if not stats_cif.is_file():
+                    # phenix reprocessed data must use the phenix log, never a xia2.mmcif.bz2 left over from
+                    # the original processing, as that has the stats the reprocessing was done to fix
+                    if scrape_processing_stats.is_phenix_type(data_processing_prog) or not stats_cif.is_file():
                         p = None
                         # info(str(stats_cif) + ' mmcif file containing data processing stats not found')
                         base_data_processing_logfile_p = base_dir / utils.make_path_relative(data_processing_logfile_p)
@@ -642,7 +644,7 @@ def add_software_loop(templates_dict, block, refinement_prog, data_processing_pr
         error('no refinement template found for', refinement_prog.lower())
         is_error = True
 
-    data_processing_t = templates_dict.get(data_processing_prog.lower())
+    data_processing_t = find_data_processing_template(templates_dict, data_processing_prog)
     if not data_processing_t:
         error('no data processing template found for', data_processing_prog.lower())
         is_error = True
@@ -699,6 +701,25 @@ def add_software_loop(templates_dict, block, refinement_prog, data_processing_pr
             values.append(value)
         i += 1
     loop.add_row(values)
+
+
+def find_data_processing_template(templates_dict, data_processing_prog):
+    """Find the _software template for the data processing program, allowing for hyphens or underscores.
+    Phenix reprocessed data falls back to the template for the pipeline it was originally processed with
+    if there is no phenix specific template.
+    """
+    prog = data_processing_prog.lower()
+    names = [prog]
+    if scrape_processing_stats.is_phenix_type(prog):
+        names.append(prog[: -len('-phenix')])
+    for name in names:
+        for candidate in (name, name.replace('_', '-'), name.replace('-', '_')):
+            t = templates_dict.get(candidate)
+            if t:
+                if candidate != prog:
+                    info('using data processing template', candidate, 'for', prog)
+                return t
+    return None
 
 
 def scrape_aimless_version(aimless_p):
