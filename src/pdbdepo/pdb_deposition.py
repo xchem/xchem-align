@@ -92,6 +92,9 @@ WWPDB_DIAMOND_BEAMLINES = {'I02', 'I03', 'I04', 'I04-1', 'I23', 'I24', 'VMXi', '
 
 DIAMOND_BEAMLINE_PREFIX = 'DIAMOND BEAMLINE '
 
+# software template added (after the data processing one) for data reprocessed with phenix
+PHENIX_TEMPLATE = 'phenix'
+
 
 def read_software_templates():
     d = {}
@@ -638,69 +641,45 @@ def add_software_loop(templates_dict, block, refinement_prog, data_processing_pr
         ],
     )
 
+    # the templates whose rows are added, in order: data processing, phenix (for phenix reprocessed data)
+    # and then refinement
+    templates = [
+        (
+            'data processing',
+            data_processing_prog.lower(),
+            find_data_processing_template(templates_dict, data_processing_prog),
+        )
+    ]
+    if scrape_processing_stats.is_phenix_type(data_processing_prog):
+        templates.append(('phenix', PHENIX_TEMPLATE, templates_dict.get(PHENIX_TEMPLATE)))
+    templates.append(('refinement', refinement_prog.lower(), templates_dict.get(refinement_prog.lower())))
+
     is_error = False
-    refinement_t = templates_dict.get(refinement_prog.lower())
-    if not refinement_t:
-        error('no refinement template found for', refinement_prog.lower())
-        is_error = True
-
-    data_processing_t = find_data_processing_template(templates_dict, data_processing_prog)
-    if not data_processing_t:
-        error('no data processing template found for', data_processing_prog.lower())
-        is_error = True
-
+    for kind, name, t in templates:
+        if not t:
+            error('no', kind, 'template found for', name)
+            is_error = True
     if is_error:
         exit(1)
 
-    refinement_item = refinement_t[0].find_loop_item('_software.pdbx_ordinal')
-    if not refinement_item or not refinement_item.loop:
-        error('software template found for', refinement_prog.lower(), 'is not valid. No _software loop found.')
-        is_error = True
-
-    data_processing_item = data_processing_t[0].find_loop_item('_software.pdbx_ordinal')
-    if not data_processing_item or not data_processing_item.loop:
-        error('software template found for', data_processing_prog.lower(), 'is not valid. No _software loop found.')
-        is_error = True
-
+    items = []
+    for kind, name, t in templates:
+        item = t[0].find_loop_item('_software.pdbx_ordinal')
+        if not item or not item.loop:
+            error('software template found for', name, 'is not valid. No _software loop found.')
+            is_error = True
+        items.append(item)
     if is_error:
         exit(1)
 
-    refinement_tags = refinement_item.loop.tags
-    refinement_values = refinement_item.loop.values
-    data_processing_tags = data_processing_item.loop.tags
-    data_processing_values = data_processing_item.loop.values
-
-    values = []
+    # add each template's rows, replacing its pdbx_ordinal so that they run sequentially from 1
     i = 1
-    # print(data_processing_tags)
-    for j, value in enumerate(data_processing_values):
-        if j % len(data_processing_tags) == 0:
-            # print(i, j, values)
-            if values:
-                loop.add_row(values)
-                i += 1
-            values.clear()
-            values.append(str(i))
-        else:
-            values.append(value)
-
-    loop.add_row(values)
-    i += 1
-    values.clear()
-
-    # print(refinement_tags)
-    for j, value in enumerate(refinement_values):
-        if j % len(refinement_tags) == 0:
-            # print(i, j, values)
-            if values:
-                loop.add_row(values)
-                i += 1
-            values.clear()
-            values.append(str(i))
-        else:
-            values.append(value)
-        i += 1
-    loop.add_row(values)
+    for item in items:
+        width = len(item.loop.tags)
+        values = item.loop.values
+        for start in range(0, len(values), width):
+            loop.add_row([str(i)] + list(values[start + 1 : start + width]))
+            i += 1
 
 
 def find_data_processing_template(templates_dict, data_processing_prog):

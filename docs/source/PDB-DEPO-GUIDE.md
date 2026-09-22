@@ -245,7 +245,8 @@ on the data processing program — see [Data processing variations](#data-proces
 6. **Add the reflection statistics** scraped for this crystal's data processing program.
 7. **Add the data collection information** from `<crystal>_collection_info.cif`, merging its `_diffrn`
    loop with mmcif-gen's `_diffrn` fields.
-8. **Add the `_software` loop** built from the data processing and refinement templates.
+8. **Add the `_software` loop** built from the data processing, phenix (for phenix reprocessed data only)
+   and refinement templates.
 9. **Tidy and check.** The `_atom_site` loop is moved to the end of the block, Diamond's internal
    beamline names are rewritten, and the document is validated (warnings only) before being written.
 
@@ -344,13 +345,17 @@ to it is ignored, and is not copied by `copier`, because it holds the original s
 reprocessing was done to replace. If the phenix log is missing, the structure CIF has no `_reflns`
 data.
 
+The `_software` loop gets the PHENIX row from `config/pdb-depo/phenix.cif`, placed between the data
+processing and refinement rows (see below).
+
 ### The `_software` loop
 
-The output `_software` loop is the data processing template's rows followed by the refinement
-template's rows, renumbered so that `_software.pdbx_ordinal` runs sequentially from 1. The data
-processing templates cover the whole downstream chain — data reduction and scaling, DIMPLE and REFMAC
-for phasing, DIMPLE and Coot for model building, and gemmi for data extraction — so the refinement
-template only needs to name the refinement program itself.
+The output `_software` loop is the data processing template's rows, then for phenix reprocessed data
+the row from `config/pdb-depo/phenix.cif`, then the refinement template's rows, all renumbered so that
+`_software.pdbx_ordinal` runs sequentially from 1. A missing `phenix.cif` is a fatal error for phenix
+reprocessed data. The data processing templates cover the whole downstream chain — data reduction and
+scaling, DIMPLE and REFMAC for phasing, DIMPLE and Coot for model building, and gemmi for data
+extraction — so the refinement template only needs to name the refinement program itself.
 
 ### Beamline names
 
