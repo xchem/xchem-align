@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from rdkit import Chem
+
 from xchemalign import utils
 from xchemalign.utils import Constants
 
@@ -134,3 +136,67 @@ def test_parse_compound_smiles():
         for i, v in enumerate(result):
             assert len(v) == r[i + 1]
     print('OK')
+
+
+def write_ligand_cif(tmp_path, charge_column, atoms, bonds):
+    """
+    Write a single-ligand CIF without hydrogens (RDKit supplies them implicitly).
+
+    :param charge_column: 'charge' or 'partial_charge'
+    :param atoms: list of (atom_id, element, charge) tuples
+    :param bonds: list of (atom_id_1, atom_id_2, type) tuples
+    """
+    lines = [
+        'data_comp_LIG',
+        'loop_',
+        '_chem_comp_atom.comp_id',
+        '_chem_comp_atom.atom_id',
+        '_chem_comp_atom.type_symbol',
+        '_chem_comp_atom.' + charge_column,
+        '_chem_comp_atom.x',
+        '_chem_comp_atom.y',
+        '_chem_comp_atom.z',
+    ]
+    for i, (atom_id, element, charge) in enumerate(atoms):
+        lines.append('LIG {} {} {} {:.3f} {:.3f} 0.000'.format(atom_id, element, charge, 1.5 * i, 0.3 * (i % 2)))
+    lines += ['loop_', '_chem_comp_bond.comp_id', '_chem_comp_bond.atom_id_1', '_chem_comp_bond.atom_id_2']
+    lines.append('_chem_comp_bond.type')
+    for a1, a2, bond_type in bonds:
+        lines.append('LIG {} {} {}'.format(a1, a2, bond_type))
+    p = tmp_path / 'LIG.cif'
+    p.write_text('\n'.join(lines) + '\n')
+    return p
+
+
+def test_gen_mols_from_cif_whole_charges_are_kept(tmp_path):
+    p = write_ligand_cif(tmp_path, 'charge', [('C1', 'C', '0'), ('N1', 'N', '1')], [('C1', 'N1', 'single')])
+    mol = utils.gen_mols_from_cif(p)[0]
+    assert Chem.MolToSmiles(mol) == 'C[NH3+]'
+
+
+def test_gen_mols_from_cif_charge_spread_over_deloc_group_is_kept(tmp_path):
+    # old CCP4 monomer-library style carboxylate: -0.5 on each O, which round() turned into 0
+    p = write_ligand_cif(
+        tmp_path,
+        'partial_charge',
+        [('C2', 'C', '0.000'), ('C1', 'C', '0.000'), ('O1', 'O', '-0.500'), ('O2', 'O', '-0.500')],
+        [('C2', 'C1', 'single'), ('C1', 'O1', 'deloc'), ('C1', 'O2', 'deloc')],
+    )
+    mol = utils.gen_mols_from_cif(p)[0]
+    assert Chem.GetFormalCharge(mol) == -1
+    charges = {a.GetProp('atom_id'): a.GetFormalCharge() for a in mol.GetAtoms()}
+    assert charges == {'C2': 0, 'C1': 0, 'O1': -1, 'O2': 0}
+    # deloc is still read as single (issue #103), so the other O is not yet a double bond
+    assert Chem.MolToSmiles(mol) == 'CC([O-])O'
+
+
+def test_gen_mols_from_cif_partial_charges_are_not_formal_charges(tmp_path):
+    # rounding used to turn these into +1 on the carbonyl C and -1 on the O, which failed sanitization
+    p = write_ligand_cif(
+        tmp_path,
+        'partial_charge',
+        [('C1', 'C', '-0.100'), ('C2', 'C', '0.600'), ('O1', 'O', '-0.600'), ('C3', 'C', '-0.100')],
+        [('C1', 'C2', 'single'), ('C2', 'O1', 'double'), ('C2', 'C3', 'single')],
+    )
+    mol = utils.gen_mols_from_cif(p)[0]
+    assert Chem.MolToSmiles(mol) == 'CC(C)=O'
