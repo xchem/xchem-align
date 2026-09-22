@@ -8,6 +8,7 @@ from gemmi import cif
 from pdbdepo import pdb_deposition
 from pdbdepo.pdb_deposition import (
     filter_excluded,
+    find_data_processing_template,
     merge_mmcifgen_into_structure,
     read_cmpd_codes,
     read_fragalysis_csv,
@@ -465,3 +466,78 @@ def test_excluded_crystal_is_not_sequence_checked(monkeypatch, tmp_path):
     filtered = filter_excluded(df, input_config)
     validate_sequences(tmp_path, filtered, input_config, default_seq, {})
     assert not checked
+
+
+# ---------------------------------------------------------------------------
+# find_data_processing_template
+# ---------------------------------------------------------------------------
+
+_TEMPLATES = {'autoproc': 'AP', 'autoproc_staraniso': 'APS', 'xia2-3dii': 'X3', 'xia2-dials': 'XD'}
+
+
+def test_find_data_processing_template_exact():
+    assert find_data_processing_template(_TEMPLATES, 'xia2-dials') == 'XD'
+
+
+def test_find_data_processing_template_case_insensitive():
+    assert find_data_processing_template(_TEMPLATES, 'AutoPROC') == 'AP'
+
+
+def test_find_data_processing_template_hyphen_underscore_swap():
+    assert find_data_processing_template(_TEMPLATES, 'autoproc-staraniso') == 'APS'
+    assert find_data_processing_template(_TEMPLATES, 'xia2_3dii') == 'X3'
+
+
+@pytest.mark.parametrize(
+    "prog,expected",
+    [
+        ('autoproc-phenix', 'AP'),
+        ('autoproc-staraniso-phenix', 'APS'),
+        ('xia2-3dii-phenix', 'X3'),
+        ('xia2_dials_phenix', 'XD'),
+    ],
+)
+def test_find_data_processing_template_phenix_falls_back_to_base(prog, expected):
+    assert find_data_processing_template(_TEMPLATES, prog) == expected
+
+
+def test_find_data_processing_template_phenix_specific_preferred():
+    templates = dict(_TEMPLATES, **{'xia2-dials-phenix': 'XDP'})
+    assert find_data_processing_template(templates, 'xia2_dials_phenix') == 'XDP'
+
+
+def test_find_data_processing_template_unknown():
+    assert find_data_processing_template(_TEMPLATES, 'not-a-program') is None
+    assert find_data_processing_template(_TEMPLATES, 'xia2-multiplex-phenix') is None
+
+
+# ---------------------------------------------------------------------------
+# add_software_loop
+# ---------------------------------------------------------------------------
+
+_TEMPLATES_DIR = Path(__file__).parent.parent / 'config' / 'pdb-depo'
+
+
+def _software_rows(data_processing_prog, refinement_prog):
+    templates = {p.stem.lower(): cif.read(str(p)) for p in _TEMPLATES_DIR.glob('*.cif')}
+    block = cif.Document().add_new_block('x')
+    pdb_deposition.add_software_loop(templates, block, refinement_prog, data_processing_prog)
+    table = block.find('_software.', ['pdbx_ordinal', 'name', 'classification'])
+    return [(row[0], row[1], cif.as_string(row[2])) for row in table]
+
+
+def test_add_software_loop_no_phenix():
+    rows = _software_rows('xia2-dials', 'buster')
+    assert [r[0] for r in rows] == [str(i) for i in range(1, len(rows) + 1)]
+    assert rows[-1][1] == 'BUSTER'
+    assert 'PHENIX' not in [r[1] for r in rows]
+
+
+@pytest.mark.parametrize('refinement_prog,refinement_name', [('buster', 'BUSTER'), ('refmac', 'REFMAC')])
+@pytest.mark.parametrize('data_processing_prog', ['xia2_dials_phenix', 'autoproc-staraniso-phenix'])
+def test_add_software_loop_phenix_before_refinement(data_processing_prog, refinement_prog, refinement_name):
+    rows = _software_rows(data_processing_prog, refinement_prog)
+    assert [r[0] for r in rows] == [str(i) for i in range(1, len(rows) + 1)]
+    assert rows[-2][1:] == ('PHENIX', 'refinement')
+    assert rows[-1][1] == refinement_name
+    assert [r[1] for r in rows].count('PHENIX') == 1

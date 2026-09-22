@@ -245,7 +245,8 @@ on the data processing program — see [Data processing variations](#data-proces
 6. **Add the reflection statistics** scraped for this crystal's data processing program.
 7. **Add the data collection information** from `<crystal>_collection_info.cif`, merging its `_diffrn`
    loop with mmcif-gen's `_diffrn` fields.
-8. **Add the `_software` loop** built from the data processing and refinement templates.
+8. **Add the `_software` loop** built from the data processing, phenix (for phenix reprocessed data only)
+   and refinement templates.
 9. **Tidy and check.** The `_atom_site` loop is moved to the end of the block, Diamond's internal
    beamline names are rewritten, and the document is validated (warnings only) before being written.
 
@@ -277,6 +278,7 @@ The value of `DataProcessingProgram` is lower-cased and normalised:
 |---|---|
 | `dials` | `xia2-dials` |
 | `xia2.multiplex …` (a free-text grouping suffix may follow) | `xia2-multiplex` |
+| `autoproc-phenix`, `autoproc-staraniso-phenix`, `xia2-3dii-phenix`, `xia2-dials-phenix` | itself, lower-cased (see [Phenix reprocessed data](#phenix-reprocessed-data)) |
 | anything else, e.g. `autoproc`, `autoproc_staraniso`, `xia2-3dii` | itself, lower-cased |
 
 The normalised name is used for two independent things: finding the reflection statistics, and
@@ -284,7 +286,8 @@ selecting the `_software` template.
 
 **Reflection statistics** are taken from the first of these that is available:
 
-1. `xia2.mmcif.bz2` in the same directory as the logfile. This is the preferred source — it is a
+1. `xia2.mmcif.bz2` in the same directory as the logfile, except for the phenix program names, which
+   never use it. This is the preferred source — it is a
    proper mmCIF, so the `_reflns` pairs and the `_reflns_shell` loop are read straight out of its
    second block with no parsing. In practice all the xia2-based pipelines produce it.
 2. The file named by `DataProcessingPathToLogfile`, parsed by `scrape_processing_stats`.
@@ -303,6 +306,7 @@ The log parsers recognise these program names and file formats:
 | `xia2-3dii` | `<crystal>.log` | xia2 text summary table |
 | `xia2-dials` | `<crystal>.log` | xia2 text summary table (assumed to be the same format as `xia2-3dii`) |
 | `xia2-multiplex` | the xia2.multiplex HTML report | HTML, parsed with BeautifulSoup — the "Overall" table of the combined "All data" dataset |
+| `autoproc-phenix`, `autoproc-staraniso-phenix`, `xia2-3dii-phenix`, `xia2-dials-phenix` | the `phenix.merging_statistics` log | The "Statistics by resolution bin" table: first row is the inner shell, second-to-last the outer shell, last row the overall values. Columns are found by their header names |
 
 Each name is also recognised with underscores in place of hyphens, since `DataProcessingProgram`
 values seen in the wild use both. In each case the overall values become `_reflns` and the
@@ -317,18 +321,41 @@ structure CIF has no `_reflns` data.
 If `DataProcessingPathToLogfile` is empty, no statistics source is looked for at all and the
 structure CIF simply has no `_reflns` data.
 
-**The `_software` template** is `config/pdb-depo/<normalised name>.cif`. Templates exist for
-`autoproc`, `autoproc_staraniso`, `xia2-3dii`, `xia2-dials` and `xia2-multiplex`. A data processing
-program with no matching template — including a crystal for which SoakDB records no program at all —
-is a fatal error, so adding support for a new pipeline means adding a template file named after it.
+**The `_software` template** is `config/pdb-depo/<normalised name>.cif`, matched with hyphens and
+underscores treated as interchangeable. Templates exist for `autoproc`, `autoproc_staraniso`,
+`xia2-3dii`, `xia2-dials` and `xia2-multiplex`. A phenix program name with no template of its own
+falls back to the template of the pipeline it was originally processed with — the name without its
+`-phenix` suffix. A data processing program with no matching template — including a crystal for
+which SoakDB records no program at all — is a fatal error, so adding support for a new pipeline means
+adding a template file named after it.
+
+### Phenix reprocessed data
+
+Some datasets have poor statistics in their highest resolution shell (zero, negative, or out of the
+range the wwPDB accepts) and are rejected at deposition. These are rescued by truncating the merged
+reflections to a lower resolution with `phenix.reflection_file_editor`, and regenerating the
+statistics with `phenix.merging_statistics`. For such a crystal, `DataProcessingProgram` is the
+original pipeline's name with `-phenix` appended (`autoproc-phenix`, `autoproc-staraniso-phenix`,
+`xia2-3dii-phenix` or `xia2-dials-phenix`, or the same with underscores), and
+`DataProcessingPathToLogfile` points at the `phenix.merging_statistics` log. `xia2-multiplex-phenix`
+is not supported.
+
+All four are handled identically. Statistics come only from the phenix log. A `xia2.mmcif.bz2` next
+to it is ignored, and is not copied by `copier`, because it holds the original statistics the
+reprocessing was done to replace. If the phenix log is missing, the structure CIF has no `_reflns`
+data.
+
+The `_software` loop gets the PHENIX row from `config/pdb-depo/phenix.cif`, placed between the data
+processing and refinement rows (see below).
 
 ### The `_software` loop
 
-The output `_software` loop is the data processing template's rows followed by the refinement
-template's rows, renumbered so that `_software.pdbx_ordinal` runs sequentially from 1. The data
-processing templates cover the whole downstream chain — data reduction and scaling, DIMPLE and REFMAC
-for phasing, DIMPLE and Coot for model building, and gemmi for data extraction — so the refinement
-template only needs to name the refinement program itself.
+The output `_software` loop is the data processing template's rows, then for phenix reprocessed data
+the row from `config/pdb-depo/phenix.cif`, then the refinement template's rows, all renumbered so that
+`_software.pdbx_ordinal` runs sequentially from 1. A missing `phenix.cif` is a fatal error for phenix
+reprocessed data. The data processing templates cover the whole downstream chain — data reduction and
+scaling, DIMPLE and REFMAC for phasing, DIMPLE and Coot for model building, and gemmi for data
+extraction — so the refinement template only needs to name the refinement program itself.
 
 ### Beamline names
 

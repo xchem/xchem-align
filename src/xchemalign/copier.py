@@ -18,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 
 from xchemalign import dbreader, collator, utils
-from pdbdepo import pdb_deposition
+from pdbdepo import pdb_deposition, scrape_processing_stats
 from .utils import Constants
 
 
@@ -253,9 +253,9 @@ class Copier:
                             xtal_name, 'aimless.log', str(aimless), xtal_dir_input_path
                         )
 
-                    # coipy the xia2.mmcif.bz2 file if it exists
+                    # copy the xia2.mmcif.bz2 file if it exists (not used for phenix reprocessed data)
                     stats_cif_p = dp_log_p.parent / 'xia2.mmcif.bz2'
-                    if stats_cif_p.is_file():
+                    if not scrape_processing_stats.is_phenix_type(dp_prog) and stats_cif_p.is_file():
                         num_files += self.copy_file_and_log(
                             xtal_name, 'xia2.mmcif.bz2', str(stats_cif_p), xtal_dir_input_path
                         )

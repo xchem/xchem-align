@@ -270,9 +270,81 @@ def handle_xia2_multiplex(file):
     return reflns, shell
 
 
+# DataProcessingProgram values for data that has been reprocessed (e.g. truncated) with phenix, where
+# the stats come from the phenix.merging_statistics log rather than the original pipeline's output.
+# All of these are handled identically. Underscores are also accepted in place of hyphens.
+PHENIX_TYPES = {'autoproc-phenix', 'autoproc-staraniso-phenix', 'xia2-3dii-phenix', 'xia2-dials-phenix'}
+
+
+def is_phenix_type(type):
+    return bool(type) and type.lower().replace('_', '-') in PHENIX_TYPES
+
+
+# maps the column name in the phenix.merging_statistics "Statistics by resolution bin" table to the reflns key
+_PHENIX_COLUMN_KEYS = {
+    'd_max': KEY_REFLNS_RESO_LOW,
+    'd_min': KEY_REFLNS_RESO_HIGH,
+    '#obs': KEY_REFLNS_NUM_MEASURED,
+    '#uniq': KEY_REFLNS_NUM_OBSERVED,
+    'mult.': KEY_REFLNS_PDBX_REDUNDANCY,
+    '%comp': KEY_REFLNS_POSSIBLE_OBS,
+    '<I/sI>': KEY_REFLNS_NETI_OVER_SIGMA,
+    'r_mrg': KEY_REFLNS_PDBX_RMERGE_I_OBS,
+    'r_meas': KEY_REFLNS_PDBX_RRIM_I_ALL,
+    'r_pim': KEY_REFLNS_PDBX_RPIM_I_ALL,
+    'cc1/2': KEY_REFLNS_PDBX_CC_HALF,
+}
+
+
+def handle_phenix(file):
+    """Parse a phenix.merging_statistics log, pulling stats from the "Statistics by resolution bin" table.
+    The first row of that table is the inner shell, the second to last is the outer shell and the last
+    row is the overall stats.
+    """
+    if file is None:
+        error('Log file not defined')
+        return {}, {}
+    elif not Path(file).is_file():
+        error('Log file ' + str(file) + ' not present')
+        return {}, {}
+
+    reflns = {KEY_REFLNS_ENTRY_ID: 'UNNAMED', KEY_REFLNS_DIFFRN_ID: 1, KEY_REFLNS_PDBX_ORDINAL: 1}
+    shell = {KEY_REFLNS_DIFFRN_ID: (1, 1), KEY_REFLNS_PDBX_ORDINAL: (1, 2)}
+
+    header = None
+    rows = []
+    with open(file, "rt") as f:
+        if find_summary_section(f, r'Statistics by resolution bin') is not None:
+            header = next(f, '').split()
+            for line in f:
+                tokens = line.split()
+                if not tokens:
+                    break
+                rows.append(tokens)
+
+    if not header or len(rows) < 3:
+        warn('could not find resolution bin stats table in phenix log ' + str(file))
+        return reflns, shell
+
+    inner, outer, overall = rows[0], rows[-2], rows[-1]
+    for column, key in _PHENIX_COLUMN_KEYS.items():
+        if column not in header:
+            warn('key ' + key + ' not found for reflns')
+            continue
+        i = header.index(column)
+        reflns[key] = overall[i]
+        # first row is outer shell, second is inner
+        shell[_replace_shell_key(key)] = (outer[i], inner[i])
+
+    info("read", len(rows), "resolution bin rows")
+    return reflns, shell
+
+
 def handle_file(file, type, doc: cif.Document, outputfile: str):
     info("type is", type)
-    if type == 'autoproc':
+    if is_phenix_type(type):
+        reflns, shell = handle_phenix(file)
+    elif type == 'autoproc':
         reflns, shell = handle_autoproc(file)
     elif type == 'autoproc-staraniso' or type == 'autoproc_staraniso':
         reflns, shell = handle_autoproc_staraniso(file)
