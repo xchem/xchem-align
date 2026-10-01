@@ -16,11 +16,14 @@ import base64
 from unittest.mock import MagicMock
 
 import pytest
+from requests.exceptions import JSONDecodeError
 
 from xchemalign import utils
 from xchemalign.uploader import (
+    AuthenticationError,
     CurationRequiredError,
     TarballSource,
+    ValidationError,
     XCADataUpload,
 )
 
@@ -58,13 +61,25 @@ def test_extract_compounds_basic():
         )
     )
     compounds = src._extract_compounds()
-    assert compounds == [{"smiles": "CCO", "compound_code": "Z1", "modeled_smiles_canon": "CCO"}]
+    assert compounds == [
+        {
+            "smiles": "CCO",
+            "compound_code": "Z1",
+            "modeled_smiles_canon": "CCO",
+            "crystals": ["Xtal-0"],
+        }
+    ]
 
 
 def test_extract_compounds_dedupes_identical_across_crystals():
+    """One entry still, but naming both crystals it was found on.
+
+    The crystals are what the backend shows in the curation spreadsheet, so a
+    compound flagged there can be traced back to the source data.
+    """
     lig = {C.META_SMILES: "CCO", C.META_CMPD_CODE: "Z1"}
     src = _source(_meta([lig], [dict(lig)]))
-    assert src._extract_compounds() == [{"smiles": "CCO", "compound_code": "Z1"}]
+    assert src._extract_compounds() == [{"smiles": "CCO", "compound_code": "Z1", "crystals": ["Xtal-0", "Xtal-1"]}]
 
 
 def test_extract_compounds_keeps_distinct_same_smiles_different_code():
@@ -86,13 +101,13 @@ def test_extract_compounds_skips_ligand_without_smiles():
 
 def test_extract_compounds_omits_missing_and_null_fields():
     src = _source(_meta([{C.META_SMILES: "CCO", C.META_CMPD_CODE: None}]))
-    assert src._extract_compounds() == [{"smiles": "CCO"}]
+    assert src._extract_compounds() == [{"smiles": "CCO", "crystals": ["Xtal-0"]}]
 
 
 def test_validation_payload_includes_compounds():
     src = _source(_meta([{C.META_SMILES: "CCO", C.META_CMPD_CODE: "Z1"}]))
     payload = src.get_validation_payload()
-    assert payload["compounds"] == [{"smiles": "CCO", "compound_code": "Z1"}]
+    assert payload["compounds"] == [{"smiles": "CCO", "compound_code": "Z1", "crystals": ["Xtal-0"]}]
     assert payload["target_name"] == "MyTarget"
 
 
@@ -110,8 +125,19 @@ def _uploader(data_source, curation_file=None):
 def _resp(json_data, ok=True, url="https://example.com/api/validate"):
     r = MagicMock()
     r.ok = ok
+    r.status_code = 200 if ok else 400
+    r.is_redirect = False
     r.url = url
     r.json.return_value = json_data
+    return r
+
+
+def _redirect(location):
+    r = MagicMock()
+    r.ok = True
+    r.status_code = 302
+    r.is_redirect = True
+    r.headers = {"Location": location}
     return r
 
 
@@ -174,3 +200,51 @@ def test_validate_no_conflicts_does_not_write(tmp_path, monkeypatch):
     up._validate()
 
     assert not list(tmp_path.iterdir())
+
+
+def test_validate_does_not_follow_redirects():
+    src = _source(_meta([{C.META_SMILES: "CCO"}]))
+    up = _uploader(src)
+    up._session.post.return_value = _resp({"success": True, "message": []})
+
+    up._validate()
+
+    _, kwargs = up._session.post.call_args
+    assert kwargs["allow_redirects"] is False
+
+
+@pytest.mark.parametrize(
+    "location",
+    ["/accounts/login/", "https://keycloak.example.com/auth/realms/xchem/protocol/openid-connect/auth"],
+)
+def test_validate_login_redirect_raises_authentication_error(location):
+    src = _source(_meta([{C.META_SMILES: "CCO"}]))
+    up = _uploader(src)
+    up._session.post.return_value = _redirect(location)
+
+    with pytest.raises(AuthenticationError, match="not logged in"):
+        up._validate()
+
+
+def test_validate_other_redirect_raises_with_location():
+    src = _source(_meta([{C.META_SMILES: "CCO"}]))
+    up = _uploader(src)
+    up._session.post.return_value = _redirect("https://elsewhere.example.com/")
+
+    with pytest.raises(ValidationError, match="elsewhere.example.com"):
+        up._validate()
+
+
+def test_validate_non_json_response_reports_status_and_body():
+    src = _source(_meta([{C.META_SMILES: "CCO"}]))
+    up = _uploader(src)
+    r = _resp(None, ok=False)
+    r.status_code = 502
+    r.text = "<html><body>502 Bad Gateway</body></html>"
+    r.json.side_effect = JSONDecodeError("Expecting value", "", 0)
+    up._session.post.return_value = r
+
+    with pytest.raises(ValidationError, match="502") as exc:
+        up._validate()
+
+    assert "502 Bad Gateway" in str(exc.value)

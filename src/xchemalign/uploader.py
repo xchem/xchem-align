@@ -354,11 +354,16 @@ class DataSource(ABC):
         present. Ligands without a SMILES are skipped (the backend cannot key
         them). Exact duplicates (same compound repeated across crystals) are
         collapsed so the backend does not raise spurious conflicts.
+
+        Each entry also carries the crystals it was found on, under "crystals".
+        The backend shows these in the curation spreadsheet so whoever resolves a
+        flagged compound can trace it back to the source data; they take no part
+        in matching.
         """
         compounds: list[dict[str, Any]] = []
-        seen: set = set()
+        by_key: dict = {}
         crystals = self.meta.get(utils.Constants.META_XTALS, {}) or {}
-        for xtal in crystals.values():
+        for xtal_name, xtal in crystals.items():
             if not isinstance(xtal, dict):
                 continue
             xtal_files = xtal.get(utils.Constants.META_XTAL_FILES, {}) or {}
@@ -370,11 +375,17 @@ class DataSource(ABC):
                 entry = {f: ligand[f] for f in self.COMPOUND_FIELDS if ligand.get(f) is not None}
                 if not entry.get(utils.Constants.META_SMILES):
                     continue
+                # Keyed on the compound fields alone, before the crystal is added,
+                # so collecting crystals cannot change what counts as a duplicate.
                 dedup_key = tuple(sorted(entry.items()))
-                if dedup_key in seen:
+                if dedup_key in by_key:
+                    by_key[dedup_key]["crystals"].append(xtal_name)
                     continue
-                seen.add(dedup_key)
+                entry["crystals"] = [xtal_name]
+                by_key[dedup_key] = entry
                 compounds.append(entry)
+        for entry in compounds:
+            entry["crystals"] = sorted(set(entry["crystals"]))
         return compounds
 
     def checksum(self):
@@ -468,14 +479,29 @@ class XCADataUpload:
         if self._curation_file is not None:
             validation_data["curation_file"] = self._encode_curation_file()
 
+        # Don't follow redirects: requests would turn the POST into a GET and
+        # land on an HTML page. The only redirect Fragalysis sends here is the
+        # login redirect for an unauthenticated (e.g. expired) session.
         validation_result = self._session.post(
             self._validate_url,
             json=validation_data,
+            allow_redirects=False,
         )
-        if validation_result.url.find("keycloak") > 0:
-            raise AuthenticationError("You are not logged in to Fragalysis")
+        if validation_result.is_redirect:
+            location = validation_result.headers.get("Location", "")
+            if "login" in location or "keycloak" in location:
+                raise AuthenticationError("You are not logged in to Fragalysis, is your auth token (-t) still valid?")
+            raise ValidationError(
+                f"Unexpected redirect ({validation_result.status_code}) from the server to {location}"
+            )
 
-        result_json = validation_result.json()
+        try:
+            result_json = validation_result.json()
+        except JSONDecodeError as exc:
+            raise ValidationError(
+                f"Server returned a non-JSON response (status {validation_result.status_code}): "
+                + validation_result.text[:200]
+            ) from exc
 
         if validation_result.ok:
             # data validation errors
