@@ -637,76 +637,9 @@ class Aligner:
             # It would be better if LNA only included if it actually existed which would make the checking easier.
             event_map_dict_list = crystal.get(Constants.META_XTAL_FILES, {}).get(Constants.META_BINDING_EVENT, [])
 
-            crystal_output[Constants.META_ALIGNED_FILES] = {}
-            aligned_output = crystal_output[Constants.META_ALIGNED_FILES]
-            dataset_output = updated_fs_model.alignments[dtag]
-
-            # Look up event map entries by (chain, res, altloc) rather than by position, so that changes in
-            # the number of ligands or altlocs between versions don't cause a crash or a mismatch.
-            event_map_lookup = {
-                (
-                    entry.get(Constants.META_PROT_CHAIN),
-                    str(entry.get(Constants.META_PROT_RES)),
-                    str(entry.get(Constants.META_PROT_ALTLOC)),
-                ): entry
-                for entry in event_map_dict_list
-            }
-
-            for chain_name, chain_output in dataset_output.items():
-                aligned_chain_output = aligned_output[chain_name] = {}
-                for ligand_residue, ligand_output in chain_output.items():
-                    aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
-                    for altoloc, altloc_output in ligand_output.items():
-                        aligned_altloc_output = aligned_ligand_output[altoloc] = {}
-                        altloc_str = dt.altloc_to_string(altoloc)
-                        event_map_entry = event_map_lookup.get((chain_name, ligand_residue, altloc_str))
-                        if event_map_entry is None:
-                            self.logger.warn(
-                                "No event map metadata found for ligand {} altloc {} in crystal {}."
-                                " The ligand residue number or altlocs may have changed between versions."
-                                " Proceeding without an event map for this ligand.".format(
-                                    ligand_residue, altloc_str, dtag
-                                )
-                            )
-                        for version, version_output in altloc_output.items():
-                            aligned_version_output = aligned_altloc_output[version] = {}
-                            for site_id, aligned_structure_path in version_output.aligned_structures.items():
-                                # Is the event map file present?
-                                event_map_present = (
-                                    event_map_entry is not None and Constants.META_FILE in event_map_entry
-                                )
-
-                                aligned_artefacts_path = version_output.aligned_artefacts[site_id]
-                                aligned_event_map_path = version_output.aligned_event_maps[site_id]
-                                aligned_xmap_path = version_output.aligned_xmaps[site_id]
-                                aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
-
-                                aligned_crystallographic_event_map_path = (
-                                    version_output.aligned_event_maps_crystallographic[site_id]
-                                )
-                                aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[
-                                    site_id
-                                ]
-                                aligned_crystallographic_diff_map_path = (
-                                    version_output.aligned_diff_maps_crystallographic[site_id]
-                                )
-
-                                aligned_version_output[site_id] = {
-                                    Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
-                                    Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
-                                    Constants.META_AIGNED_X_MAP: aligned_xmap_path,
-                                    Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
-                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_crystallographic_xmap_path,
-                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_crystallographic_diff_map_path,
-                                }
-                                # if the event map is present then include it in the output
-                                if event_map_present:
-                                    aligned_version_output[site_id][
-                                        Constants.META_AIGNED_EVENT_MAP
-                                    ] = aligned_event_map_path
-                                    aligned_version_output[site_id][
-                                        Constants.META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP
-                                    ] = aligned_crystallographic_event_map_path
+            crystal_output[Constants.META_ALIGNED_FILES] = self._build_aligned_files(
+                dtag, updated_fs_model.alignments[dtag], event_map_dict_list
+            )
 
         ## Add the reference alignments
         new_meta[Constants.META_REFERENCE_ALIGNMENTS] = {}
@@ -754,6 +687,81 @@ class Aligner:
                 d.rmdir()
         self.logger.info('removing {} empty aligned_files dirs'.format(empty_dir_count))
         return new_meta
+
+    def _build_aligned_files(self, dtag, dataset_output, event_map_dict_list):
+        """
+        Build the aligned_files metadata for one crystal.
+
+        :param dtag: the crystal name
+        :param dataset_output: the LNA alignments for the crystal, keyed chain -> residue -> altloc -> version
+        :param event_map_dict_list: the ligand_binding_events list from the crystal's collator metadata
+        :return: dict of aligned file info keyed chain -> residue -> altloc -> version -> site id
+        """
+        aligned_output = {}
+
+        # Look up event map entries by (chain, res, altloc) rather than by position, so that changes in
+        # the number of ligands or altlocs between versions don't cause a crash or a mismatch.
+        event_map_lookup = {
+            (
+                entry.get(Constants.META_PROT_CHAIN),
+                str(entry.get(Constants.META_PROT_RES)),
+                str(entry.get(Constants.META_PROT_ALTLOC)),
+            ): entry
+            for entry in event_map_dict_list
+        }
+
+        for chain_name, chain_output in dataset_output.items():
+            aligned_chain_output = aligned_output[chain_name] = {}
+            for ligand_residue, ligand_output in chain_output.items():
+                aligned_ligand_output = aligned_chain_output[ligand_residue] = {}
+                for altoloc, altloc_output in ligand_output.items():
+                    aligned_altloc_output = aligned_ligand_output[altoloc] = {}
+                    altloc_str = dt.altloc_to_string(altoloc)
+                    event_map_entry = event_map_lookup.get((chain_name, ligand_residue, altloc_str))
+                    if event_map_entry is None:
+                        self.logger.warn(
+                            "No event map metadata found for ligand {} altloc {} in crystal {}."
+                            " The ligand residue number or altlocs may have changed between versions."
+                            " Proceeding without an event map for this ligand.".format(
+                                ligand_residue, altloc_str, dtag
+                            )
+                        )
+                    for version, version_output in altloc_output.items():
+                        aligned_version_output = aligned_altloc_output[version] = {}
+                        for site_id, aligned_structure_path in version_output.aligned_structures.items():
+                            # Is the event map file present?
+                            event_map_present = event_map_entry is not None and Constants.META_FILE in event_map_entry
+
+                            aligned_artefacts_path = version_output.aligned_artefacts[site_id]
+                            aligned_event_map_path = version_output.aligned_event_maps[site_id]
+                            aligned_xmap_path = version_output.aligned_xmaps[site_id]
+                            aligned_diff_map_path = version_output.aligned_diff_maps[site_id]
+
+                            aligned_crystallographic_event_map_path = (
+                                version_output.aligned_event_maps_crystallographic[site_id]
+                            )
+                            aligned_crystallographic_xmap_path = version_output.aligned_xmaps_crystallographic[site_id]
+                            aligned_crystallographic_diff_map_path = version_output.aligned_diff_maps_crystallographic[
+                                site_id
+                            ]
+
+                            aligned_version_output[site_id] = {
+                                Constants.META_AIGNED_STRUCTURE: aligned_structure_path,
+                                Constants.META_AIGNED_ARTEFACTS: aligned_artefacts_path,
+                                Constants.META_AIGNED_X_MAP: aligned_xmap_path,
+                                Constants.META_AIGNED_DIFF_MAP: aligned_diff_map_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_X_MAP: aligned_crystallographic_xmap_path,
+                                Constants.META_AIGNED_CRYSTALLOGRAPHIC_DIFF_MAP: aligned_crystallographic_diff_map_path,
+                            }
+                            # if the event map is present then include it in the output
+                            if event_map_present:
+                                aligned_version_output[site_id][
+                                    Constants.META_AIGNED_EVENT_MAP
+                                ] = aligned_event_map_path
+                                aligned_version_output[site_id][
+                                    Constants.META_AIGNED_CRYSTALLOGRAPHIC_EVENT_MAP
+                                ] = aligned_crystallographic_event_map_path
+        return aligned_output
 
     def _extract_components(self, crystals, aligner_meta):
         """
