@@ -479,14 +479,29 @@ class XCADataUpload:
         if self._curation_file is not None:
             validation_data["curation_file"] = self._encode_curation_file()
 
+        # Don't follow redirects: requests would turn the POST into a GET and
+        # land on an HTML page. The only redirect Fragalysis sends here is the
+        # login redirect for an unauthenticated (e.g. expired) session.
         validation_result = self._session.post(
             self._validate_url,
             json=validation_data,
+            allow_redirects=False,
         )
-        if validation_result.url.find("keycloak") > 0:
-            raise AuthenticationError("You are not logged in to Fragalysis")
+        if validation_result.is_redirect:
+            location = validation_result.headers.get("Location", "")
+            if "login" in location or "keycloak" in location:
+                raise AuthenticationError("You are not logged in to Fragalysis, is your auth token (-t) still valid?")
+            raise ValidationError(
+                f"Unexpected redirect ({validation_result.status_code}) from the server to {location}"
+            )
 
-        result_json = validation_result.json()
+        try:
+            result_json = validation_result.json()
+        except JSONDecodeError as exc:
+            raise ValidationError(
+                f"Server returned a non-JSON response (status {validation_result.status_code}): "
+                + validation_result.text[:200]
+            ) from exc
 
         if validation_result.ok:
             # data validation errors
