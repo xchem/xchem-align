@@ -128,7 +128,7 @@ old and new files.
 
 Each crystal's `inputs.yaml` records where its outputs came from, so no `--debug` copying is needed to
 audit them. Each file is recorded as a single absolute path, the one actually opened: the path held in
-SoakDB (typically `/dls/...`) re-rooted under the config's `base_dir`. Only files from the inputs
+SoakDB (typically `/dls/...`) with the config's `base_dir` pruned off. Only files from the inputs
 directory are listed, never files created by the collator; for event maps the original source file is
 recorded, not the collator's copy. Anything that did not apply to the crystal is `null`.
 

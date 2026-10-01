@@ -48,10 +48,15 @@ def error(*args, **kwargs):
     utils.log_error(*args, **kwargs)
 
 
-def reroot(base_dir: Path, p) -> str:
-    """The path of an input file as it is opened: the original filesystem path (e.g. /dls/...) held in
-    SoakDB, re-rooted under base_dir."""
-    return str(base_dir / utils.make_path_relative(Path(p)))
+def inputs_path(base_dir: Path, p) -> str:
+    """The path of an input file as recorded in inputs.yaml: the original filesystem path (e.g. /dls/...),
+    so with base_dir (where the original filesystem is mounted) pruned off. A path not under base_dir is
+    already an original path and is returned unchanged."""
+    p = Path(p)
+    try:
+        return '/' + str(p.relative_to(base_dir))
+    except ValueError:
+        return str(p)
 
 
 def sequence_inputs(base_dir: Path, input_config: dict, xtal_name: str) -> list:
@@ -65,7 +70,7 @@ def sequence_inputs(base_dir: Path, input_config: dict, xtal_name: str) -> list:
     for variant in sequences.get(Constants.CONFIG_VARIANTS) or []:
         if xtal_name in (variant.get(Constants.CONFIG_CRYSTALS) or []):
             used = [paths[0], seq_dir / variant[Constants.CONFIG_SEQUENCE]]
-    return [str(base_dir / input_config[Constants.CONFIG_DIR] / p) for p in used]
+    return [inputs_path(base_dir, base_dir / input_config[Constants.CONFIG_DIR] / p) for p in used]
 
 
 def write_inputs_yaml(xtal_out_path: Path, xtal_name: str, refinement_prog: str, inputs: dict):
@@ -625,7 +630,7 @@ def process_input(
             if cif_file:
                 p = base_dir / utils.make_path_relative(Path(cif_file))
                 if p.is_file():
-                    ligand_cif_input = str(p)
+                    ligand_cif_input = inputs_path(base_dir, p)
                     p2 = shutil.copy2(p, xtal_out_path / (xtal_name + '_lig.cif'), follow_symlinks=True)
                     info('copied ligand CIF', p)
                 else:
@@ -657,22 +662,22 @@ def process_input(
                 xtal_name,
                 refinement_prog,
                 {
-                    'soakdb': str(soakdb_file_p),
-                    'model': reroot(base_dir, mmcif if refinement_type == Constants.SOAKDB_VALUE_BUSTER else pdb),
-                    'mtz_latest': reroot(base_dir, mtz_latest),
-                    'mtz_free': reroot(base_dir, mtz_free_path),
+                    'soakdb': inputs_path(base_dir, soakdb_file_p),
+                    'model': inputs_path(base_dir, mmcif if refinement_type == Constants.SOAKDB_VALUE_BUSTER else pdb),
+                    'mtz_latest': inputs_path(base_dir, mtz_latest),
+                    'mtz_free': inputs_path(base_dir, mtz_free_path),
                     # the original files, not the collator's copies
                     'event_maps': ccp4_sources,
                     'ligand_cif': ligand_cif_input,
                     'data_processing_stats': (
                         {
                             'program': data_processing_prog,
-                            'file': str(data_processing_log_file),
+                            'file': inputs_path(base_dir, data_processing_log_file),
                         }
                         if data_processing_log_file
                         else None
                     ),
-                    'collection_info': str(collection_info_p) if collection_info_p else None,
+                    'collection_info': inputs_path(base_dir, collection_info_p) if collection_info_p else None,
                     'metadata_csv': str(metadata_csv) if metadata_csv else None,
                     'compound_codes_csv': str(compound_codes_csv) if compound_codes_csv else None,
                     'fragalysis_csv': str(fragalysis_csv) if fragalysis_csv else None,

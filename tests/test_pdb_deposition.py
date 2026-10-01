@@ -13,7 +13,7 @@ from pdbdepo.pdb_deposition import (
     merge_mmcifgen_into_structure,
     read_cmpd_codes,
     read_fragalysis_csv,
-    reroot,
+    inputs_path,
     rename_beamlines,
     sequence_inputs,
     substitute_tokens,
@@ -557,9 +557,10 @@ def test_add_software_loop_phenix_before_refinement(data_processing_prog, refine
 # ---------------------------------------------------------------------------
 
 
-def test_reroot_puts_soakdb_path_under_base_dir():
-    assert reroot(Path('/mnt/base'), '/dls/labxchem/x/refine.pdb') == '/mnt/base/dls/labxchem/x/refine.pdb'
-    assert reroot(Path('/'), '/dls/labxchem/x/refine.pdb') == '/dls/labxchem/x/refine.pdb'
+def test_inputs_path_prunes_base_dir():
+    assert inputs_path(Path('/mnt/base'), '/mnt/base/dls/labxchem/x/refine.pdb') == '/dls/labxchem/x/refine.pdb'
+    assert inputs_path(Path('/mnt/base'), '/dls/labxchem/x/refine.pdb') == '/dls/labxchem/x/refine.pdb'
+    assert inputs_path(Path('/'), '/dls/labxchem/x/refine.pdb') == '/dls/labxchem/x/refine.pdb'
 
 
 def test_sequence_inputs_default_and_variant():
@@ -573,8 +574,8 @@ def test_sequence_inputs_default_and_variant():
             ],
         },
     }
-    assert sequence_inputs(Path('/b'), cfg, 'x1') == ['/b/in1/seqs/default.fa']
-    assert sequence_inputs(Path('/b'), cfg, 'x2') == ['/b/in1/seqs/default.fa', '/b/in1/seqs/v1.fa']
+    assert sequence_inputs(Path('/b'), cfg, 'x1') == ['/in1/seqs/default.fa']
+    assert sequence_inputs(Path('/b'), cfg, 'x2') == ['/in1/seqs/default.fa', '/in1/seqs/v1.fa']
     assert sequence_inputs(Path('/b'), {Constants.CONFIG_DIR: 'in1'}, 'x1') == []
 
 
