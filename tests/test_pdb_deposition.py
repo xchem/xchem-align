@@ -605,7 +605,7 @@ _REPO = Path(__file__).parent.parent
 _XTAL = 'x0001'
 
 
-def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True):
+def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True, buster=False):
     """A base_dir (standing in for where /dls is mounted) holding one REFMAC crystal, and its SoakDB."""
     base = tmp_path / 'mnt'
     proc = base / 'dls/proc/xia2'
@@ -614,6 +614,10 @@ def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True):
     for d in (proc, refine, db_dir):
         d.mkdir(parents=True)
     shutil.copy(_REPO / 'test-data/8dz9.pdb', refine / 'refine.pdb')
+    if buster:
+        struc = gemmi.read_pdb(str(_REPO / 'test-data/8dz9.pdb'), ignore_ter=True)
+        struc.setup_entities()
+        struc.make_mmcif_document().write_file(str(refine / 'refine.mmcif'))
     shutil.copy(_REPO / 'test-data/8dz9.mtz', refine / 'refine.mtz')
     shutil.copy(_REPO / 'test-data/8dz9.mtz', refine / 'free.mtz')
     (refine / 'lig.cif').write_text('data_lig\n_chem_comp.id LIG\n')
@@ -634,9 +638,10 @@ def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True):
             'LastUpdated TEXT, DataProcessingProgram TEXT, DataProcessingPathToLogfile TEXT)'
         )
         cnx.execute(
-            'INSERT INTO mainTable VALUES (1, ?, "CMPD1", "", "5 - Deposition ready", NULL, ?, ?, ?, ?, "", ?, ?)',
+            'INSERT INTO mainTable VALUES (1, ?, "CMPD1", "", "5 - Deposition ready", ?, ?, ?, ?, ?, "", ?, ?)',
             (
                 _XTAL,
+                '/dls/refine/x0001/refine.mmcif' if buster else None,
                 '/dls/refine/x0001/lig.cif' if with_ligand_cif else None,
                 '/dls/refine/x0001/refine.pdb',
                 '/dls/refine/x0001/refine.mtz',
@@ -648,11 +653,13 @@ def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True):
     return base, db
 
 
-def _run_process_input(tmp_path, monkeypatch, base, db, **kwargs):
+def _run_process_input(tmp_path, monkeypatch, base, db, buster=False, event_maps=(), **kwargs):
     monkeypatch.setenv(Constants.ENV_XCA_GIT_REPO, str(_REPO))
     struc = gemmi.read_structure(str(_REPO / 'test-data/8dz9.pdb'))
     seq = gemmi.one_letter_code([r.name for r in struc[0]['A']])
-    monkeypatch.setattr(pdb_deposition.utils, 'read_sequences', lambda *a, **k: ({'A': ('A', seq)}, {}))
+    # the entity is named as the model names it
+    entity = gemmi.read_structure(str(base / 'dls/refine/x0001/refine.mmcif')).entities[0].name if buster else 'A'
+    monkeypatch.setattr(pdb_deposition.utils, 'read_sequences', lambda *a, **k: ({'A': (entity, seq)}, {}))
     monkeypatch.setattr(pdb_deposition, 'validate_sequences', lambda *a, **k: None)
 
     mmcifgen = cif.Document().add_new_block('mmcifgen')
@@ -661,7 +668,16 @@ def _run_process_input(tmp_path, monkeypatch, base, db, **kwargs):
 
     out = tmp_path / 'collator' / 'pdb_depo_files'
     out.mkdir(parents=True, exist_ok=True)
-    meta_collator = {Constants.META_XTALS: {_XTAL: {Constants.META_XTAL_FILES: {}}}}
+    xtal_files = {}
+    if event_maps:
+        xtal_files[Constants.META_BINDING_EVENT] = [
+            {Constants.META_FILE: 'crystallographic_files/x0001/' + Path(m).name, Constants.META_SOURCE_FILE: m}
+            for m in event_maps
+        ]
+        # the collator's copies, which are what merge_sf reads
+        for m in event_maps:
+            _write_ccp4_map(tmp_path / 'crystallographic_files/x0001' / Path(m).name)
+    meta_collator = {Constants.META_XTALS: {_XTAL: {Constants.META_XTAL_FILES: xtal_files}}}
     pdb_deposition.process_input(
         base,
         Path('dls/db'),
@@ -733,3 +749,44 @@ def test_process_input_rerun_overwrites(tmp_path, monkeypatch):
     out = _run_process_input(tmp_path, monkeypatch, base, db)
     assert not (out / 'stale.txt').exists()
     assert yaml.safe_load((out / 'inputs.yaml').read_text())['crystal'] == _XTAL
+
+
+def _write_ccp4_map(path):
+    """A small synthetic map in the 8dz9 cell, which merge_sf can turn into structure factors."""
+    struc = gemmi.read_structure(str(_REPO / 'test-data/8dz9.pdb'))
+    grid = gemmi.FloatGrid(16, 16, 16)
+    grid.unit_cell = struc.cell
+    grid.spacegroup = gemmi.find_spacegroup_by_name('P 1')
+    grid.set_value(3, 4, 5, 1.0)
+    grid.set_value(8, 8, 8, 2.0)
+    ccp4 = gemmi.Ccp4Map()
+    ccp4.grid = grid
+    ccp4.update_ccp4_header()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ccp4.write_ccp4_map(str(path))
+
+
+def test_process_input_buster_records_mmcif_model(tmp_path, monkeypatch):
+    base, db = _make_inputs_tree(tmp_path, buster=True)
+    out = _run_process_input(tmp_path, monkeypatch, base, db, buster=True)
+
+    assert (out / 'x0001_struc.cif').is_file()
+    doc = yaml.safe_load((out / 'inputs.yaml').read_text())
+    assert doc['refinement_program'] == 'buster'
+    assert doc['inputs']['model'] == '/dls/refine/x0001/refine.mmcif'
+    assert doc['inputs']['software_templates'] == ['xia2-dials', 'buster']
+
+
+def test_process_input_event_maps_record_original_sources(tmp_path, monkeypatch):
+    base, db = _make_inputs_tree(tmp_path)
+    sources = [str(base / 'dls/pandda/x0001/event_1.ccp4'), str(base / 'dls/pandda/x0001/event_2.ccp4')]
+    out = _run_process_input(tmp_path, monkeypatch, base, db, event_maps=sources)
+
+    # the original files under the inputs dir are recorded, not the collator's copies the maps were read from
+    inputs = yaml.safe_load((out / 'inputs.yaml').read_text())['inputs']
+    assert inputs['event_maps'] == ['/dls/pandda/x0001/event_1.ccp4', '/dls/pandda/x0001/event_2.ccp4']
+    assert 'crystallographic_files' not in (out / 'inputs.yaml').read_text()
+
+    # and both maps made it into the structure factor CIF as blocks of their own
+    sf = cif.read(str(out / 'x0001_sf.cif'))
+    assert [b.name for b in sf] == ['rxxxxsf', 'rxxxxAsf', 'rxxxxBsf0', 'rxxxxBsf1']
