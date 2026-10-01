@@ -150,7 +150,7 @@ def test_validate_sends_json_payload():
 
     _, kwargs = up._session.post.call_args
     assert "json" in kwargs and "data" not in kwargs
-    assert kwargs["json"]["compounds"] == [{"smiles": "CCO", "compound_code": "Z1"}]
+    assert kwargs["json"]["compounds"] == [{"smiles": "CCO", "compound_code": "Z1", "crystals": ["Xtal-0"]}]
     assert kwargs["json"]["target_access_string"] == "lb-1"
 
 
