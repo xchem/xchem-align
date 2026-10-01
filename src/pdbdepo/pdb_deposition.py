@@ -22,6 +22,7 @@ from pathlib import Path
 from collections import OrderedDict
 
 import gemmi
+import yaml
 from gemmi import cif
 
 from mmcif_gen.facilities import xchem
@@ -45,6 +46,44 @@ def warn(*args, **kwargs):
 
 def error(*args, **kwargs):
     utils.log_error(*args, **kwargs)
+
+
+def inputs_path(base_dir: Path, p) -> str:
+    """The path of an input file as recorded in inputs.yaml: the original filesystem path (e.g. /dls/...),
+    so with base_dir (where the original filesystem is mounted) pruned off. A path not under base_dir is
+    already an original path and is returned unchanged."""
+    p = Path(p)
+    try:
+        return '/' + str(p.relative_to(base_dir))
+    except ValueError:
+        return str(p)
+
+
+def sequence_inputs(base_dir: Path, input_config: dict, xtal_name: str) -> list:
+    """The FASTA files that apply to a crystal: the default, plus its variant file if it has one."""
+    sequences = input_config.get(Constants.CONFIG_SEQUENCES)
+    paths = utils.sequence_file_paths(input_config)
+    if not sequences or not paths:
+        return []
+    seq_dir = Path(sequences.get(Constants.CONFIG_DIR, Constants.DEFAULT_SEQUENCES_DIR))
+    used = [paths[0]]
+    for variant in sequences.get(Constants.CONFIG_VARIANTS) or []:
+        if xtal_name in (variant.get(Constants.CONFIG_CRYSTALS) or []):
+            used = [paths[0], seq_dir / variant[Constants.CONFIG_SEQUENCE]]
+    return [inputs_path(base_dir, base_dir / input_config[Constants.CONFIG_DIR] / p) for p in used]
+
+
+def write_inputs_yaml(xtal_out_path: Path, xtal_name: str, refinement_prog: str, inputs: dict):
+    """Write the inputs.yaml listing the input files used to generate a crystal's outputs. Files that
+    do not apply are recorded explicitly as null."""
+    doc = {
+        'crystal': xtal_name,
+        'refinement_program': refinement_prog,
+        'generated': datetime.datetime.now().isoformat(timespec='seconds'),
+        'inputs': inputs,
+    }
+    with open(xtal_out_path / INPUTS_FILENAME, 'wt') as f:
+        yaml.safe_dump(doc, f, sort_keys=False)
 
 
 def find_repo_base():
@@ -94,6 +133,9 @@ DIAMOND_BEAMLINE_PREFIX = 'DIAMOND BEAMLINE '
 
 # software template added (after the data processing one) for data reprocessed with phenix
 PHENIX_TEMPLATE = 'phenix'
+
+# the file written to each crystal's output dir listing the input files used to generate its outputs
+INPUTS_FILENAME = 'inputs.yaml'
 
 
 def read_software_templates():
@@ -267,6 +309,10 @@ def process_input(
     cmpd_codes_dict: dict = {},
     pose_ids_dict: dict = {},
     debug=False,
+    metadata_csv=None,
+    compound_codes_csv=None,
+    fragalysis_csv=None,
+    config_path=None,
 ):
     software_templates = read_software_templates()
 
@@ -307,7 +353,7 @@ def process_input(
         mmcifgen_diffrn_values = list(mmcifgen_diffrn_item.loop.values)
         mmcifgen_diffrn_item.erase()
 
-    (mmcif_gen_entity_tags, mmcif_gen_entity_values) = read_mmcifgen_entity_data_and_erase(mmcifgen_block)
+    mmcif_gen_entity_tags, mmcif_gen_entity_values = read_mmcifgen_entity_data_and_erase(mmcifgen_block)
 
     info("reading soakdb file:", soakdb_file_p)
     df = dbreader.read_pdb_depo(soakdb_file_p)
@@ -580,9 +626,11 @@ def process_input(
 
             # include the ligand CIF file
             cif_file = row[Constants.SOAKDB_COL_CIF]
+            ligand_cif_input = None
             if cif_file:
                 p = base_dir / utils.make_path_relative(Path(cif_file))
                 if p.is_file():
+                    ligand_cif_input = inputs_path(base_dir, p)
                     p2 = shutil.copy2(p, xtal_out_path / (xtal_name + '_lig.cif'), follow_symlinks=True)
                     info('copied ligand CIF', p)
                 else:
@@ -602,6 +650,41 @@ def process_input(
                 mtz_latest,
                 str(mtz_free_path),
                 output_individual=debug,
+            )
+
+            # record the input files that were actually used
+            software = [data_processing_prog.lower()]
+            if scrape_processing_stats.is_phenix_type(data_processing_prog):
+                software.append(PHENIX_TEMPLATE)
+            software.append(refinement_prog)
+            write_inputs_yaml(
+                xtal_out_path,
+                xtal_name,
+                refinement_prog,
+                {
+                    'soakdb': inputs_path(base_dir, soakdb_file_p),
+                    'model': inputs_path(base_dir, mmcif if refinement_type == Constants.SOAKDB_VALUE_BUSTER else pdb),
+                    'mtz_latest': inputs_path(base_dir, mtz_latest),
+                    'mtz_free': inputs_path(base_dir, mtz_free_path),
+                    # the original files, not the collator's copies
+                    'event_maps': ccp4_sources,
+                    'ligand_cif': ligand_cif_input,
+                    'data_processing_stats': (
+                        {
+                            'program': data_processing_prog,
+                            'file': inputs_path(base_dir, data_processing_log_file),
+                        }
+                        if data_processing_log_file
+                        else None
+                    ),
+                    'collection_info': inputs_path(base_dir, collection_info_p) if collection_info_p else None,
+                    'metadata_csv': str(metadata_csv) if metadata_csv else None,
+                    'compound_codes_csv': str(compound_codes_csv) if compound_codes_csv else None,
+                    'fragalysis_csv': str(fragalysis_csv) if fragalysis_csv else None,
+                    'sequences': sequence_inputs(base_dir, input_config, xtal_name),
+                    'software_templates': software,
+                    'config': str(config_path) if config_path else None,
+                },
             )
 
     # write out the ligands to a file
@@ -1241,6 +1324,10 @@ def run(
                 cmpd_codes_dict=cmpd_codes_dict,
                 pose_ids_dict=pose_ids_dict,
                 debug=debug,
+                metadata_csv=metadata_csv,
+                compound_codes_csv=compound_codes_csv,
+                fragalysis_csv=fragalysis_csv,
+                config_path=collator_path / 'config.yaml',
             )
 
 

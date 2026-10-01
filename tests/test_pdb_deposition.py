@@ -1,8 +1,13 @@
+import bz2
+import shutil
+import sqlite3
 import textwrap
 from pathlib import Path
 
+import gemmi
 import pandas as pd
 import pytest
+import yaml
 from gemmi import cif
 
 from pdbdepo import pdb_deposition
@@ -12,9 +17,12 @@ from pdbdepo.pdb_deposition import (
     merge_mmcifgen_into_structure,
     read_cmpd_codes,
     read_fragalysis_csv,
+    inputs_path,
     rename_beamlines,
+    sequence_inputs,
     substitute_tokens,
     validate_sequences,
+    write_inputs_yaml,
 )
 from xchemalign.utils import Constants
 
@@ -546,3 +554,182 @@ def test_add_software_loop_phenix_before_refinement(data_processing_prog, refine
     assert rows[-2][1:] == _phenix_row()
     assert rows[-1][1] == refinement_name
     assert [r[1] for r in rows].count(_phenix_row()[0]) == 1
+
+
+# ---------------------------------------------------------------------------
+# inputs.yaml
+# ---------------------------------------------------------------------------
+
+
+def test_inputs_path_prunes_base_dir():
+    assert inputs_path(Path('/mnt/base'), '/mnt/base/dls/labxchem/x/refine.pdb') == '/dls/labxchem/x/refine.pdb'
+    assert inputs_path(Path('/mnt/base'), '/dls/labxchem/x/refine.pdb') == '/dls/labxchem/x/refine.pdb'
+    assert inputs_path(Path('/'), '/dls/labxchem/x/refine.pdb') == '/dls/labxchem/x/refine.pdb'
+
+
+def test_sequence_inputs_default_and_variant():
+    cfg = {
+        Constants.CONFIG_DIR: 'in1',
+        Constants.CONFIG_SEQUENCES: {
+            Constants.CONFIG_DIR: 'seqs',
+            Constants.CONFIG_DEFAULT: 'default.fa',
+            Constants.CONFIG_VARIANTS: [
+                {Constants.CONFIG_SEQUENCE: 'v1.fa', Constants.CONFIG_CRYSTALS: ['x2']},
+            ],
+        },
+    }
+    assert sequence_inputs(Path('/b'), cfg, 'x1') == ['/in1/seqs/default.fa']
+    assert sequence_inputs(Path('/b'), cfg, 'x2') == ['/in1/seqs/default.fa', '/in1/seqs/v1.fa']
+    assert sequence_inputs(Path('/b'), {Constants.CONFIG_DIR: 'in1'}, 'x1') == []
+
+
+def test_write_inputs_yaml_roundtrip_with_nulls(tmp_path):
+    inputs = {'model': '/dls/a/refine.pdb', 'event_maps': [], 'ligand_cif': None, 'fragalysis_csv': None}
+    write_inputs_yaml(tmp_path, 'x1', 'refmac', inputs)
+    doc = yaml.safe_load((tmp_path / 'inputs.yaml').read_text())
+    assert doc['crystal'] == 'x1'
+    assert doc['refinement_program'] == 'refmac'
+    assert doc['inputs'] == inputs
+    assert list(doc['inputs']) == list(inputs)  # order preserved
+
+    # a re-run simply overwrites
+    write_inputs_yaml(tmp_path, 'x1', 'buster', {'model': '/dls/a/refine.mmcif'})
+    assert yaml.safe_load((tmp_path / 'inputs.yaml').read_text())['inputs'] == {'model': '/dls/a/refine.mmcif'}
+
+
+# ---------------------------------------------------------------------------
+# process_input — end to end on a synthetic SoakDB and input tree
+# ---------------------------------------------------------------------------
+
+_REPO = Path(__file__).parent.parent
+_XTAL = 'x0001'
+
+
+def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True):
+    """A base_dir (standing in for where /dls is mounted) holding one REFMAC crystal, and its SoakDB."""
+    base = tmp_path / 'mnt'
+    proc = base / 'dls/proc/xia2'
+    refine = base / 'dls/refine' / _XTAL
+    db_dir = base / 'dls/db'
+    for d in (proc, refine, db_dir):
+        d.mkdir(parents=True)
+    shutil.copy(_REPO / 'test-data/8dz9.pdb', refine / 'refine.pdb')
+    shutil.copy(_REPO / 'test-data/8dz9.mtz', refine / 'refine.mtz')
+    shutil.copy(_REPO / 'test-data/8dz9.mtz', refine / 'free.mtz')
+    (refine / 'lig.cif').write_text('data_lig\n_chem_comp.id LIG\n')
+    (proc / 'xia2.log').write_text('')
+    if with_stats:
+        doc = cif.Document()
+        doc.add_new_block('first')
+        doc.add_new_block('second').set_pair('_reflns.d_resolution_high', '1.5')
+        with bz2.open(proc / 'xia2.mmcif.bz2', 'wt') as f:
+            f.write(doc.as_string())
+
+    db = db_dir / 'soakDBDataFile.sqlite'
+    with sqlite3.connect(db) as cnx:
+        cnx.execute(
+            'CREATE TABLE mainTable (ID INTEGER, CrystalName TEXT, CompoundCode TEXT, RefinementDate TEXT, '
+            'RefinementOutcome TEXT, RefinementMMCIFmodel_latest TEXT, RefinementCIF TEXT, '
+            'RefinementBoundConformation TEXT, RefinementMTZ_latest TEXT, RefinementMTZfree TEXT, '
+            'LastUpdated TEXT, DataProcessingProgram TEXT, DataProcessingPathToLogfile TEXT)'
+        )
+        cnx.execute(
+            'INSERT INTO mainTable VALUES (1, ?, "CMPD1", "", "5 - Deposition ready", NULL, ?, ?, ?, ?, "", ?, ?)',
+            (
+                _XTAL,
+                '/dls/refine/x0001/lig.cif' if with_ligand_cif else None,
+                '/dls/refine/x0001/refine.pdb',
+                '/dls/refine/x0001/refine.mtz',
+                'free.mtz',  # as in SoakDB: just the filename
+                'dials',
+                '/dls/proc/xia2/xia2.log',
+            ),
+        )
+    return base, db
+
+
+def _run_process_input(tmp_path, monkeypatch, base, db, **kwargs):
+    monkeypatch.setenv(Constants.ENV_XCA_GIT_REPO, str(_REPO))
+    struc = gemmi.read_structure(str(_REPO / 'test-data/8dz9.pdb'))
+    seq = gemmi.one_letter_code([r.name for r in struc[0]['A']])
+    monkeypatch.setattr(pdb_deposition.utils, 'read_sequences', lambda *a, **k: ({'A': ('A', seq)}, {}))
+    monkeypatch.setattr(pdb_deposition, 'validate_sequences', lambda *a, **k: None)
+
+    mmcifgen = cif.Document().add_new_block('mmcifgen')
+    mmcifgen.init_loop('_entity.', ['id', 'type', 'pdbx_description']).add_row(['1', 'polymer', 'protein'])
+    mmcifgen.init_loop('', ['_struct.entry_id', '_struct.title']).add_row(['INV', 'title of $CrystalName'])
+
+    out = tmp_path / 'collator' / 'pdb_depo_files'
+    out.mkdir(parents=True, exist_ok=True)
+    meta_collator = {Constants.META_XTALS: {_XTAL: {Constants.META_XTAL_FILES: {}}}}
+    pdb_deposition.process_input(
+        base,
+        Path('dls/db'),
+        tmp_path / 'collator',
+        db,
+        {Constants.CONFIG_DIR: 'dls/db'},
+        meta_collator,
+        mmcifgen,
+        out,
+        metadata_csv='meta.csv',
+        config_path=tmp_path / 'collator' / 'config.yaml',
+        **kwargs,
+    )
+    return out / _XTAL
+
+
+def test_process_input_writes_inputs_yaml(tmp_path, monkeypatch):
+    base, db = _make_inputs_tree(tmp_path)
+    out = _run_process_input(tmp_path, monkeypatch, base, db)
+
+    for name in ('x0001_struc.cif', 'x0001_sf.cif', 'x0001_lig.cif', 'inputs.yaml'):
+        assert (out / name).is_file(), name
+
+    doc = yaml.safe_load((out / 'inputs.yaml').read_text())
+    assert doc['crystal'] == _XTAL
+    assert doc['refinement_program'] == 'refmac'
+    # paths are the original ones, with the base_dir the files are mounted under pruned off
+    assert doc['inputs'] == {
+        'soakdb': '/dls/db/soakDBDataFile.sqlite',
+        'model': '/dls/refine/x0001/refine.pdb',
+        'mtz_latest': '/dls/refine/x0001/refine.mtz',
+        'mtz_free': '/dls/refine/x0001/free.mtz',  # SoakDB only had the filename
+        'event_maps': [],
+        'ligand_cif': '/dls/refine/x0001/lig.cif',
+        'data_processing_stats': {'program': 'xia2-dials', 'file': '/dls/proc/xia2/xia2.mmcif.bz2'},
+        'collection_info': None,
+        'metadata_csv': 'meta.csv',
+        'compound_codes_csv': None,
+        'fragalysis_csv': None,
+        'sequences': [],
+        'software_templates': ['xia2-dials', 'refmac'],
+        'config': str(tmp_path / 'collator' / 'config.yaml'),
+    }
+
+
+def test_process_input_inputs_yaml_nulls_for_missing_files(tmp_path, monkeypatch):
+    base, db = _make_inputs_tree(tmp_path, with_stats=False, with_ligand_cif=False)
+    out = _run_process_input(tmp_path, monkeypatch, base, db)
+
+    inputs = yaml.safe_load((out / 'inputs.yaml').read_text())['inputs']
+    assert inputs['ligand_cif'] is None
+    # no xia2.mmcif.bz2, so the stats come from the logfile SoakDB points at
+    assert inputs['data_processing_stats'] == {'program': 'xia2-dials', 'file': '/dls/proc/xia2/xia2.log'}
+    assert not (out / 'x0001_lig.cif').exists()
+
+    # and with no logfile either there are no stats inputs at all
+    (base / 'dls/proc/xia2/xia2.log').unlink()
+    out = _run_process_input(tmp_path, monkeypatch, base, db)
+    assert yaml.safe_load((out / 'inputs.yaml').read_text())['inputs']['data_processing_stats'] is None
+
+
+def test_process_input_rerun_overwrites(tmp_path, monkeypatch):
+    base, db = _make_inputs_tree(tmp_path)
+    out = _run_process_input(tmp_path, monkeypatch, base, db)
+    (out / 'stale.txt').write_text('x')
+    (out / 'inputs.yaml').write_text('stale: true\n')
+
+    # a second run clears the crystal's dir first, so nothing stale survives
+    out = _run_process_input(tmp_path, monkeypatch, base, db)
+    assert not (out / 'stale.txt').exists()
+    assert yaml.safe_load((out / 'inputs.yaml').read_text())['crystal'] == _XTAL
