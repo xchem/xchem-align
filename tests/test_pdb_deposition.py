@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import yaml
 from gemmi import cif
 
 from pdbdepo import pdb_deposition
@@ -12,9 +13,12 @@ from pdbdepo.pdb_deposition import (
     merge_mmcifgen_into_structure,
     read_cmpd_codes,
     read_fragalysis_csv,
+    reroot,
     rename_beamlines,
+    sequence_inputs,
     substitute_tokens,
     validate_sequences,
+    write_inputs_yaml,
 )
 from xchemalign.utils import Constants
 
@@ -546,3 +550,43 @@ def test_add_software_loop_phenix_before_refinement(data_processing_prog, refine
     assert rows[-2][1:] == _phenix_row()
     assert rows[-1][1] == refinement_name
     assert [r[1] for r in rows].count(_phenix_row()[0]) == 1
+
+
+# ---------------------------------------------------------------------------
+# inputs.yaml
+# ---------------------------------------------------------------------------
+
+
+def test_reroot_puts_soakdb_path_under_base_dir():
+    assert reroot(Path('/mnt/base'), '/dls/labxchem/x/refine.pdb') == '/mnt/base/dls/labxchem/x/refine.pdb'
+    assert reroot(Path('/'), '/dls/labxchem/x/refine.pdb') == '/dls/labxchem/x/refine.pdb'
+
+
+def test_sequence_inputs_default_and_variant():
+    cfg = {
+        Constants.CONFIG_DIR: 'in1',
+        Constants.CONFIG_SEQUENCES: {
+            Constants.CONFIG_DIR: 'seqs',
+            Constants.CONFIG_DEFAULT: 'default.fa',
+            Constants.CONFIG_VARIANTS: [
+                {Constants.CONFIG_SEQUENCE: 'v1.fa', Constants.CONFIG_CRYSTALS: ['x2']},
+            ],
+        },
+    }
+    assert sequence_inputs(Path('/b'), cfg, 'x1') == ['/b/in1/seqs/default.fa']
+    assert sequence_inputs(Path('/b'), cfg, 'x2') == ['/b/in1/seqs/default.fa', '/b/in1/seqs/v1.fa']
+    assert sequence_inputs(Path('/b'), {Constants.CONFIG_DIR: 'in1'}, 'x1') == []
+
+
+def test_write_inputs_yaml_roundtrip_with_nulls(tmp_path):
+    inputs = {'model': '/dls/a/refine.pdb', 'event_maps': [], 'ligand_cif': None, 'fragalysis_csv': None}
+    write_inputs_yaml(tmp_path, 'x1', 'refmac', inputs)
+    doc = yaml.safe_load((tmp_path / 'inputs.yaml').read_text())
+    assert doc['crystal'] == 'x1'
+    assert doc['refinement_program'] == 'refmac'
+    assert doc['inputs'] == inputs
+    assert list(doc['inputs']) == list(inputs)  # order preserved
+
+    # a re-run simply overwrites
+    write_inputs_yaml(tmp_path, 'x1', 'buster', {'model': '/dls/a/refine.mmcif'})
+    assert yaml.safe_load((tmp_path / 'inputs.yaml').read_text())['inputs'] == {'model': '/dls/a/refine.mmcif'}

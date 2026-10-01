@@ -119,9 +119,44 @@ All output is written to a `pdb_depo_files/` directory inside the collator outpu
    - `<crystal>_struc.cif` — the 3D model CIF, ready for PDBe deposition
    - `<crystal>_sf.cif` — merged structure factors (from MTZ latest, MTZ free, and any PanDDA event maps)
    - `<crystal>_lig.cif` — a copy of the ligand restraint CIF, when SoakDB records one
+   - `inputs.yaml` — the input files used to generate this crystal's outputs (see below)
 
 An existing per-crystal subdirectory is deleted and recreated on each run, so output is never a mix of
 old and new files.
+
+### `inputs.yaml`
+
+Each crystal's `inputs.yaml` records where its outputs came from, so no `--debug` copying is needed to
+audit them. Each file is recorded as a single absolute path, the one actually opened: the path held in
+SoakDB (typically `/dls/...`) re-rooted under the config's `base_dir`. Only files from the inputs
+directory are listed, never files created by the collator; for event maps the original source file is
+recorded, not the collator's copy. Anything that did not apply to the crystal is `null`.
+
+```yaml
+crystal: Mpro-x0104
+refinement_program: buster
+generated: 2026-10-01T10:15:00
+inputs:
+  soakdb: /dls/labxchem/.../soakDBDataFile.sqlite
+  model: /dls/labxchem/.../refine.mmcif        # the .pdb for REFMAC crystals
+  mtz_latest: /dls/labxchem/.../refine.mtz
+  mtz_free: /dls/labxchem/.../free.mtz
+  event_maps: [/dls/labxchem/.../event_1.ccp4]
+  ligand_cif: /dls/labxchem/.../ligand.cif
+  data_processing_stats:                       # the file the statistics were read from
+    program: xia2-dials
+    file: /dls/labxchem/.../xia2.mmcif.bz2
+  collection_info: /dls/labxchem/.../Mpro-x0104_collection_info.cif
+  metadata_csv: deposition-metadata.csv        # -m, -c and -f are recorded as given on the command line
+  compound_codes_csv: null
+  fragalysis_csv: null
+  sequences: [/dls/labxchem/.../default.fa]    # the default, plus the variant file if the crystal has one
+  software_templates: [xia2-dials, buster]     # by name, from config/pdb-depo
+  config: /path/to/config.yaml
+```
+
+Crystals that are not in `meta_collator.yaml` produce no outputs and so no `inputs.yaml`. It is written
+after the structure-factor CIF, so a crystal that fails part way has none.
 
 When `-d` / `--debug` is specified, each crystal's subdirectory additionally gets:
 
@@ -139,8 +174,8 @@ and how that varies with the data processing and refinement software used for th
 **Maintainers:** this part of the guide describes behaviour that lives in specific places in the code,
 so it goes stale silently. Update it in the same commit as any change to:
 
-- `src/pdbdepo/pdb_deposition.py` — which crystals are selected, which inputs are read, how the
-  structure CIF is assembled, and the CIF validation checks
+- `src/pdbdepo/pdb_deposition.py` — which crystals are selected, which inputs are read (and so what
+  [`inputs.yaml`](#inputsyaml) records), how the structure CIF is assembled, and the CIF validation checks
 - `src/pdbdepo/merge_sf.py` — the blocks of `<crystal>_sf.cif`
 - `src/pdbdepo/scrape_processing_stats.py` — which data processing programs and log formats are parsed
 - `dbreader.read_pdb_depo()` in `src/xchemalign/dbreader.py` — the SoakDB columns and the
