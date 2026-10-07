@@ -25,7 +25,10 @@ def _get_centroid_res(
         closest_atom_id = id_arr[closest]
     except Exception as e:
         raise Exception(
-            'Failed to get centroid residue!\n' 'Res cas\n' f'{res_cas}\n' f'{reference_neighbourhood.atoms}\n'
+            'Failed to get centroid residue!\n' 
+            'Res cas\n' 
+            f'Res CAs: {res_cas}\n' 
+            f'Neighbourhood atoms: {reference_neighbourhood.atoms}\n'
         )
 
     return (closest_atom_id[0], closest_atom_id[1])
@@ -281,6 +284,13 @@ def _get_ligand_neighbourhood(
             image=transform,
         )
 
+    # Check there is at least one CA in ligand neighbourhood
+    if not any([_atom_id[2] == 'CA' for _atom_id in model_atoms]):
+        raise Exception(
+            f'No CAs withing {max_dist} of ligand residue !\n'
+            f'Neighbourhood atoms are: {[x for x in model_atoms]}\n'
+        )
+
     # Cosntruct the neighbourhood
     ligand_neighbourhood = dt.Neighbourhood(model_atoms, artefact_atoms)
 
@@ -314,12 +324,17 @@ def _get_dataset_neighbourhoods(
     # partition them into model and artefact
     fragment_neighbourhoods: dict[dt.LigandNeighbourhoodID, dt.Neighbourhood] = {}
     for ligand_id, fragment in fragments.items():
-        fragment_neighbourhoods[ligand_id] = _get_ligand_neighbourhood(
-            assembly,
-            ns,
-            fragment,
-            max_dist=max_radius,
-        )
+        try:
+            fragment_neighbourhoods[ligand_id] = _get_ligand_neighbourhood(
+                assembly,
+                ns,
+                fragment,
+                max_dist=max_radius,
+            )
+        except:
+            raise Exception(
+                f'Failure getting neighbourhood for {ligand_id}'
+            ) 
 
     return fragment_neighbourhoods
 
