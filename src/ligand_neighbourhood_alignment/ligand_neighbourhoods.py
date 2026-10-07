@@ -6,7 +6,7 @@ import numpy as np
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment.alignment_core import _match_cas
 from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
-
+from ligand_neighbourhood_alignment import constants 
 
 def _get_centroid_res(
     residues: list[tuple[str, str]],
@@ -232,6 +232,9 @@ def _get_ligand_neighbourhood(
     # Model atoms
     model_atoms: dict[tuple[str, str, str], dt.Atom] = {}
     for pos, cra in _model_atoms:
+        if cra.residue.name not in constants.RESIDUE_NAMES:
+            continue
+
         # cra = atom.to_cra(structure[0])
         model_atom_id: tuple[str, str, str] = (
             str(cra.chain.name),
@@ -256,6 +259,8 @@ def _get_ligand_neighbourhood(
     # Artefact atoms
     artefact_atoms: dict[tuple[str, str, str], dt.Atom] = {}
     for pos, cra in _artefact_atoms:
+        if cra.residue.name not in constants.RESIDUE_NAMES:
+            continue
         artefact_atom_id: tuple[str, str, str] = (
             str(cra.chain.name),
             str(cra.residue.seqid.num) + icode_to_string(cra.residue.seqid.icode),
