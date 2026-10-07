@@ -324,6 +324,7 @@ def _get_dataset_neighbourhoods(
     # partition them into model and artefact
     fragment_neighbourhoods: dict[dt.LigandNeighbourhoodID, dt.Neighbourhood] = {}
     for ligand_id, fragment in fragments.items():
+        print('new code')
         try:
             fragment_neighbourhoods[ligand_id] = _get_ligand_neighbourhood(
                 assembly,
