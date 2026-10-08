@@ -40,6 +40,10 @@ def structure_to_landmarks(st):
             for residue in chain:
                 if residue.name not in constants.RESIDUE_NAMES:
                     continue
+                try:
+                    residue['CA']
+                except:
+                    continue
                 for atom in residue:
                     pos = atom.pos
                     landmarks[
