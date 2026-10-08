@@ -111,3 +111,17 @@ def test_missing_event_map_metadata_warns_and_continues():
     assert out["A"]["201"]["A"]["v1"][SITE][C.META_AIGNED_STRUCTURE] == "a.pdb"
     aligner.logger.warn.assert_called_once()
     assert "xtal-1" in aligner.logger.warn.call_args[0][0]
+
+
+def test_residue_renumbered_between_versions():
+    """The ligand residue number changed, so the event map metadata is keyed on the old number. This used to
+    exit with 'Unexpected number of event maps'. Now the stale entry is ignored with a warning."""
+    dataset_output = {"A": {"305": {"A": {"v2": _version_output("a")}}}}
+    events = [_event("A", 201, "A")]
+    aligner = _aligner()
+
+    out = aligner._build_aligned_files("xtal-1", dataset_output, events)
+
+    assert not _has_event_map(out["A"]["305"]["A"]["v2"])
+    assert out["A"]["305"]["A"]["v2"][SITE][C.META_AIGNED_STRUCTURE] == "a.pdb"
+    aligner.logger.warn.assert_called_once()
