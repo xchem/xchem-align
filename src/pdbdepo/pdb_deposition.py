@@ -506,7 +506,22 @@ def process_input(
             if data_processing_prog and data_processing_prog != 'None':
                 data_processing_prog = data_processing_prog.lower()
                 info('data processing was done with ' + data_processing_prog)
-                if data_processing_logfile_p:
+                if data_processing_prog.replace('_', '-') == 'xia2-dials' and data_processing_logfile_p:
+                    # xia2.mmcif.bz2 can disagree with the json, and it's the json that matches the data
+                    # that was carried forward to refinement, so the json is the only source and is required
+                    stats_json = find_xia2_dials_stats_json(base_dir, data_processing_logfile_p)
+                    if stats_json is None:
+                        error(
+                            xtal_name + ': no *' + scrape_processing_stats.XIA2_DIALS_JSON_SUFFIX + ' file found for',
+                            data_processing_logfile,
+                        )
+                        exit(1)
+                    info('processing stats from', stats_json.name)
+                    data_processing_log_file = stats_json
+                    stats_doc = scrape_processing_stats.handle_file(stats_json, data_processing_prog, None, None)
+                    for item in stats_doc[0]:
+                        structure_cif_block0.add_item(item)
+                elif data_processing_logfile_p:
                     stats_cif = (
                         base_dir / utils.make_path_relative(Path(data_processing_logfile).parent) / 'xia2.mmcif.bz2'
                     )
@@ -1223,6 +1238,25 @@ def read_phasing_software(xtal_dir):
         warn('dimple log file not found:', str(dimple_log_file_path))
 
     return dimple_ver
+
+
+def find_xia2_dials_stats_json(base_dir: Path, logfile: Path):
+    """Find the xia2-dials <descriptor>_SAD_merging-statistics.json for a crystal.
+
+    DataProcessingPathToLogfile normally is the json itself, but may be a symlink to it (as the
+    <crystal>.log files in the model building directories are), so the link is followed and the directory of
+    the real file searched. Returns None if there is no such file.
+    """
+    suffix = scrape_processing_stats.XIA2_DIALS_JSON_SUFFIX
+    p = base_dir / utils.make_path_relative(logfile)
+    if p.is_file():
+        p = p.resolve()
+        if p.name.endswith(suffix):
+            return p
+    candidates = sorted(p.parent.glob('*' + suffix))
+    if len(candidates) > 1:
+        warn('multiple', suffix, 'files in', p.parent, '- using', candidates[0].name)
+    return candidates[0] if candidates else None
 
 
 def create_pairs(data: dict, prefix: str, block: cif.Block):

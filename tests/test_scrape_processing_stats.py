@@ -321,3 +321,61 @@ def test_handle_file_phenix_creates_reflns_loop(type_name):
     block = doc[0]
     assert block.find_pair("_reflns.d_resolution_high") == ("_reflns.d_resolution_high", "1.89")
     assert block.find_loop("_reflns_shell.pdbx_CC_half")[0] == "0.151"
+
+
+# ---------------------------------------------------------------------------
+# handle_xia2_dials (the *_SAD_merging-statistics.json, from m2ms/fragalysis-frontend#2406)
+# ---------------------------------------------------------------------------
+
+XIA2_DIALS_JSON = DATA_DIR / "xia2_dials_SAD_merging-statistics.json"
+
+
+def test_handle_xia2_dials_overall_stats():
+    reflns, _ = sps.handle_xia2_dials(str(XIA2_DIALS_JSON))
+
+    assert reflns["d_resolution_high"] == pytest.approx(1.31, abs=1e-3)
+    assert reflns["d_resolution_low"] == pytest.approx(65.03, abs=1e-2)
+    assert reflns["number_measured_obs"] == 386652
+    assert reflns["number_obs"] == 66104
+    assert reflns["pdbx_redundancy"] == pytest.approx(5.849, abs=1e-3)
+    assert reflns["pdbx_netI_over_sigmaI"] == pytest.approx(14.849, abs=1e-3)
+    assert reflns["pdbx_Rmerge_I_obs"] == pytest.approx(0.06466, abs=1e-5)
+    assert reflns["pdbx_Rrim_I_all"] == pytest.approx(0.07062, abs=1e-5)
+    assert reflns["pdbx_Rpim_I_all"] == pytest.approx(0.02787, abs=1e-5)
+    assert reflns["pdbx_CC_half"] == pytest.approx(0.99908, abs=1e-5)
+    assert reflns["percent_possible_obs"] == pytest.approx(96.17, abs=1e-2)
+    # the json has neither
+    assert "pdbx_chi_squared" not in reflns
+    assert "pdbx_Rsym_value" not in reflns
+
+
+def test_handle_xia2_dials_all_shells():
+    _, shell = sps.handle_xia2_dials(str(XIA2_DIALS_JSON))
+
+    assert len(shell["pdbx_ordinal"]) == 20
+    assert list(shell["pdbx_ordinal"]) == list(range(1, 21))
+    for key, values in shell.items():
+        assert len(values) == 20, key
+    # lowest resolution shell first
+    assert shell["d_res_low"][0] == pytest.approx(65.115, abs=1e-3)
+    assert shell["d_res_high"][0] == pytest.approx(3.556, abs=1e-3)
+    assert shell["d_res_high"][-1] == pytest.approx(1.310, abs=1e-3)
+    assert shell["number_measured_obs"][0] == 23979
+    assert shell["number_unique_obs"][0] == 3535
+    assert shell["Rmerge_I_obs"][-1] == pytest.approx(1.2147, abs=1e-4)
+    assert shell["pdbx_CC_half"][-1] == pytest.approx(0.29615, abs=1e-5)
+    assert "meanI_over_sigI_obs" in shell
+    # the shell numbers add up to the overall ones
+    assert sum(shell["number_measured_obs"]) == 386652
+
+
+def test_handle_xia2_dials_missing_file_returns_empty(tmp_path):
+    assert sps.handle_xia2_dials(str(tmp_path / "nope.json")) == ({}, {})
+
+
+@pytest.mark.parametrize("type_name", ["xia2-dials", "xia2_dials"])
+def test_handle_file_xia2_dials_creates_reflns_and_shell_loop(type_name):
+    doc = sps.handle_file(str(XIA2_DIALS_JSON), type_name, None, None)
+    block = doc[0]
+    assert block.find_pair("_reflns.number_obs") == ("_reflns.number_obs", "66104")
+    assert len(block.find_loop("_reflns_shell.pdbx_CC_half")) == 20

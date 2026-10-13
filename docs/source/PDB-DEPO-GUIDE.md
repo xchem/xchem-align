@@ -319,7 +319,9 @@ The value of `DataProcessingProgram` is lower-cased and normalised:
 The normalised name is used for two independent things: finding the reflection statistics, and
 selecting the `_software` template.
 
-**Reflection statistics** are taken from the first of these that is available:
+**Reflection statistics** for `xia2-dials` (also named `dials` or `xia2_dials`) come only from the
+`<descriptor>_SAD_merging-statistics.json`, see [xia2-dials statistics](#xia2-dials-statistics). For
+every other program they are taken from the first of these that is available:
 
 1. `xia2.mmcif.bz2` in the same directory as the logfile, except for the phenix program names, which
    never use it. This is the preferred source — it is a
@@ -339,13 +341,49 @@ The log parsers recognise these program names and file formats:
 | `autoproc` | `<crystal>.log` or `aimless.log` | AIMLESS text summary table |
 | `autoproc_staraniso` | `staraniso_alldata-unique.table1` | STARANISO text summary table |
 | `xia2-3dii` | `<crystal>.log` | xia2 text summary table |
-| `xia2-dials` | `<crystal>.log` | xia2 text summary table (assumed to be the same format as `xia2-3dii`) |
+| `xia2-dials` | `<descriptor>_SAD_merging-statistics.json` | JSON, see [xia2-dials statistics](#xia2-dials-statistics) |
 | `xia2-multiplex` | the xia2.multiplex HTML report | HTML, parsed with BeautifulSoup — the "Overall" table of the combined "All data" dataset |
 | `autoproc-phenix`, `autoproc-staraniso-phenix`, `xia2-3dii-phenix`, `xia2-dials-phenix` | the `phenix.merging_statistics` log | The "Statistics by resolution bin" table: first row is the inner shell, second-to-last the outer shell, last row the overall values. Columns are found by their header names |
 
 Each name is also recognised with underscores in place of hyphens, since `DataProcessingProgram`
 values seen in the wild use both. In each case the overall values become `_reflns` and the
 inner/outer shell values become a two-row `_reflns_shell` loop.
+
+(xia2-dials-statistics)=
+### xia2-dials statistics
+
+`xia2.mmcif.bz2` can hold different values from the `<descriptor>_SAD_merging-statistics.json` (e.g.
+`lb32627v495_xA71EV2Ax57211_SAD_merging-statistics.json`) and it is the json that corresponds to the data
+carried forward to refinement, so for `xia2-dials` the json is the only source (m2ms/fragalysis-frontend#2406).
+Any `xia2.mmcif.bz2` next to it is ignored.
+
+`DataProcessingPathToLogfile` normally is the json. If it is a symlink to it, as the `<crystal>.log` in the model
+building directory is, the link is followed. Otherwise the directory of the logfile is searched for a
+`*_SAD_merging-statistics.json`. **If there is none the run stops with an error** rather than falling back to the
+mmCIF or the text log. If `DataProcessingPathToLogfile` is empty no statistics are looked for.
+
+The overall values become the `_reflns` pairs and *every* resolution bin (20 for the current xia2) becomes a row of
+the `_reflns_shell` loop, lowest resolution first:
+
+| JSON field | `_reflns` item | `_reflns_shell` item |
+|---|---|---|
+| `d_star_sq_min` | `d_resolution_high` | `d_res_high` |
+| `d_star_sq_max` | `d_resolution_low` | `d_res_low` |
+| `r_merge` | `pdbx_Rmerge_I_obs` | `Rmerge_I_obs` |
+| `r_meas` | `pdbx_Rrim_I_all` | `pdbx_Rrim_I_all` |
+| `r_pim` | `pdbx_Rpim_I_all` | `pdbx_Rpim_I_all` |
+| `cc_one_half` | `pdbx_CC_half` | `pdbx_CC_half` |
+| `n_obs` | `number_measured_obs` | `number_measured_obs` |
+| `n_uniq` | `number_obs` | `number_unique_obs` |
+| `i_over_sigma_mean` | `pdbx_netI_over_sigmaI` | `meanI_over_sigI_obs` |
+| `completeness` | `percent_possible_obs` | `percent_possible_obs` |
+| `multiplicity` | `pdbx_redundancy` | `pdbx_redundancy` |
+
+The d-spacings are `1/sqrt(d_star_sq)`. Despite the names, `d_star_sq_min` is the *high* resolution end of a bin
+and `d_star_sq_max` the low resolution end. The json has no chi-squared or Rsym values, so `pdbx_chi_squared` and
+`pdbx_Rsym_value` are not written (nor were they from `xia2.mmcif.bz2`), and nothing corresponds to the
+mmCIF's `_reflns.pdbx_netI_over_av_sigmaI`. As the stats come from a different source the structure's own
+`_reflns_shell` loop, if it had one, must not be present or the CIF would have duplicate tags.
 
 ```{note}
 If the log file named by `DataProcessingPathToLogfile` is missing or unparseable, and no

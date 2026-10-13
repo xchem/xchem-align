@@ -1,4 +1,5 @@
 import argparse
+import json
 import re
 from pathlib import Path
 import gemmi
@@ -169,9 +170,72 @@ def handle_autoproc_staraniso(file):
     return handle_text_file(file, d_autoproc_staraniso)
 
 
+XIA2_DIALS_JSON_SUFFIX = '_SAD_merging-statistics.json'
+
+# maps the field in the xia2-dials *_SAD_merging-statistics.json to the reflns key. The same field is used
+# for the overall stats (the "overall" object) and each shell (a list entry per resolution bin).
+# The JSON has no chi-squared or Rsym values.
+_XIA2_DIALS_JSON_KEYS = {
+    'r_merge': KEY_REFLNS_PDBX_RMERGE_I_OBS,
+    'r_meas': KEY_REFLNS_PDBX_RRIM_I_ALL,
+    'r_pim': KEY_REFLNS_PDBX_RPIM_I_ALL,
+    'cc_one_half': KEY_REFLNS_PDBX_CC_HALF,
+    'n_obs': KEY_REFLNS_NUM_MEASURED,
+    'n_uniq': KEY_REFLNS_NUM_OBSERVED,
+    'multiplicity': KEY_REFLNS_PDBX_REDUNDANCY,
+    'completeness': KEY_REFLNS_POSSIBLE_OBS,
+    'i_over_sigma_mean': KEY_REFLNS_NETI_OVER_SIGMA,
+}
+
+
+# shell item names that differ from the _replace_shell_key convention, matching what xia2.mmcif.bz2 gives
+_XIA2_DIALS_SHELL_KEYS = {
+    KEY_REFLNS_NETI_OVER_SIGMA: 'meanI_over_sigI_obs',
+    KEY_REFLNS_PDBX_RMERGE_I_OBS: 'Rmerge_I_obs',
+}
+
+
+def _d_spacing(d_star_sq):
+    return d_star_sq**-0.5
+
+
 def handle_xia2_dials(file):
-    # assumes the syntax is the same as for xia2-3dii
-    return handle_text_file(file, d_xia_3dii)
+    """Parse the xia2-dials <descriptor>_SAD_merging-statistics.json, which is the data that is carried forward to
+    refinement (xia2.mmcif.bz2 can hold different values).
+
+    The overall values become the _reflns pairs and every resolution bin becomes a row of the _reflns_shell loop,
+    lowest resolution first. Note that in the JSON d_star_sq_min is the high resolution end of a bin and
+    d_star_sq_max the low resolution end.
+    """
+    if file is None:
+        error('Log file not defined')
+        return {}, {}
+    elif not Path(file).is_file():
+        error('Log file ' + str(file) + ' not present')
+        return {}, {}
+
+    with open(file, 'rt', encoding='utf-8') as f:
+        data = json.load(f)
+
+    overall = data['overall']
+    reflns = {KEY_REFLNS_ENTRY_ID: 'UNNAMED', KEY_REFLNS_DIFFRN_ID: 1, KEY_REFLNS_PDBX_ORDINAL: 1}
+    reflns[KEY_REFLNS_RESO_HIGH] = _d_spacing(overall['d_star_sq_min'])
+    reflns[KEY_REFLNS_RESO_LOW] = _d_spacing(overall['d_star_sq_max'])
+    for json_key, key in _XIA2_DIALS_JSON_KEYS.items():
+        reflns[key] = overall[json_key]
+
+    num_shells = len(data['d_star_sq_min'])
+    shell = {
+        KEY_REFLNS_DIFFRN_ID: [1] * num_shells,
+        KEY_REFLNS_PDBX_ORDINAL: list(range(1, num_shells + 1)),
+        _replace_shell_key(KEY_REFLNS_RESO_HIGH): [_d_spacing(v) for v in data['d_star_sq_min']],
+        _replace_shell_key(KEY_REFLNS_RESO_LOW): [_d_spacing(v) for v in data['d_star_sq_max']],
+    }
+    for json_key, key in _XIA2_DIALS_JSON_KEYS.items():
+        shell[_XIA2_DIALS_SHELL_KEYS.get(key, _replace_shell_key(key))] = list(data[json_key])
+
+    info('read', num_shells, 'resolution shells')
+    return reflns, shell
 
 
 def handle_xia_3dii(file):
