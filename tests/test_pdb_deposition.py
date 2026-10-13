@@ -605,7 +605,11 @@ _REPO = Path(__file__).parent.parent
 _XTAL = 'x0001'
 
 
-def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True, buster=False):
+_DIALS_JSON_FIXTURE = _REPO / 'test-data/processing_stats/xia2_dials_SAD_merging-statistics.json'
+_XTAL_JSON = 'lb1v1_x0001_SAD_merging-statistics.json'
+
+
+def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True, buster=False, program='dials'):
     """A base_dir (standing in for where /dls is mounted) holding one REFMAC crystal, and its SoakDB."""
     base = tmp_path / 'mnt'
     proc = base / 'dls/proc/xia2'
@@ -613,7 +617,10 @@ def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True, buster=Fa
     db_dir = base / 'dls/db'
     for d in (proc, refine, db_dir):
         d.mkdir(parents=True)
-    shutil.copy(_REPO / 'test-data/8dz9.pdb', refine / 'refine.pdb')
+    # without the REMARK 200 data collection stats that 8dz9.pdb has, which come out as a _reflns_shell loop, as
+    # the processing stats are the only source of those
+    lines = (_REPO / 'test-data/8dz9.pdb').read_text().splitlines(keepends=True)
+    (refine / 'refine.pdb').write_text(''.join(line for line in lines if not line.startswith('REMARK 200')))
     if buster:
         struc = gemmi.read_pdb(str(_REPO / 'test-data/8dz9.pdb'), ignore_ter=True)
         struc.setup_entities()
@@ -623,9 +630,11 @@ def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True, buster=Fa
     (refine / 'lig.cif').write_text('data_lig\n_chem_comp.id LIG\n')
     (proc / 'xia2.log').write_text('')
     if with_stats:
+        # the xia2-dials stats source. The xia2.mmcif.bz2 must be ignored, it's known to hold the wrong values
+        shutil.copy(_DIALS_JSON_FIXTURE, proc / _XTAL_JSON)
         doc = cif.Document()
         doc.add_new_block('first')
-        doc.add_new_block('second').set_pair('_reflns.d_resolution_high', '1.5')
+        doc.add_new_block('second').set_pair('_reflns.d_resolution_high', '99')
         with bz2.open(proc / 'xia2.mmcif.bz2', 'wt') as f:
             f.write(doc.as_string())
 
@@ -646,8 +655,8 @@ def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True, buster=Fa
                 '/dls/refine/x0001/refine.pdb',
                 '/dls/refine/x0001/refine.mtz',
                 'free.mtz',  # as in SoakDB: just the filename
-                'dials',
-                '/dls/proc/xia2/xia2.log',
+                program,
+                '/dls/proc/xia2/' + (_XTAL_JSON if program == 'dials' else 'xia2.log'),
             ),
         )
     return base, db
@@ -712,7 +721,7 @@ def test_process_input_writes_inputs_yaml(tmp_path, monkeypatch):
         'mtz_free': '/dls/refine/x0001/free.mtz',  # SoakDB only had the filename
         'event_maps': [],
         'ligand_cif': '/dls/refine/x0001/lig.cif',
-        'data_processing_stats': {'program': 'xia2-dials', 'file': '/dls/proc/xia2/xia2.mmcif.bz2'},
+        'data_processing_stats': {'program': 'xia2-dials', 'file': '/dls/proc/xia2/' + _XTAL_JSON},
         'collection_info': None,
         'metadata_csv': 'meta.csv',
         'compound_codes_csv': None,
@@ -724,19 +733,37 @@ def test_process_input_writes_inputs_yaml(tmp_path, monkeypatch):
 
 
 def test_process_input_inputs_yaml_nulls_for_missing_files(tmp_path, monkeypatch):
-    base, db = _make_inputs_tree(tmp_path, with_stats=False, with_ligand_cif=False)
+    base, db = _make_inputs_tree(tmp_path, with_stats=False, with_ligand_cif=False, program='xia2-3dii')
     out = _run_process_input(tmp_path, monkeypatch, base, db)
 
     inputs = yaml.safe_load((out / 'inputs.yaml').read_text())['inputs']
     assert inputs['ligand_cif'] is None
     # no xia2.mmcif.bz2, so the stats come from the logfile SoakDB points at
-    assert inputs['data_processing_stats'] == {'program': 'xia2-dials', 'file': '/dls/proc/xia2/xia2.log'}
+    assert inputs['data_processing_stats'] == {'program': 'xia2-3dii', 'file': '/dls/proc/xia2/xia2.log'}
     assert not (out / 'x0001_lig.cif').exists()
 
     # and with no logfile either there are no stats inputs at all
     (base / 'dls/proc/xia2/xia2.log').unlink()
     out = _run_process_input(tmp_path, monkeypatch, base, db)
     assert yaml.safe_load((out / 'inputs.yaml').read_text())['inputs']['data_processing_stats'] is None
+
+
+def test_process_input_xia2_dials_stats_come_from_json(tmp_path, monkeypatch):
+    base, db = _make_inputs_tree(tmp_path)
+    out = _run_process_input(tmp_path, monkeypatch, base, db)
+
+    block = cif.read(str(out / 'x0001_struc.cif'))[0]
+    # from the json, not from the (different) xia2.mmcif.bz2 sitting next to it
+    assert block.find_value('_reflns.number_obs') == '66104'
+    assert block.find_value('_reflns.d_resolution_high').startswith('1.31')
+    assert len(block.find_loop('_reflns_shell.pdbx_CC_half')) == 20
+
+
+def test_process_input_xia2_dials_fails_without_json(tmp_path, monkeypatch):
+    base, db = _make_inputs_tree(tmp_path)
+    (base / 'dls/proc/xia2' / _XTAL_JSON).unlink()  # leaves the xia2.mmcif.bz2, which must not be used instead
+    with pytest.raises(SystemExit):
+        _run_process_input(tmp_path, monkeypatch, base, db)
 
 
 def test_process_input_rerun_overwrites(tmp_path, monkeypatch):
@@ -790,3 +817,40 @@ def test_process_input_event_maps_record_original_sources(tmp_path, monkeypatch)
     # and both maps made it into the structure factor CIF as blocks of their own
     sf = cif.read(str(out / 'x0001_sf.cif'))
     assert [b.name for b in sf] == ['rxxxxsf', 'rxxxxAsf', 'rxxxxBsf0', 'rxxxxBsf1']
+
+
+# ---------------------------------------------------------------------------
+# find_xia2_dials_stats_json
+# ---------------------------------------------------------------------------
+
+_DIALS_JSON = 'lb1v1_xA1_SAD_merging-statistics.json'
+
+
+def test_find_xia2_dials_stats_json_logfile_is_json(tmp_path):
+    d = tmp_path / 'autoprocessing' / 'run'
+    d.mkdir(parents=True)
+    (d / _DIALS_JSON).write_text('{}')
+    assert (
+        pdb_deposition.find_xia2_dials_stats_json(tmp_path, Path('/autoprocessing/run') / _DIALS_JSON)
+        == (d / _DIALS_JSON).resolve()
+    )
+
+
+def test_find_xia2_dials_stats_json_logfile_is_symlink_to_json(tmp_path):
+    d = tmp_path / 'autoprocessing' / 'run'
+    d.mkdir(parents=True)
+    (d / _DIALS_JSON).write_text('{}')
+    xtal = tmp_path / 'xtal'
+    xtal.mkdir()
+    (xtal / 'xtal.log').symlink_to(d / _DIALS_JSON)
+    assert pdb_deposition.find_xia2_dials_stats_json(tmp_path, Path('/xtal/xtal.log')) == (d / _DIALS_JSON).resolve()
+
+
+def test_find_xia2_dials_stats_json_found_next_to_logfile(tmp_path):
+    (tmp_path / _DIALS_JSON).write_text('{}')
+    assert pdb_deposition.find_xia2_dials_stats_json(tmp_path, Path('/xtal.log')) == tmp_path / _DIALS_JSON
+
+
+def test_find_xia2_dials_stats_json_missing_returns_none(tmp_path):
+    (tmp_path / 'xia2.mmcif.bz2').write_text('')
+    assert pdb_deposition.find_xia2_dials_stats_json(tmp_path, Path('/xtal.log')) is None

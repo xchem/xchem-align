@@ -259,6 +259,17 @@ class Copier:
                         num_files += self.copy_file_and_log(
                             xtal_name, 'xia2.mmcif.bz2', str(stats_cif_p), xtal_dir_input_path
                         )
+
+                    # copy the xia2-dials <descriptor>_SAD_merging-statistics.json file, which is the source of the
+                    # processing stats for that program. DataProcessingPathToLogfile is normally the file itself
+                    # but when it's a symlink to it the file is copied above under the link's name
+                    for stats_json_p in sorted(
+                        dp_log_p.resolve().parent.glob('*' + scrape_processing_stats.XIA2_DIALS_JSON_SUFFIX)
+                    ):
+                        if stats_json_p.name != dp_log_p.name:
+                            num_files += self.copy_file_and_log(
+                                xtal_name, stats_json_p.name, str(stats_json_p), xtal_dir_input_path
+                            )
                 else:
                     self._log_warning("Data processing logfile not defined for crystal " + xtal_name)
 
@@ -572,6 +583,7 @@ def main():
     # collection_info.cif      <xtal_dir>/autoprocessing/<xtal_name>_collection_info.cif
     # Data processing logfile  DataProcessingPathToLogfile column from soakDB (though symlink sometimes broken)
     # xia2.mmcif.bz2           In directory containing Data processing logfile
+    # *_SAD_merging-statistics.json  In directory containing Data processing logfile (xia2-dials stats)
     # soakDBDataFile.sqlite    From config.yaml or <visit_dir>/processing/database/soakDBDataFile.sqlite
     # Sequence FASTA files     The sequences.default and each sequences.variants[].sequence of the input,
     #                          found under the input's sequences.dir (default processing/analysis/sequences)
