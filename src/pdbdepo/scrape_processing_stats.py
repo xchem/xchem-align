@@ -204,7 +204,7 @@ def handle_xia2_dials(file):
     refinement (xia2.mmcif.bz2 can hold different values).
 
     The overall values become the _reflns pairs and every resolution bin becomes a row of the _reflns_shell loop,
-    lowest resolution first. Note that in the JSON d_star_sq_min is the high resolution end of a bin and
+    highest resolution first (shell 1 is the outer shell, as the JSON lists the bins the other way round). Note that in the JSON d_star_sq_min is the high resolution end of a bin and
     d_star_sq_max the low resolution end.
     """
     if file is None:
@@ -228,11 +228,11 @@ def handle_xia2_dials(file):
     shell = {
         KEY_REFLNS_DIFFRN_ID: [1] * num_shells,
         KEY_REFLNS_PDBX_ORDINAL: list(range(1, num_shells + 1)),
-        _replace_shell_key(KEY_REFLNS_RESO_HIGH): [_d_spacing(v) for v in data['d_star_sq_min']],
-        _replace_shell_key(KEY_REFLNS_RESO_LOW): [_d_spacing(v) for v in data['d_star_sq_max']],
+        _replace_shell_key(KEY_REFLNS_RESO_HIGH): [_d_spacing(v) for v in reversed(data['d_star_sq_min'])],
+        _replace_shell_key(KEY_REFLNS_RESO_LOW): [_d_spacing(v) for v in reversed(data['d_star_sq_max'])],
     }
     for json_key, key in _XIA2_DIALS_JSON_KEYS.items():
-        shell[_XIA2_DIALS_SHELL_KEYS.get(key, _replace_shell_key(key))] = list(data[json_key])
+        shell[_XIA2_DIALS_SHELL_KEYS.get(key, _replace_shell_key(key))] = list(reversed(data[json_key]))
 
     info('read', num_shells, 'resolution shells')
     return reflns, shell

@@ -363,7 +363,8 @@ building directory is, the link is followed. Otherwise the directory of the logf
 mmCIF or the text log. If `DataProcessingPathToLogfile` is empty no statistics are looked for.
 
 The overall values become the `_reflns` pairs and *every* resolution bin (20 for the current xia2) becomes a row of
-the `_reflns_shell` loop, lowest resolution first:
+the `_reflns_shell` loop, highest resolution first (shell 1 is the outermost shell; the json lists the bins
+the other way round, so they are reversed):
 
 | JSON field | `_reflns` item | `_reflns_shell` item |
 |---|---|---|
