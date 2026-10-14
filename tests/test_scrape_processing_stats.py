@@ -356,15 +356,19 @@ def test_handle_xia2_dials_all_shells():
     assert list(shell["pdbx_ordinal"]) == list(range(1, 21))
     for key, values in shell.items():
         assert len(values) == 20, key
-    # lowest resolution shell first
-    assert shell["d_res_low"][0] == pytest.approx(65.115, abs=1e-3)
-    assert shell["d_res_high"][0] == pytest.approx(3.556, abs=1e-3)
-    assert shell["d_res_high"][-1] == pytest.approx(1.310, abs=1e-3)
-    assert shell["number_measured_obs"][0] == 23979
-    assert shell["number_unique_obs"][0] == 3535
-    assert shell["Rmerge_I_obs"][-1] == pytest.approx(1.2147, abs=1e-4)
-    assert shell["pdbx_CC_half"][-1] == pytest.approx(0.29615, abs=1e-5)
+    # highest resolution (outer) shell first, the reverse of the json
+    assert shell["d_res_high"][0] == pytest.approx(1.310, abs=1e-3)
+    assert shell["d_res_low"][0] == pytest.approx(1.3326, abs=1e-3)
+    assert shell["d_res_high"][-1] == pytest.approx(3.556, abs=1e-3)
+    assert shell["d_res_low"][-1] == pytest.approx(65.115, abs=1e-3)
+    assert shell["number_measured_obs"][0] == 6805
+    assert shell["number_unique_obs"][0] == 2205
+    assert shell["number_measured_obs"][-1] == 23979
+    assert shell["Rmerge_I_obs"][0] == pytest.approx(1.2147, abs=1e-4)
+    assert shell["pdbx_CC_half"][0] == pytest.approx(0.29615, abs=1e-5)
+    assert shell["pdbx_CC_half"][-1] == pytest.approx(0.99634, abs=1e-5)
     assert "meanI_over_sigI_obs" in shell
+    assert shell["d_res_high"] == sorted(shell["d_res_high"])
     # the shell numbers add up to the overall ones
     assert sum(shell["number_measured_obs"]) == 386652
 
