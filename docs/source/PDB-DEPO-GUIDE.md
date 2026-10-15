@@ -203,6 +203,11 @@ sequence declared for it in `config.yaml`. Any mismatch is fatal for the whole r
 would be rejected by the wwPDB, so the run stops with the complete list of crystals to fix rather
 than leaving partial output behind.
 
+Likewise, every remaining crystal must have a complete `autoprocessing/<crystal>_collection_info.cif`
+(see below). A missing file, invalid CIF, or a missing or empty required category is fatal, again with
+the complete list of problems reported in one go and no output written. (The copier only warns about a
+missing file.)
+
 ## Inputs used for each crystal
 
 ### From SoakDB (`mainTable`)
@@ -244,8 +249,11 @@ no output files.
 |---|---|
 | `autoprocessing/<crystal>_collection_info.cif` | Data collection information — beamline, wavelength, detector, temperature, etc. Everything in it is copied into the structure CIF, except its `_diffrn` loop which is merged with mmcif-gen's `_diffrn` data into a single row |
 
-This file is optional: a warning is logged if it is missing and the data is simply absent from the
-output.
+This file is mandatory. Before anything is written it is checked that the file exists, is valid CIF and
+contains each of the categories `_diffrn_source`, `_diffrn_radiation_wavelength`, `_diffrn`,
+`_diffrn_detector` and `_diffrn_radiation`, each (as a loop or as key/value pairs) with at least one row
+that is not entirely `?`/`.` placeholders. Individual `?` values are fine. See
+[Which crystals are processed](#which-crystals-are-processed).
 
 ### From the data processing directory
 

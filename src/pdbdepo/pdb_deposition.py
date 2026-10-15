@@ -297,6 +297,80 @@ def validate_sequences(base_dir: Path, df, input_config: dict, default_seq, vari
     info('sequences of all', len(df), 'structures match those declared in config.yaml')
 
 
+# The categories that must be present, with at least one row, in <crystal>_collection_info.cif
+COLLECTION_INFO_CATEGORIES = (
+    '_diffrn_source',
+    '_diffrn_radiation_wavelength',
+    '_diffrn',
+    '_diffrn_detector',
+    '_diffrn_radiation',
+)
+
+
+def check_collection_info(collection_info_p: Path) -> list:
+    """
+    Check a <crystal>_collection_info.cif file exists and holds the required data collection categories.
+
+    A category may be written as a loop or as key/value pairs. It counts as populated if it has at least
+    one row that is not entirely ? or . placeholders; individual placeholder values are fine.
+
+    :param collection_info_p: path of the collection info file
+    :return: list of problem descriptions, empty if the file is complete
+    """
+    if not collection_info_p.is_file():
+        return ['file not found: ' + str(collection_info_p)]
+    try:
+        doc = cif.read(str(collection_info_p))
+    except Exception as e:
+        return ['file ' + str(collection_info_p) + ' is not valid CIF: ' + str(e).strip()]
+    if len(doc) == 0:
+        return ['file ' + str(collection_info_p) + ' contains no data block']
+
+    block = doc[0]
+    problems = []
+    for category in COLLECTION_INFO_CATEGORIES:
+        table = block.find_mmcif_category(category + '.')
+        if not table.width():
+            problems.append('category ' + category + ' is missing from ' + str(collection_info_p))
+        elif not any(any(v not in ('?', '.') for v in row) for row in table):
+            problems.append('category ' + category + ' has no values in ' + str(collection_info_p))
+    return problems
+
+
+def validate_collection_info(base_dir: Path, input_path: Path, df):
+    """
+    Check every crystal has a complete data collection info file before anything is written.
+
+    Like validate_sequences this is a pass over all the crystals so the user gets the complete list of
+    what to fix in one go, and no partial output is left behind. Fatal if anything is wrong.
+
+    :param base_dir: the base dir that the input paths are relative to
+    :param input_path: the input dir, relative to base_dir
+    :param df: the soakdb dataframe, already filtered for excluded crystals
+    """
+    num_bad = 0
+    for xtal_name in df[Constants.SOAKDB_XTAL_NAME]:
+        xtal_in_path = base_dir / input_path / utils.Constants.DEFAULT_MODEL_BUILDING_DIR / xtal_name
+        collection_info_p = xtal_in_path / 'autoprocessing' / (xtal_name + '_collection_info.cif')
+        problems = check_collection_info(collection_info_p)
+        if problems:
+            num_bad += 1
+            for problem in problems:
+                error('collection info for', xtal_name + ':', problem)
+
+    if num_bad:
+        error(
+            'the data collection info is missing or incomplete for',
+            num_bad,
+            'of the',
+            len(df),
+            'structures, so no deposition files have been written.',
+        )
+        exit(1)
+
+    info('data collection info is complete for all', len(df), 'structures')
+
+
 def process_input(
     base_dir: Path,
     input_path: Path,
@@ -361,6 +435,7 @@ def process_input(
     df = filter_excluded(df, input_config)
 
     validate_sequences(base_dir, df, input_config, default_seq, variants)
+    validate_collection_info(base_dir, input_path, df)
 
     for index, row in df.iterrows():
         xtal_name = row[Constants.SOAKDB_XTAL_NAME]

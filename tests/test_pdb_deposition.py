@@ -21,11 +21,12 @@ from pdbdepo.pdb_deposition import (
     rename_beamlines,
     sequence_inputs,
     substitute_tokens,
+    check_collection_info,
+    validate_collection_info,
     validate_sequences,
     write_inputs_yaml,
 )
 from xchemalign.utils import Constants
-
 
 # ---------------------------------------------------------------------------
 # substitute_tokens — pure unit tests
@@ -662,7 +663,9 @@ def _make_inputs_tree(tmp_path, with_stats=True, with_ligand_cif=True, buster=Fa
     return base, db
 
 
-def _run_process_input(tmp_path, monkeypatch, base, db, buster=False, event_maps=(), **kwargs):
+def _run_process_input(
+    tmp_path, monkeypatch, base, db, buster=False, event_maps=(), check_collection_info=False, **kwargs
+):
     monkeypatch.setenv(Constants.ENV_XCA_GIT_REPO, str(_REPO))
     struc = gemmi.read_structure(str(_REPO / 'test-data/8dz9.pdb'))
     seq = gemmi.one_letter_code([r.name for r in struc[0]['A']])
@@ -670,6 +673,8 @@ def _run_process_input(tmp_path, monkeypatch, base, db, buster=False, event_maps
     entity = gemmi.read_structure(str(base / 'dls/refine/x0001/refine.mmcif')).entities[0].name if buster else 'A'
     monkeypatch.setattr(pdb_deposition.utils, 'read_sequences', lambda *a, **k: ({'A': (entity, seq)}, {}))
     monkeypatch.setattr(pdb_deposition, 'validate_sequences', lambda *a, **k: None)
+    if not check_collection_info:
+        monkeypatch.setattr(pdb_deposition, 'validate_collection_info', lambda *a, **k: None)
 
     mmcifgen = cif.Document().add_new_block('mmcifgen')
     mmcifgen.init_loop('_entity.', ['id', 'type', 'pdbx_description']).add_row(['1', 'polymer', 'protein'])
@@ -854,3 +859,137 @@ def test_find_xia2_dials_stats_json_found_next_to_logfile(tmp_path):
 def test_find_xia2_dials_stats_json_missing_returns_none(tmp_path):
     (tmp_path / 'xia2.mmcif.bz2').write_text('')
     assert pdb_deposition.find_xia2_dials_stats_json(tmp_path, Path('/xtal.log')) is None
+
+
+# ---------------------------------------------------------------------------
+# collection info pre-flight check
+# ---------------------------------------------------------------------------
+
+_COLLECTION_INFO = """
+data_x0001_collection_info
+loop_
+_diffrn_source.pdbx_wavelength_list
+_diffrn_source.size
+_diffrn_source.source
+_diffrn_source.type
+_diffrn_source.pdbx_synchrotron_site
+_diffrn_source.pdbx_synchrotron_beamline
+_diffrn_source.diffrn_id
+0.921237 '60.0 um x 50.0 um' SYNCHROTRON 'DIAMOND BEAMLINE I04-1' DIAMOND I04-1 1
+
+loop_
+_diffrn_radiation_wavelength.wavelength
+_diffrn_radiation_wavelength.id
+_diffrn_radiation_wavelength.wt
+0.921237 1 1
+
+loop_
+_diffrn.id
+_diffrn.pdbx_serial_crystal_experiment
+1 N
+
+loop_
+_diffrn_detector.type
+_diffrn_detector.detector
+_diffrn_detector.diffrn_id
+_diffrn_detector.pdbx_collection_date
+'Dectris Eiger2 XE 9M' PIXEL 1 2023-12-14
+
+loop_
+_diffrn_radiation.diffrn_id
+_diffrn_radiation.wavelength_id
+_diffrn_radiation.monochromator
+_diffrn_radiation.pdbx_monochromatic_or_laue_m_l
+_diffrn_radiation.pdbx_diffrn_protocol
+_diffrn_radiation.pdbx_scattering_type
+1 1 ? ? ? x-ray
+"""
+
+
+def _drop_category(text, category):
+    """The collection info text without the loop for the category."""
+    blocks = text.split('\nloop_\n')
+    return '\nloop_\n'.join(b for b in blocks if not b.startswith(category + '.'))
+
+
+def _write_collection_info(tmp_path, text):
+    p = tmp_path / 'x0001_collection_info.cif'
+    p.write_text(text)
+    return p
+
+
+def test_check_collection_info_complete(tmp_path):
+    assert check_collection_info(_write_collection_info(tmp_path, _COLLECTION_INFO)) == []
+
+
+def test_check_collection_info_missing_file(tmp_path):
+    problems = check_collection_info(tmp_path / 'nope.cif')
+    assert len(problems) == 1 and 'file not found' in problems[0] and 'nope.cif' in problems[0]
+
+
+def test_check_collection_info_invalid_cif(tmp_path):
+    problems = check_collection_info(_write_collection_info(tmp_path, "data_x\n_a.b 'unterminated\n"))
+    assert len(problems) == 1 and 'not valid CIF' in problems[0]
+
+
+def test_check_collection_info_no_data_block(tmp_path):
+    problems = check_collection_info(_write_collection_info(tmp_path, '# nothing here\n'))
+    assert len(problems) == 1 and 'no data block' in problems[0]
+
+
+@pytest.mark.parametrize('category', pdb_deposition.COLLECTION_INFO_CATEGORIES)
+def test_check_collection_info_missing_category(tmp_path, category):
+    problems = check_collection_info(_write_collection_info(tmp_path, _drop_category(_COLLECTION_INFO, category)))
+    assert len(problems) == 1
+    assert 'category ' + category + ' is missing' in problems[0]
+
+
+@pytest.mark.parametrize('category', pdb_deposition.COLLECTION_INFO_CATEGORIES)
+def test_check_collection_info_category_without_values(tmp_path, category):
+    text = _COLLECTION_INFO
+    blocks = text.split('\nloop_\n')
+    out = []
+    for b in blocks:
+        if b.startswith(category + '.'):
+            tags = [line for line in b.splitlines() if line.startswith('_')]
+            b = '\n'.join(tags) + '\n' + ' '.join('?' for _ in tags) + '\n'
+        out.append(b)
+    problems = check_collection_info(_write_collection_info(tmp_path, '\nloop_\n'.join(out)))
+    assert len(problems) == 1
+    assert 'category ' + category + ' has no values' in problems[0]
+
+
+def test_check_collection_info_accepts_key_value_pairs(tmp_path):
+    text = _drop_category(_COLLECTION_INFO, '_diffrn') + '\n_diffrn.id 1\n_diffrn.pdbx_serial_crystal_experiment N\n'
+    assert check_collection_info(_write_collection_info(tmp_path, text)) == []
+
+
+def _collection_df(*names):
+    return pd.DataFrame({Constants.SOAKDB_XTAL_NAME: list(names)})
+
+
+def _write_xtal_collection_info(base, xtal, text):
+    d = base / 'in' / Constants.DEFAULT_MODEL_BUILDING_DIR / xtal / 'autoprocessing'
+    d.mkdir(parents=True, exist_ok=True)
+    (d / (xtal + '_collection_info.cif')).write_text(text)
+
+
+def test_validate_collection_info_passes(tmp_path):
+    _write_xtal_collection_info(tmp_path, 'x0001', _COLLECTION_INFO)
+    validate_collection_info(tmp_path, Path('in'), _collection_df('x0001'))
+
+
+def test_validate_collection_info_reports_all_bad_crystals(tmp_path, caplog):
+    _write_xtal_collection_info(tmp_path, 'x0001', _COLLECTION_INFO)
+    _write_xtal_collection_info(tmp_path, 'x0002', _drop_category(_COLLECTION_INFO, '_diffrn_detector'))
+    # x0003 has no file at all
+    with pytest.raises(SystemExit) as e:
+        validate_collection_info(tmp_path, Path('in'), _collection_df('x0001', 'x0002', 'x0003'))
+    assert e.value.code == 1
+
+
+def test_process_input_fails_before_writing_when_collection_info_missing(tmp_path, monkeypatch):
+    base, db = _make_inputs_tree(tmp_path)
+    with pytest.raises(SystemExit):
+        _run_process_input(tmp_path, monkeypatch, base, db, check_collection_info=True)
+    assert not (tmp_path / 'collator' / 'pdb_depo_files' / _XTAL).exists()
