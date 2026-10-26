@@ -327,12 +327,21 @@ def align_on_residues(
     ref_poss = []
     mov_poss = []
     for ref_resid, mov_resid in residue_mapping.items():
-        ref_res = structure.get_res_from_resid(ref_resid, reference_structure)
-        ref_ca_pos = ref_res['CA'][0].pos
-        mov_res = structure.get_res_from_resid(mov_resid, moving_structure)
-        mov_ca_pos = mov_res['CA'][0].pos
-        ref_poss.append(ref_ca_pos)
-        mov_poss.append(mov_ca_pos)
+        try:
+            ref_res = structure.get_res_from_resid(ref_resid, reference_structure)
+            mov_res = structure.get_res_from_resid(mov_resid, moving_structure)
+
+            ref_ca_pos = ref_res['CA'][0].pos
+            mov_ca_pos = mov_res['CA'][0].pos
+            ref_poss.append(ref_ca_pos)
+            mov_poss.append(mov_ca_pos)
+        except:
+            raise Exception(
+                f'For reference residue {ref_resid} and moving residue {mov_resid} there was an error matching atoms\n'
+                f'Res res: {ref_res}\n'
+                f'Mov res: {mov_res}\n'
+                f'{residue_mapping}\n'
+            )
 
     transform = gemmi.superpose_positions(ref_poss, mov_poss).transform
 

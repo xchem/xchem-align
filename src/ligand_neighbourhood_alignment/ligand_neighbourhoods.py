@@ -6,7 +6,7 @@ import numpy as np
 from ligand_neighbourhood_alignment import dt
 from ligand_neighbourhood_alignment.alignment_core import _match_cas
 from ligand_neighbourhood_alignment.alignment_landmarks import icode_to_string
-
+from ligand_neighbourhood_alignment import constants 
 
 def _get_centroid_res(
     residues: list[tuple[str, str]],
@@ -25,7 +25,10 @@ def _get_centroid_res(
         closest_atom_id = id_arr[closest]
     except Exception as e:
         raise Exception(
-            'Failed to get centroid residue!\n' 'Res cas\n' f'{res_cas}\n' f'{reference_neighbourhood.atoms}\n'
+            'Failed to get centroid residue!\n' 
+            'Res cas\n' 
+            f'Res CAs: {res_cas}\n' 
+            f'Neighbourhood atoms: {reference_neighbourhood.atoms}\n'
         )
 
     return (closest_atom_id[0], closest_atom_id[1])
@@ -232,6 +235,9 @@ def _get_ligand_neighbourhood(
     # Model atoms
     model_atoms: dict[tuple[str, str, str], dt.Atom] = {}
     for pos, cra in _model_atoms:
+        if cra.residue.name not in constants.RESIDUE_NAMES:
+            continue
+
         # cra = atom.to_cra(structure[0])
         model_atom_id: tuple[str, str, str] = (
             str(cra.chain.name),
@@ -256,6 +262,8 @@ def _get_ligand_neighbourhood(
     # Artefact atoms
     artefact_atoms: dict[tuple[str, str, str], dt.Atom] = {}
     for pos, cra in _artefact_atoms:
+        if cra.residue.name not in constants.RESIDUE_NAMES:
+            continue
         artefact_atom_id: tuple[str, str, str] = (
             str(cra.chain.name),
             str(cra.residue.seqid.num) + icode_to_string(cra.residue.seqid.icode),
@@ -274,6 +282,13 @@ def _get_ligand_neighbourhood(
             y=pos.y,
             z=pos.z,
             image=transform,
+        )
+
+    # Check there is at least one CA in ligand neighbourhood
+    if not any([_atom_id[2] == 'CA' for _atom_id in model_atoms]):
+        raise Exception(
+            f'No CAs withing {max_dist} of ligand residue !\n'
+            f'Neighbourhood atoms are: {[x for x in model_atoms]}\n'
         )
 
     # Cosntruct the neighbourhood
@@ -309,12 +324,17 @@ def _get_dataset_neighbourhoods(
     # partition them into model and artefact
     fragment_neighbourhoods: dict[dt.LigandNeighbourhoodID, dt.Neighbourhood] = {}
     for ligand_id, fragment in fragments.items():
-        fragment_neighbourhoods[ligand_id] = _get_ligand_neighbourhood(
-            assembly,
-            ns,
-            fragment,
-            max_dist=max_radius,
-        )
+        try:
+            fragment_neighbourhoods[ligand_id] = _get_ligand_neighbourhood(
+                assembly,
+                ns,
+                fragment,
+                max_dist=max_radius,
+            )
+        except:
+            raise Exception(
+                f'Failure getting neighbourhood for {ligand_id}'
+            ) 
 
     return fragment_neighbourhoods
 
